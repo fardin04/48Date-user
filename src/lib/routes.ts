@@ -3,6 +3,8 @@
  * a section is a path segment (`/how-it-works`, `/terms/community-conduct`), never a `#hash`.
  *
  * - The Terms frame is labelled "L02" like the landing page; it is keyed `L02-TC`.
+ * - Portal member pages take the member id as their section: DISCOVER-PROFILE → /discover/profile/wildflower,
+ *   COMPAT → /discover/compatibility/goldenhour, MATCH-EXPIRING → /matches/match/goldenhour.
  * - Auth codes are the screen that opens each URL; other Figma states of the same step
  *   (PHONE-ERROR, OTP-FILLED, OTP-ERROR, OTP-RESEND, OTP-EXPIRED, OTP-LIMIT, VERIFY-PROCESS…)
  *   are interaction states rendered on that URL.
@@ -37,6 +39,14 @@ export const screens = {
   "VERIFY-INTRO": "/onboarding/verify",
   NOTIFY: "/onboarding/notifications",
   READY: "/onboarding/ready",
+  DISCOVER: "/discover",
+  FILTERS: "/discover/filters",
+  "DISCOVER-PROFILE": "/discover/profile",
+  COMPAT: "/discover/compatibility",
+  MATCHES: "/matches",
+  "MATCHES-CANCELLED": "/matches/cancelled",
+  "MATCHES-COMPLETE": "/matches/complete",
+  "MATCH-EXPIRING": "/matches/match",
 } as const;
 
 export type ScreenCode = keyof typeof screens;

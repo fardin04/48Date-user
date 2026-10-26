@@ -50,6 +50,12 @@ export const typeScale = {
   text12Medium: "type-text-12-medium",
   text12Relaxed: "type-text-12-relaxed",
   text12MediumTight: "type-text-12-medium-tight",
+  portalTitle28: "type-portal-title-28",
+  portalDisplay36: "type-portal-display-36",
+  text20SemiboldSnug: "type-text-20-semibold-snug",
+  text14BoldRelaxed: "type-text-14-bold-relaxed",
+  cardTitle24: "type-card-title-24",
+  cardTitle20: "type-card-title-20",
   wordmark7: "type-wordmark-7",
 } as const;
 

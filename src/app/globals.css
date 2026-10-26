@@ -52,6 +52,14 @@
   --color-warning: #fa7319;
   --color-warning-bg: #fff3eb;
 
+  /* Portal — W04 discovery & matches */
+  --color-canvas-cool: #f7f8fa;
+  --color-divider: #e6e6e6;
+  --color-success-lighter: #e0faec;
+  --color-amber-bg: #fffbeb;
+  --color-amber: #92400e;
+  --color-nav-ink: #2a2d34;
+
   /* Onboarding — W02 fills */
   --color-stage-idle: #f4f4f5;
   --color-icon-muted: #737880;
@@ -174,6 +182,19 @@
 /* Align UI status badge label: 12/16 medium, ss11 */
 @utility type-text-12-medium-tight {
   font-size: 12px; line-height: 16px; font-weight: 500;
+  font-feature-settings: "ss11" 1, "calt" 0, "liga" 0;
+}
+@utility type-portal-title-28 { font-size: 28px; line-height: 38px; font-weight: 600; }
+@utility type-portal-display-36 { font-size: 36px; line-height: 44px; font-weight: 700; }
+@utility type-text-20-semibold-snug { font-size: 20px; line-height: 28px; font-weight: 600; }
+@utility type-text-14-bold-relaxed { font-size: 14px; line-height: 22px; font-weight: 700; }
+/* Align UI Content Card titles: semibold, ss11, a 20px line box */
+@utility type-card-title-24 {
+  font-size: 24px; line-height: 20px; font-weight: 600; letter-spacing: -0.006em;
+  font-feature-settings: "ss11" 1, "calt" 0, "liga" 0;
+}
+@utility type-card-title-20 {
+  font-size: 20px; line-height: 20px; font-weight: 600; letter-spacing: -0.006em;
   font-feature-settings: "ss11" 1, "calt" 0, "liga" 0;
 }
 @utility type-text-12-relaxed { font-size: 12px; line-height: 22px; font-weight: 400; }

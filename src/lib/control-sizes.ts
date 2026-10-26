@@ -14,6 +14,8 @@ export const buttonSizes = {
   back: `${typeScale.text14SemiboldRelaxed} h-11 gap-2 px-3 rounded-full`,
   /** Onboarding secondary text action ("Enter location manually") — 44px. */
   text: `${typeScale.text16Semibold} h-11 px-8 rounded-full`,
+  /** Portal pill with a 14/22 bold label (decision controls, card actions). */
+  pillCompact: `${typeScale.text14BoldRelaxed} h-14 px-8 rounded-full`,
 } as const;
 
 export type ButtonSize = keyof typeof buttonSizes;
@@ -28,6 +30,16 @@ export const buttonWidths = {
   /** Onboarding action row: 112px Back, 240px primary (shrinks beside Back on phones). */
   setupBack: "w-28",
   setupPrimary: "w-60 min-w-0 max-sm:shrink max-sm:px-4",
+  /** Portal fixed widths from the W04 frames. */
+  decision: "w-34",
+  superLike: "w-38",
+  portalAction: "w-45",
+  findMore: "w-54",
+  notifyAction: "w-56",
+  summaryAction: "w-60",
+  profileAction: "w-75",
+  /** Equal share of a portal action row. */
+  grow: "min-w-0 flex-1",
 } as const;
 
 export type ButtonWidth = keyof typeof buttonWidths;
@@ -41,6 +53,8 @@ export const iconSizes = {
   28: "size-7",
   32: "size-8",
   40: "size-10",
+  48: "size-12",
+  64: "size-16",
 } as const;
 
 /** 56px form control (auth + onboarding "Form / Input control"): states from Figma. */

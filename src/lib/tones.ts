@@ -18,6 +18,9 @@ export const textTones = {
   iconMuted: "text-icon-muted",
   gray400: "text-gray-400",
   warning: "text-warning",
+  amber: "text-amber",
+  navInk: "text-nav-ink",
+  gray25: "text-gray-25",
   /** Takes the colour of its control (field states). */
   inherit: "text-inherit",
 } as const;
