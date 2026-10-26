@@ -53,6 +53,9 @@ export const fieldControl = {
 
 export type FieldState = Exclude<keyof typeof fieldControl, "base">;
 
+/** The bare input inside a field control: takes the control's colour, grey placeholder. */
+export const fieldInput = "h-full min-w-0 flex-1 bg-transparent text-inherit outline-none placeholder:text-gray-400 disabled:cursor-not-allowed";
+
 export type IconSize = keyof typeof iconSizes;
 
 export const sectionSpacing = {
