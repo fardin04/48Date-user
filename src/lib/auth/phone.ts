@@ -19,7 +19,9 @@ export const toPhoneNumber = (country: Country, national: string): PhoneNumber =
 });
 
 /** "+880 •••••• 6155" — the number shown on verify screens. */
-export const maskPhone = (phone: PhoneNumber) => `${phone.dial} ${MASK} ${phone.national.slice(-VISIBLE_DIGITS)}`;
+export const maskPhone = (phone: PhoneNumber) =>
+  // Non-breaking spaces keep the masked number on one line.
+  [phone.dial, MASK, phone.national.slice(-VISIBLE_DIGITS)].join(" ");
 
 /**
  * The entered number lives in sessionStorage between steps (never in the URL), so
