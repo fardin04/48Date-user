@@ -27,7 +27,7 @@ export const buttonWidths = {
   full: "w-full",
   /** Onboarding action row: 112px Back, 240px primary (shrinks beside Back on phones). */
   setupBack: "w-28",
-  setupPrimary: "w-60 min-w-0 max-sm:px-4",
+  setupPrimary: "w-60 min-w-0 max-sm:shrink max-sm:px-4",
 } as const;
 
 export type ButtonWidth = keyof typeof buttonWidths;
