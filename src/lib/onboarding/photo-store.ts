@@ -21,8 +21,9 @@ function subscribe(listener: () => void) {
  * service stores nothing). Every URL is revoked when its photo leaves the store.
  */
 export const photoStore = {
-  add(file: File) {
-    emit([...photos, { id: crypto.randomUUID(), url: URL.createObjectURL(file) }]);
+  /** Takes ownership of an object URL created for an uploaded file. */
+  add(url: string) {
+    emit([...photos, { id: crypto.randomUUID(), url }]);
   },
   clear() {
     photos.forEach((photo) => URL.revokeObjectURL(photo.url));

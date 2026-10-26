@@ -6,7 +6,7 @@ import { getAreas } from "@/stores/onboarding-store";
  * Not for production: replace `onboardingService` in ./onboarding-service.ts.
  *
  * - "GoldenHour" (any casing) is taken; every other valid nickname is available.
- * - Area search filters a starter list; anything else returns no results.
+ * - Area search matches word prefixes in a starter list ("San Francisco, CA"); anything else finds nothing.
  * - Uploads progress over ~2.5s and fail while the browser is offline.
  */
 const LATENCY_MS = 900;
@@ -17,6 +17,9 @@ const taken: Record<string, Extract<NicknameCheck, { available: false }>> = {
   goldenhour: { available: false, suggestions: ["GoldenHour_28", "CityGolden", "CityLights"], recommended: "CityLights" },
 };
 
+/** Lower-case words of a query or label ("San Francisco, CA" → san, francisco, ca). */
+const words = (text: string) => text.toLowerCase().split(/[^\p{L}\p{N}]+/u).filter(Boolean);
+
 const wait = (ms = LATENCY_MS) => new Promise((resolve) => setTimeout(resolve, ms));
 
 export const mockOnboardingService: OnboardingService = {
@@ -25,9 +28,12 @@ export const mockOnboardingService: OnboardingService = {
     return taken[nickname.toLowerCase()] ?? { available: true };
   },
   async searchAreas(query) {
-    const needle = query.trim().toLowerCase();
-    if (!needle) return [];
-    return getAreas().filter((area) => `${area.label} ${area.region}`.toLowerCase().includes(needle));
+    const terms = words(query);
+    if (terms.length === 0) return [];
+    return getAreas().filter((area) => {
+      const haystack = words(`${area.label} ${area.region}`);
+      return terms.every((term) => haystack.some((word) => word.startsWith(term)));
+    });
   },
   async uploadPhoto(_file, onProgress, signal) {
     for (let percent = 0; percent <= 100; percent += UPLOAD_STEP) {
