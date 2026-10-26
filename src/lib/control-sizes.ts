@@ -8,6 +8,8 @@ export const buttonSizes = {
   lg: `${typeScale.text16Bold} h-13.5 gap-4.5 px-6 rounded-12`,
   /** Align UI buttons on the solid nav and legal pages — 56px, 16/20 bold */
   xl: `${typeScale.button16} h-14 gap-1 px-7 rounded-12`,
+  /** Authentication pill — 56px, full radius; label weight comes from the variant. */
+  pill: "h-14 gap-3 px-8 rounded-full",
 } as const;
 
 export type ButtonSize = keyof typeof buttonSizes;
@@ -18,6 +20,7 @@ export const buttonWidths = {
   login: "w-30",
   signup: "w-40",
   back: "w-52",
+  full: "w-full",
 } as const;
 
 export type ButtonWidth = keyof typeof buttonWidths;

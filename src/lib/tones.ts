@@ -10,6 +10,11 @@ export const textTones = {
   roseSoft: "text-rose-soft",
   white: "text-white",
   iconSoft: "text-icon-soft",
+  iconDark: "text-icon-dark",
+  gray900: "text-gray-900",
+  error: "text-error",
+  success: "text-success",
+  notice: "text-notice",
 } as const;
 
 export type TextTone = keyof typeof textTones;
