@@ -45,6 +45,7 @@ export const typeScale = {
   setupFigure48: "type-setup-figure-48",
   text20SemiboldTight: "type-text-20-semibold-tight",
   text18SemiboldTight: "type-text-18-semibold-tight",
+  text16SemiboldTight: "type-text-16-semibold-tight",
   text14Medium: "type-text-14-medium",
   text12Medium: "type-text-12-medium",
   text12Relaxed: "type-text-12-relaxed",

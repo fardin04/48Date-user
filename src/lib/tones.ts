@@ -17,6 +17,8 @@ export const textTones = {
   notice: "text-notice",
   iconMuted: "text-icon-muted",
   gray400: "text-gray-400",
+  /** Takes the colour of its control (field states). */
+  inherit: "text-inherit",
 } as const;
 
 export type TextTone = keyof typeof textTones;

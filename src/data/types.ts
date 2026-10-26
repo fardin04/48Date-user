@@ -8,15 +8,25 @@ export type IconName =
   /** Heroicons micro chevron — the one non-Hugeicons glyph, used by the Figma phone field. */
   | "chevron-down-micro"
   | "arrow-up-right-01"
+  | "book-open-01"
   | "calendar-03"
+  | "camera-01"
+  | "checkmark-circle-02"
+  | "close-line"
+  | "coffee-01"
   | "favourite"
+  | "image-add-01"
   | "location-01"
   | "message-01"
   | "minus-sign"
+  | "music-note-01"
+  | "notification-02"
+  | "paint-board"
   | "shield-01"
   | "sparkles"
   | "square-lock-02"
-  | "tick-02";
+  | "tick-02"
+  | "user-circle";
 
 export type Action = {
   label: string;

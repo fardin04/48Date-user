@@ -77,7 +77,7 @@ export const authFlows: Record<AuthFlowName, AuthFlow> = {
         title: "Your number is verified.",
         description: "Your phone stays private. Now let’s create a profile that feels like you.",
       },
-      cta: { label: "Set up my profile", to: notFunctional("Profile onboarding (Location) is not built yet") },
+      cta: { label: "Set up my profile", to: to("LOCATION") },
     },
     google: {
       intro: google,
