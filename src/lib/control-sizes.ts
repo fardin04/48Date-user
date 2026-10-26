@@ -10,6 +10,10 @@ export const buttonSizes = {
   xl: `${typeScale.button16} h-14 gap-1 px-7 rounded-12`,
   /** Authentication pill — 56px, full radius; label weight comes from the variant. */
   pill: "h-14 gap-3 px-8 rounded-full",
+  /** Onboarding "Back" — 44px outline pill with a 24px arrow. */
+  back: `${typeScale.text14SemiboldRelaxed} h-11 gap-2 px-3 rounded-full`,
+  /** Onboarding secondary text action ("Enter location manually") — 44px. */
+  text: `${typeScale.text16Semibold} h-11 px-8 rounded-full`,
 } as const;
 
 export type ButtonSize = keyof typeof buttonSizes;
@@ -21,11 +25,33 @@ export const buttonWidths = {
   signup: "w-40",
   back: "w-52",
   full: "w-full",
+  /** Onboarding action row: 112px Back, 240px primary. */
+  setupBack: "w-28",
+  setupPrimary: "w-60",
 } as const;
 
 export type ButtonWidth = keyof typeof buttonWidths;
 
-export const iconSizes = { 16: "size-4", 18: "size-4.5", 20: "size-5", 24: "size-6" } as const;
+export const iconSizes = {
+  12: "size-3",
+  16: "size-4",
+  18: "size-4.5",
+  20: "size-5",
+  24: "size-6",
+  28: "size-7",
+  32: "size-8",
+  40: "size-10",
+} as const;
+
+/** 56px form control (auth + onboarding "Form / Input control"): states from Figma. */
+export const fieldControl = {
+  base: `${typeScale.text14Relaxed} flex h-14 w-full items-center gap-3 rounded-12 border bg-white px-4 text-strong transition-colors focus-within:border-rose`,
+  default: "border-input-line",
+  error: "border-error",
+  disabled: "border-input-line bg-gray-100 text-gray-400",
+} as const;
+
+export type FieldState = Exclude<keyof typeof fieldControl, "base">;
 
 export type IconSize = keyof typeof iconSizes;
 
