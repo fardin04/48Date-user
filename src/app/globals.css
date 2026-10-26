@@ -218,6 +218,14 @@
   }
 }
 
+/* Card-shaped labels around a visually hidden input: ring the card while its input has keyboard focus. */
+@utility focus-ring-within {
+  &:has(:focus-visible) {
+    outline: 2px solid var(--color-rose);
+    outline-offset: 3px;
+  }
+}
+
 /* Reveal piece: hidden only once JS has marked the document (no-JS stays visible). */
 @layer components {
   .js [data-reveal]:not([data-revealed]) {
