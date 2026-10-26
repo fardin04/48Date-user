@@ -1,0 +1,27 @@
+/** Text colours and section surfaces, mapped to globals.css colour tokens (rule 8). */
+export const textTones = {
+  ink: "text-gray-950",
+  strong: "text-strong",
+  muted: "text-gray-600",
+  sub: "text-sub",
+  rose: "text-rose",
+  roseBright: "text-rose-bright",
+  roseDeep: "text-rose-deep",
+  roseSoft: "text-rose-soft",
+  white: "text-white",
+  iconSoft: "text-icon-soft",
+} as const;
+
+export type TextTone = keyof typeof textTones;
+
+export const surfaces = {
+  white: "bg-white",
+  blush: "bg-blush",
+  mist: "bg-mist",
+  roseLight: "bg-rose-light",
+  rose: "bg-rose",
+  night: "bg-night",
+  hero: "bg-hero",
+} as const;
+
+export type Surface = keyof typeof surfaces;

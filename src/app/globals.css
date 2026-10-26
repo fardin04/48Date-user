@@ -1,26 +1,211 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+/*
+ * 48Date design tokens — values come from the Figma variables and styles of
+ * "W00 / Landing Page". Each group is registered in a lib/ scale file (rule 8).
+ */
+@theme {
+  --color-*: initial;
+  --color-white: #ffffff;
+  --color-black: #000000;
+  --color-transparent: transparent;
+  --color-current: currentColor;
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
+  /* Rose — primary color-500/300 + 48date rose variables */
+  --color-rose: #e11d48;
+  --color-rose-300: #eb6884;
+  --color-rose-bright: #ff496f;
+  --color-rose-deep: #c0103d;
+  --color-rose-soft: #ffdce4;
+  --color-rose-light: #fff1f4;
+  --color-rose-line: #f0dce1;
+  --color-blush: #fff8f9;
+  --color-petal: #fff7f9;
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+  /* Neutrals — Gray Colors + Align UI text/bg/stroke */
+  --color-gray-950: #0a0d12;
+  --color-gray-900: #181d27;
+  --color-gray-600: #535862;
+  --color-gray-50: #fafafa;
+  --color-strong: #171717;
+  --color-sub: #5c5c5c;
+  --color-icon-soft: #a3a3a3;
+  --color-soft-line: #ebebeb;
+  --color-line: #e9e4e5;
+  --color-weak: #f7f7f7;
+  --color-mist: #f8f6f6;
+  --color-canvas: #fcfcfc;
+
+  /* Dark surfaces */
+  --color-night: #111217;
+  --color-board: #101217;
+  --color-hero: #22191b;
+  --color-scrim: #0f0809;
+  --color-scrim-deep: #080405;
+  --color-scrim-warm: #16070b;
+  --color-ink-glass: #140c0e;
+  --color-wine: #630015;
+
+  --font-sans: var(--font-manrope), ui-sans-serif, system-ui, sans-serif;
+
+  --radius-9: 9px;
+  --radius-10: 10px;
+  --radius-11: 11px;
+  --radius-12: 12px;
+  --radius-13: 13px;
+  --radius-14: 14px;
+  --radius-15: 15px;
+  --radius-16: 16px;
+  --radius-18: 18px;
+  --radius-20: 20px;
+  --radius-22: 22px;
+  --radius-32: 32px;
+
+  --shadow-xs: 0 1px 2px 0 rgb(10 13 20 / 0.03);
+  --shadow-float: 0 18px 50px 0 rgb(34 18 22 / 0.12);
+  --shadow-photo: 0 32px 90px 0 rgb(31 12 17 / 0.2);
+  --drop-shadow-xs: 0 1px 1px rgb(10 13 20 / 0.05);
+  --drop-shadow-cta: 0 10px 14px rgb(225 29 72 / 0.22);
+  --drop-shadow-card: 0 18px 25px rgb(34 18 22 / 0.12);
+
+  --container-content: 1536px;
+  --container-reading: 1088px;
+
+  --animate-accordion-down: accordion-down 240ms ease-out;
+  --animate-accordion-up: accordion-up 240ms ease-out;
+
+  @keyframes accordion-down {
+    from { height: 0; }
+    to { height: var(--radix-accordion-content-height); }
+  }
+  @keyframes accordion-up {
+    from { height: var(--radix-accordion-content-height); }
+    to { height: 0; }
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+/*
+ * Type scale (registered in lib/type-scale.ts).
+ * Display sizes are fluid: --min at a 390px viewport → the Figma size at the 1920px frame width (rule 24).
+ */
+@utility type-fluid {
+  font-size: clamp(
+    calc(var(--min) * 1px),
+    calc(var(--min) * 1px + (var(--max) - var(--min)) * (100vw - 390px) / 1530),
+    calc(var(--max) * 1px)
+  );
+}
+@utility type-display-240 { --min: 140; --max: 240; @apply type-fluid; line-height: 1.0083; font-weight: 800; }
+@utility type-display-96 { --min: 46; --max: 96; @apply type-fluid; line-height: 1.125; font-weight: 700; letter-spacing: -0.04em; }
+@utility type-display-88 { --min: 64; --max: 88; @apply type-fluid; line-height: 1.125; font-weight: 800; letter-spacing: -0.03em; }
+@utility type-display-80 { --min: 48; --max: 80; @apply type-fluid; line-height: 1.125; font-weight: 700; }
+@utility type-display-64 { --min: 36; --max: 64; @apply type-fluid; line-height: 1; font-weight: 700; letter-spacing: -0.02em; }
+@utility type-display-56 { --min: 34; --max: 56; @apply type-fluid; line-height: 1.125; font-weight: 700; letter-spacing: -0.03em; }
+@utility type-heading-40 { --min: 30; --max: 40; @apply type-fluid; line-height: 1.125; font-weight: 700; letter-spacing: -0.03em; }
+@utility type-heading-36 { --min: 28; --max: 36; @apply type-fluid; line-height: 1.2222; font-weight: 700; letter-spacing: -0.02em; }
+@utility type-heading-28 { --min: 24; --max: 28; @apply type-fluid; line-height: 1.5; font-weight: 700; }
+@utility type-title-24 { font-size: 24px; line-height: 32px; font-weight: 700; }
+@utility type-title-24-medium { font-size: 24px; line-height: 32px; font-weight: 500; }
+@utility type-text-20 { font-size: 20px; line-height: 30px; font-weight: 400; }
+@utility type-text-20-bold { font-size: 20px; line-height: 30px; font-weight: 700; }
+@utility type-text-18 { font-size: 18px; line-height: 28px; font-weight: 400; }
+@utility type-text-18-semibold { font-size: 18px; line-height: 28px; font-weight: 600; }
+@utility type-text-18-bold { font-size: 18px; line-height: 28px; font-weight: 700; }
+@utility type-text-18-reading { font-size: 18px; line-height: 27px; font-weight: 400; }
+@utility type-text-16 { font-size: 16px; line-height: 24px; font-weight: 400; }
+@utility type-text-16-medium { font-size: 16px; line-height: 24px; font-weight: 500; }
+@utility type-text-16-semibold { font-size: 16px; line-height: 24px; font-weight: 600; }
+@utility type-text-16-bold { font-size: 16px; line-height: 24px; font-weight: 700; }
+@utility type-text-14 { font-size: 14px; line-height: 20px; font-weight: 400; }
+@utility type-text-14-semibold { font-size: 14px; line-height: 20px; font-weight: 600; }
+@utility type-text-14-bold { font-size: 14px; line-height: 20px; font-weight: 700; }
+@utility type-label-14 { font-size: 14px; line-height: 21px; font-weight: 700; }
+@utility type-text-13-bold { font-size: 13px; line-height: 20px; font-weight: 700; }
+@utility type-text-13-semibold { font-size: 13px; line-height: 20px; font-weight: 600; }
+@utility type-text-12 { font-size: 12px; line-height: 18px; font-weight: 400; }
+@utility type-text-12-bold { font-size: 12px; line-height: 1.2; font-weight: 700; }
+@utility type-text-11-bold { font-size: 11px; line-height: 17px; font-weight: 700; }
+@utility type-wordmark-48 { font-size: 48px; line-height: 60px; font-weight: 700; letter-spacing: -0.02em; }
+/* Align UI button label: 16/20 bold, -0.6% tracking, ss11 */
+@utility type-button-16 {
+  font-size: 16px; line-height: 20px; font-weight: 700; letter-spacing: -0.006em;
+  font-feature-settings: "ss11" 1, "calt" 0, "liga" 0;
+}
+
+/* Shared page column (registered in lib/control-sizes.ts as `container`). */
+@utility page-container {
+  width: 100%;
+  max-width: calc(var(--container-content) + 2 * var(--gutter));
+  margin-inline: auto;
+  padding-inline: var(--gutter);
+  --gutter: 16px;
+  @variant md { --gutter: 32px; }
+  @variant lg { --gutter: 48px; }
+  @variant xl { --gutter: 64px; }
+  @variant 2xl { --gutter: 96px; }
+}
+
+/* Hero photo scrim (01) and closing radial glow (09), copied from Figma fills. */
+@utility hero-scrim {
+  background-image:
+    linear-gradient(90deg, rgb(15 8 9 / 0.9) 0%, rgb(15 8 9 / 0.73) 40%, rgb(15 8 9 / 0.2) 72%, rgb(15 8 9 / 0.36) 100%),
+    linear-gradient(0deg, rgb(16 8 10 / 0.82) 0%, rgb(16 8 10 / 0) 50%);
+}
+@utility cta-glow {
+  /* Figma: 3377×1102 layer at (-507, -320) of the 1920×616 band; ellipse radii 70.71% of the layer. */
+  background-image: radial-gradient(70.71% 70.71% at 50% 50%, rgb(225 29 72 / 0.25) 0%, rgb(225 29 72 / 0) 65%);
+}
+
+/* Icon piece: Hugeicons SVG used as a mask so it takes `currentColor` (rule 13). */
+@utility icon-mask {
+  display: inline-block;
+  flex-shrink: 0;
+  background-color: currentColor;
+  mask: var(--icon) center / 100% 100% no-repeat;
+}
+
+@utility focus-ring {
+  &:focus-visible {
+    outline: 2px solid var(--color-rose);
+    outline-offset: 3px;
+  }
+}
+
+/* Reveal piece: hidden only once JS has marked the document (no-JS stays visible). */
+@layer components {
+  .js [data-reveal]:not([data-revealed]) {
+    opacity: 0;
+    translate: 0 24px;
+  }
+  [data-reveal] {
+    transition:
+      opacity 600ms cubic-bezier(0.22, 1, 0.36, 1) var(--reveal-delay, 0ms),
+      translate 600ms cubic-bezier(0.22, 1, 0.36, 1) var(--reveal-delay, 0ms);
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .js [data-reveal]:not([data-revealed]) {
+      opacity: 1;
+      translate: none;
+    }
+    [data-reveal] { transition: none; }
+  }
+}
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+    scroll-padding-top: 24px;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    html { scroll-behavior: auto; }
+  }
+  /* Not-yet-wired actions render as buttons; let them follow their container's casing like links do. */
+  button { text-transform: inherit; }
+  body {
+    background: var(--color-white);
+    color: var(--color-gray-950);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    overflow-x: clip;
+  }
 }
