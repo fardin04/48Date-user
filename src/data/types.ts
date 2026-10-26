@@ -4,6 +4,9 @@ import type { Destination } from "@/lib/routes";
 export type IconName =
   | "add-01"
   | "arrow-down-01"
+  | "arrow-left-02"
+  /** Heroicons micro chevron — the one non-Hugeicons glyph, used by the Figma phone field. */
+  | "chevron-down-micro"
   | "arrow-up-right-01"
   | "calendar-03"
   | "favourite"
