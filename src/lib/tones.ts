@@ -15,6 +15,8 @@ export const textTones = {
   error: "text-error",
   success: "text-success",
   notice: "text-notice",
+  iconMuted: "text-icon-muted",
+  gray400: "text-gray-400",
 } as const;
 
 export type TextTone = keyof typeof textTones;

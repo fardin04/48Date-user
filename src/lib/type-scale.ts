@@ -41,6 +41,14 @@ export const typeScale = {
   text14MediumRelaxed: "type-text-14-medium-relaxed",
   text14SemiboldRelaxed: "type-text-14-semibold-relaxed",
   text12Semibold: "type-text-12-semibold",
+  setupTitle28: "type-setup-title-28",
+  setupFigure48: "type-setup-figure-48",
+  text20SemiboldTight: "type-text-20-semibold-tight",
+  text18SemiboldTight: "type-text-18-semibold-tight",
+  text14Medium: "type-text-14-medium",
+  text12Medium: "type-text-12-medium",
+  text12Relaxed: "type-text-12-relaxed",
+  wordmark7: "type-wordmark-7",
 } as const;
 
 export type TypeVariant = keyof typeof typeScale;

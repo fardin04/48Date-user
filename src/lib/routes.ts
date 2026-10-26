@@ -22,6 +22,20 @@ export const screens = {
   "SIGNIN-GOOGLE": "/signin/google",
   "SIGNIN-GOOGLE-ERROR": "/signin/google/error",
   SESSION: "/signin/session-ended",
+  LOCATION: "/onboarding/location",
+  NICKNAME: "/onboarding/nickname",
+  "PRIVATE-NAME": "/onboarding/private-name",
+  BIRTHDAY: "/onboarding/birthday",
+  IDENTITY: "/onboarding/identity",
+  LIFESTYLE: "/onboarding/lifestyle",
+  DETAILS: "/onboarding/details",
+  INTERESTS: "/onboarding/interests",
+  GOALS: "/onboarding/goals",
+  PERSONALITY: "/onboarding/personality",
+  COMMUNICATION: "/onboarding/communication",
+  PHOTOS: "/onboarding/photos",
+  NOTIFY: "/onboarding/notifications",
+  READY: "/onboarding/ready",
 } as const;
 
 export type ScreenCode = keyof typeof screens;
