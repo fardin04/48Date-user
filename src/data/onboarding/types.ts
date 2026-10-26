@@ -1,8 +1,8 @@
 import type { Destination, ScreenCode } from "@/lib/routes";
 import type { IconName, ImageAsset } from "../types";
 
-/** Answers kept in the profile draft (see lib/onboarding/profile-draft). */
-export type DraftKey =
+/** Single-value answers kept in the profile draft (see lib/onboarding/profile-draft). */
+export type DraftField =
   | "nickname"
   | "firstName"
   | "lastName"
@@ -23,31 +23,56 @@ export type DraftKey =
   | "personality"
   | "communication";
 
+/** Onboarding steps in flow order; each owns one URL (rule 32). */
+export type OnboardingStep =
+  | "location"
+  | "nickname"
+  | "privateName"
+  | "birthday"
+  | "identity"
+  | "lifestyle"
+  | "details"
+  | "interests"
+  | "goals"
+  | "personality"
+  | "communication"
+  | "photos"
+  | "verify"
+  | "notify"
+  | "ready";
+
 export type StageKey = "about" | "lifestyle" | "connection" | "photos" | "final";
 
+/** Heading of a setup screen or one of its states. */
 export type SetupIntro = { title: string; description: string };
 
 export type SelectOption = { value: string; label: string };
 
 export type SetupField = {
-  key: DraftKey;
+  key: DraftField;
   label: string;
   type: "text" | "select";
+  /** Text placeholder, or the empty option of a select. */
   placeholder: string;
   options?: SelectOption[];
   optional?: boolean;
   autoComplete?: string;
-  /** Fields sharing a `row` sit side by side (Height + Weight). */
+  /** Fields sharing a `row` sit side by side from 640px (Height + Weight). */
   row?: string;
 };
 
 export type Choice = { value: string; icon: IconName; title: string; description: string };
 
-export type StepNavigation = {
-  /** Screen the Back button opens; a Destination when it lives outside onboarding or isn't built. */
-  back: ScreenCode | Destination;
-  /** Screen opened after a successful Continue. */
-  next: ScreenCode | Destination;
+/** Where a step's Back and Continue lead: an onboarding step, or a Destination outside it. */
+export type StepLink = OnboardingStep | Destination;
+
+export type StepFlow = {
+  screen: ScreenCode;
+  number: number;
+  back: StepLink;
+  next: StepLink;
 };
 
 export type MapVisual = { image: ImageAsset; title: string; description: string };
+
+export type Area = { id: string; name: string; label: string; region: string };
