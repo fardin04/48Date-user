@@ -1,0 +1,21 @@
+import { anchors } from "@/data/landing/anchors";
+import { download } from "@/data/landing/download";
+import { faq } from "@/data/landing/faq";
+import { features } from "@/data/landing/features";
+import { finalCta } from "@/data/landing/final-cta";
+import { hero } from "@/data/landing/hero";
+import { howItWorks } from "@/data/landing/how-it-works";
+import { matchWindow } from "@/data/landing/match-window";
+import { membership } from "@/data/landing/membership";
+import { safety } from "@/data/landing/safety";
+
+export const getAnchors = () => anchors;
+export const getHero = () => hero;
+export const getHowItWorks = () => howItWorks;
+export const getFeatures = () => features;
+export const getMatchWindow = () => matchWindow;
+export const getSafety = () => safety;
+export const getMembership = () => membership;
+export const getDownload = () => download;
+export const getFaq = () => faq;
+export const getFinalCta = () => finalCta;
