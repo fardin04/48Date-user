@@ -36,12 +36,27 @@
   --color-mist: #f8f6f6;
   --color-canvas: #fcfcfc;
 
+  /* Authentication — Figma fills on W01 (the frames use these values, not the error-500/success-800 variables) */
+  --color-icon-dark: #141b34;
+  --color-gray-500: #667085;
+  --color-gray-300: #d5d7da;
+  --color-gray-200: #e9eaeb;
+  --color-gray-100: #f2f4f7;
+  --color-input-line: #858a93;
+  --color-error: #b42318;
+  --color-error-bg: #fef3f2;
+  --color-success: #067647;
+  --color-success-bg: #ecfdf3;
+  --color-notice: #9f1239;
+  --color-notice-bg: #fff1f3;
+
   /* Dark surfaces */
   --color-night: #111217;
   --color-board: #101217;
   --color-hero: #22191b;
   --color-scrim: #0f0809;
   --color-scrim-deep: #080405;
+  --color-scrim-night: #0a0406;
   --color-scrim-warm: #16070b;
   --color-ink-glass: #140c0e;
   --color-wine: #630015;
@@ -125,6 +140,16 @@
 @utility type-text-12 { font-size: 12px; line-height: 18px; font-weight: 400; }
 @utility type-text-12-bold { font-size: 12px; line-height: 1.2; font-weight: 700; }
 @utility type-text-11-bold { font-size: 11px; line-height: 17px; font-weight: 700; }
+/* Authentication type — W01 frames are drawn at 1440 and the responsive specimens keep these sizes, so they are fixed. */
+@utility type-auth-display-48 { font-size: 48px; line-height: 58px; font-weight: 700; }
+@utility type-auth-title-32 { font-size: 32px; line-height: 42px; font-weight: 700; }
+@utility type-text-24-semibold { font-size: 24px; line-height: 32px; font-weight: 600; }
+@utility type-text-14-relaxed { font-size: 14px; line-height: 22px; font-weight: 400; }
+@utility type-text-14-medium-relaxed { font-size: 14px; line-height: 22px; font-weight: 500; }
+@utility type-text-14-semibold-relaxed { font-size: 14px; line-height: 22px; font-weight: 600; }
+@utility type-text-12-semibold { font-size: 12px; line-height: 18px; font-weight: 600; }
+@utility type-wordmark-33 { font-size: 33.16px; line-height: 33.16px; font-weight: 700; letter-spacing: -0.02em; }
+@utility type-wordmark-17 { font-size: 16.58px; line-height: 16.58px; font-weight: 700; letter-spacing: -0.02em; }
 @utility type-wordmark-48 { font-size: 48px; line-height: 60px; font-weight: 700; letter-spacing: -0.02em; }
 /* Align UI button label: 16/20 bold, -0.6% tracking, ss11 */
 @utility type-button-16 {
