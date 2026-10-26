@@ -49,6 +49,7 @@ export const typeScale = {
   text14Medium: "type-text-14-medium",
   text12Medium: "type-text-12-medium",
   text12Relaxed: "type-text-12-relaxed",
+  text12MediumTight: "type-text-12-medium-tight",
   wordmark7: "type-wordmark-7",
 } as const;
 
