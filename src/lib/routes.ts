@@ -34,6 +34,7 @@ export const screens = {
   PERSONALITY: "/onboarding/personality",
   COMMUNICATION: "/onboarding/communication",
   PHOTOS: "/onboarding/photos",
+  "VERIFY-INTRO": "/onboarding/verify",
   NOTIFY: "/onboarding/notifications",
   READY: "/onboarding/ready",
 } as const;
