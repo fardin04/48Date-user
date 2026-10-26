@@ -1,0 +1,25 @@
+import { birthdayStep, nicknameStep, privateNameStep } from "@/data/onboarding/about";
+import { choiceSteps, interestRules } from "@/data/onboarding/choices";
+import { notifyStep, photosStep, readyStep } from "@/data/onboarding/finish";
+import { onboardingFlow } from "@/data/onboarding/flow";
+import { areas, locationStep } from "@/data/onboarding/location";
+import { profileSteps } from "@/data/onboarding/profile";
+import { onboardingShared } from "@/data/onboarding/shared";
+import type { OnboardingStep } from "@/data/onboarding/types";
+import { verifyStep } from "@/data/onboarding/verify";
+
+export const getOnboardingShared = () => onboardingShared;
+export const getOnboardingFlow = () => onboardingFlow;
+export const getStepFlow = (step: OnboardingStep) => onboardingFlow[step];
+export const getLocationStep = () => locationStep;
+export const getAreas = () => areas;
+export const getNicknameStep = () => nicknameStep;
+export const getPrivateNameStep = () => privateNameStep;
+export const getBirthdayStep = () => birthdayStep;
+export const getProfileSteps = () => profileSteps;
+export const getChoiceSteps = () => choiceSteps;
+export const getInterestRules = () => interestRules;
+export const getPhotosStep = () => photosStep;
+export const getVerifyStep = () => verifyStep;
+export const getNotifyStep = () => notifyStep;
+export const getReadyStep = () => readyStep;
