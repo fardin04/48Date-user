@@ -1,4 +1,4 @@
-import { portalRoute } from "@/components/sections/portal/portal-route";
+import { portalRoute } from "@/components/sections/portal/shared/portal-route";
 
 /** Membership: /membership · /membership/plans · /membership/checkout/<plan> · /membership/restore · /membership/manage · /membership/limit */
 const route = portalRoute("membership");

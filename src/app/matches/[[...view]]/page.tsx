@@ -1,4 +1,4 @@
-import { portalRoute } from "@/components/sections/portal/portal-route";
+import { portalRoute } from "@/components/sections/portal/shared/portal-route";
 
 /** Matches: /matches · /matches/cancelled · /matches/complete · /matches/match/<member> */
 const route = portalRoute("matches");

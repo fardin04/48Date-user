@@ -1,4 +1,4 @@
-import { portalRoute } from "@/components/sections/portal/portal-route";
+import { portalRoute } from "@/components/sections/portal/shared/portal-route";
 
 /** Your profile: /profile · /profile/edit · /profile/photos · /profile/trust · /profile/trust/activity · /profile/trust/review */
 const route = portalRoute("profile");
