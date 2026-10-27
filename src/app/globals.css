@@ -61,6 +61,10 @@
   --color-nav-ink: #2a2d34;
   /* "More photos" screen tint: #FE2C2D at 26%, blended with `screen`. */
   --color-photo-tint: rgb(254 44 45 / 0.26);
+  /* W05 messaging: selected attach choice hairline and the AI-ERROR note. */
+  --color-rose-mid: #fbd4de;
+  --color-alert: #b91c1c;
+  --color-alert-bg: #fef2f2;
 
   /* Onboarding — W02 fills */
   --color-stage-idle: #f4f4f5;
@@ -202,6 +206,11 @@
 /* Align UI Content Card title at 14px ("Looking for something real", "More photos"). */
 @utility type-card-title-14 {
   font-size: 14px; line-height: 20px; font-weight: 600; letter-spacing: -0.006em;
+  font-feature-settings: "ss11" 1, "calt" 0, "liga" 0;
+}
+/* Align UI Modal Header title: 24/32 bold ss11. */
+@utility type-dialog-title-24 {
+  font-size: 24px; line-height: 32px; font-weight: 700; letter-spacing: -0.006em;
   font-feature-settings: "ss11" 1, "calt" 0, "liga" 0;
 }
 @utility type-text-12-relaxed { font-size: 12px; line-height: 22px; font-weight: 400; }
