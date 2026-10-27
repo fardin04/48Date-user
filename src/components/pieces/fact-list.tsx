@@ -12,6 +12,8 @@ const layouts = {
   pairs: { list: "grid grid-cols-2 gap-x-4 gap-y-3", item: "" },
   /** "About me": two columns on phones, three from 768px. */
   grid: { list: "grid grid-cols-2 gap-4 md:grid-cols-3", item: "" },
+  /** W09 own "About me": the same grid with a hairline under each row of facts. */
+  rows: { list: "grid grid-cols-2 gap-y-4 md:grid-cols-3", item: "border-b border-divider pr-4 pb-3" },
 } as const;
 
 type FactListProps = {
