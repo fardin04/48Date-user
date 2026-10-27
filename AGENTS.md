@@ -14,7 +14,7 @@ These rules are binding for every change. Numbers are stable; add new rules at t
 
 ## Source of truth
 1. Read the bundled Next.js docs before writing code (block above). Next 16 + React 19 + Tailwind v4 + React Compiler + `cacheComponents`.
-2. Figma is the spec: file `L4MtWjAVlPSRAjJSzI1lrf`. Sections built so far: `W00 / Landing Page` (22094:19013, frames at 1920px with a 1536px content column), `W01 / Entry & Authentication` (21731:5259, frames at 1440×960), `W01B / Authentication · Responsive` (21836:12131, 1024 and 768 specimens) `W02 / Profile Onboarding & Permissions` (21731:5646, frames at 1440×960 with a "D / web / …" handoff note per screen), `W02B / Onboarding · Responsive` (21844:12418, 1024 and 768 specimens) and `W03 / Identity Verification` (21731:7103, step 13 of the same guided setup). Build from `get_design_context` on the exact node, never from a parent.
+2. Figma is the spec: file `L4MtWjAVlPSRAjJSzI1lrf`. Sections built so far: `W00 / Landing Page` (22094:19013, frames at 1920px with a 1536px content column), `W01 / Entry & Authentication` (21731:5259, frames at 1440×960), `W01B / Authentication · Responsive` (21836:12131, 1024 and 768 specimens) `W02 / Profile Onboarding & Permissions` (21731:5646, frames at 1440×960 with a "D / web / …" handoff note per screen), `W02B / Onboarding · Responsive` (21844:12418, 1024 and 768 specimens) `W03 / Identity Verification` (21731:7103, step 13 of the same guided setup) and `W04 / Discovery & Matches` (21727:4799, the member portal: frames at 1440 with a "D / web / …" handoff note per screen; no responsive specimens). Build from `get_design_context` on the exact node, never from a parent.
 3. Desktop is the spec. Every page must work at 360, 390, 768, 1024, 1280, 1440 and 1920 with no horizontal scroll. Where Figma has no mobile frame, stack in reading order and record the decision under "Decisions" below.
 4. Match size, weight, line-height, colour, spacing and radius exactly. Never substitute "the nearest class"; add a token instead (rule 8).
 
@@ -64,44 +64,58 @@ These rules are binding for every change. Numbers are stable; add new rules at t
 34. Onboarding screens talk only to `onboardingService` (`lib/onboarding/onboarding-service.ts`, currently a clearly marked mock) for nickname checks, area search, uploads and selfie review. Answers live in the `profileDraft` sessionStorage store (`lib/onboarding/profile-draft.ts`) and are saved as they change, so Back never discards them; photos stay in memory as object URLs (`lib/onboarding/photo-store.ts`) and every URL is revoked when discarded. Storage values are validated on read; nothing is sent anywhere until a real API exists.
 35. Every onboarding step is `SetupShell` (route level) + one `SetupStep` (heading, content, Back / primary row). Step order, numbers and Back / Continue targets come from `data/onboarding/flow.ts`; never hard-code the next step in a component. Browser permissions (location, notifications) are requested only from a click, and only an approximate area label is kept, never coordinates.
 36. The verification camera is opened only from "Allow camera & continue", its tracks are stopped whenever the capture screen is left or the page unmounts, and the selfie lives only as an in-memory object URL that is revoked once it is submitted or retaken. The review result comes from `onboardingService.getVerification()`; the badge is shown only once it is `verified`.
+37. Member portal screens talk only to `portalService` (`lib/portal/portal-service.ts`, currently a clearly marked mock) for preferences, the discovery deck, decisions and matches. Match deadlines are server-owned: components count down to the service's `expiresAt` and never invent one. Every portal page is `PortalShell` (route level) + a view from `sections/portal/portal-page.tsx`; member pages link with `toItem(screen, memberId)` (a path segment that opens at the top, unlike a `section`). Live countdown text is never a live region (`StatusBadge live={false}`, the `deadline` note).
 
 ## Pieces registry
 <!-- Keep alphabetical. Path — purpose — key props -->
 All under `src/components/`. Every composite piece also takes `revealDelay` and a placement-only `className`.
 
-- `pieces/action-button.tsx` — `ActionButton`: a data `Action` as a button-styled link (or not-functional button) — `action`, `variant` (primary | solid | secondary | neutral | glass | outline | google | ghost | confirm), `size` (md 48 | lg 54 | xl 56 | pill 56 round | back 44 | text 44), `width` (auto | login | signup | back | full | setupBack 112 | setupPrimary 240), `hideIcon`, `leadingImage`
-- `pieces/action-link.tsx` — `ActionLink`: a data `Action` as a text link — `variant` (navGlass | navSolid | footer | footerTitleCase | rose | contents | cue | back | setupBack | authInline | authRecovery | consent); also exports `actionLinkClass(variant)` for client buttons styled as links
+- `pieces/action-button.tsx` — `ActionButton`: a data `Action` as a button-styled link (or not-functional button) — `action`, `variant` (primary | solid | secondary | neutral | glass | outline | google | ghost | confirm | roseOutline), `size` (md 48 | lg 54 | xl 56 | pill 56 round | back 44 | text 44 | pillCompact 56 at 14px | portalPill 56 at 16px), `width` (auto | login | signup | back | full | setupBack 112 | setupPrimary 240 | decision / superLike 136:152 shares | portalAction 180 | findMore 216 | notifyAction 224 | summaryAction 240 | passAction 200 | profileAction 300 | grow), `hideIcon`, `leadingImage`
+- `pieces/action-link.tsx` — `ActionLink`: a data `Action` as a text link — `variant` (navGlass | navSolid | footer | footerTitleCase | rose | contents | cue | back | setupBack | portalBack | authInline | authRecovery | consent); also exports `actionLinkClass(variant)` for client buttons styled as links
+- `pieces/action-row.tsx` — `ActionRow`: portal "Screen actions", side by side with 12px gaps, stacked on phones — children
 - `pieces/add-photo-tile.tsx` — `AddPhotoTile`: dashed 232px "Add a photo" tile — `title`, `description`, `onClick`
 - `pieces/area-map.tsx` — `AreaMap`: approximate-area map panel with rose pin — `map`, `align`
 - `pieces/action-target.tsx` — `ActionTarget` (atom): resolves a `Destination` to `Link` via `hrefFor` (section links keep scroll) or an `aria-disabled` button via `notFunctional`
 - `pieces/auth-photo-panel.tsx` — `AuthPhotoPanel`: approved couple photo, logo card and brand promise
 - `pieces/auth-shell.tsx` — `AuthShell`: auth frame (photo + form panel ≥1024, logo header below) — `backPosition` (top | bottom), children
+- `pieces/avatar.tsx` — `Avatar` (atom): round member photo — `image`, `size` (40 | 48 | 96), `decorative`
 - `pieces/back-button.tsx` — `BackButton`: onboarding 112×44 Back — `label`, `icon`, `to` (Destination) or `onClick` (earlier state)
-- `pieces/chip.tsx` — `Chip` (atom): `variant` (interest | badge | schedule | setup)
+- `pieces/card-heading.tsx` — `CardHeading`: Align UI Content Card title + description — `title`, `description`, `size` (14 | 20 | 24), `as`, `id`
+- `pieces/checkbox-field.tsx` — `CheckboxField`: native checkbox with the Align UI mark and a 14/22 label — `label`, `checked`, `onChange`
+- `pieces/chip.tsx` — `Chip` (atom): `variant` (interest | badge | schedule | setup | neutral | rose)
 - `pieces/choice-card.tsx` — `ChoiceCard`: selection card over a native radio / checkbox — `choice`, `type`, `name`, `checked`, `onChange`, `disabled`, `size` (compact 120 | regular 136)
 - `pieces/choice-group.tsx` — `ChoiceGroup`: fieldset of cards or rows — `legend`, `layout` (grid: 2 columns, an odd last card spans | list)
 - `pieces/consent-note.tsx` — `ConsentNote`: 18+ consent line with Terms / Privacy links
 - `pieces/container.tsx` — `Container` (atom): 1536px column with responsive gutters
 - `pieces/countdown.tsx` — `Countdown`: static illustrative match timer — `countdown`
+- `pieces/detail-row.tsx` — `DetailRow`: 12px-padded label / value pair inside a `dl` — `label`, `value`, `variant` (split | column 192), `divided`
+- `pieces/fact-list.tsx` — `FactList`: caption-over-value facts as a `dl` — `facts`, `layout` (stack | divided | pairs | grid)
 - `pieces/faq-list.tsx` — `FaqList`: Radix accordion, multiple open — `entries`, `defaultOpen`
 - `pieces/feature-copy.tsx` — `FeatureCopy`: icon tile + eyebrow + 40px heading + copy — `copy`, `tone` (light | neutral | dark)
 - `pieces/form-field.tsx` — `FormField`: external label + control + rose message — `htmlFor` or `labelId`, `label`, `message`, `messageId`, children
-- `pieces/form-header.tsx` — `FormHeader`: optional eyebrow + h1 + live description — `variant` (auth 32px | setup 28px), `eyebrow`, `title`, `description`, `align`
+- `pieces/form-header.tsx` — `FormHeader`: optional eyebrow + h1 + live description — `variant` (auth 32px | setup 28px | portalPage / portal / portalStatus 28px semibold, 4 / 8 / 20px apart), `eyebrow`, `title`, `description`, `align`, `badge`
 - `pieces/icon.tsx` — `Icon` (atom): Hugeicons mask — `name`, `size` (16 | 18 | 20 | 24), `tone`, `label`
 - `pieces/icon-badge.tsx` — `IconBadge` (atom): 52px icon tile — `icon`, `variant` (roseLight | neutral | onDark)
 - `pieces/icon-row.tsx` — `IconRow`: icon + title + description row — `item`, `variant` (outline | card | glass), `as`
 - `pieces/legal-contents.tsx` — `LegalContents` (client): "On this page" list, open on desktop, disclosure on mobile — `label`
-- `pieces/logo.tsx` — `Logo`: original 48Date mark + wordmark — `size` (xs | sm | md | lg | xl), `tone` (dark | light), `to`
+- `pieces/logo.tsx` — `Logo`: original 48Date mark + wordmark — `size` (xs | header | sm | md | lg | xl), `tone` (dark | light), `to`, `label`
+- `pieces/match-card.tsx` — `MatchCard`: 240px photo, name, status badge, last message and three actions — `name`, `photo`, `badge`, `preview`, `primary`, `secondary`, `details`
+- `pieces/member-row.tsx` — `MemberRow`: 48px photo + title + line ("You & GoldenHour") — `photo`, `title`, `description`
 - `pieces/notification-preview.tsx` — `NotificationPreview`: illustrative match notification — `preview`, `help`
 - `pieces/option-dialog-field.tsx` — `OptionDialogField` (client): select-styled field opening a single-choice dialog, applied on confirm — `label`, `value`, `onChange`, `options`, `placeholder`, `dialog`, `state`, `message`
 - `pieces/option-row.tsx` — `OptionRow`: single-choice row over a native radio — `variant` (area | radio), `name`, `value`, `label`, `meta`, `checked`, `onSelect`
 - `pieces/message-suggestion.tsx` — `MessageSuggestion`: illustrative AI opener card — `suggestion`
 - `pieces/or-divider.tsx` — `OrDivider`: hairlines around "or" — `label`
 - `pieces/otp-field.tsx` — `OtpField` (client): one grouped six-digit input drawn as six cells — `label`, `value`, `onChange`, `state` (default | error | disabled), `describedBy`
+- `pieces/outcome-card.tsx` — `OutcomeCard`: cancelled / completed date summary with a 240px image — `image`, `title`, `meta`, `description`, `primary`, `secondary`
 - `pieces/panel.tsx` — `Panel`: 32px-radius surface — `surface` (mist | roseLight | night | premium), `padding` (none | md | lg), `as`
 - `pieces/phone-field.tsx` — `PhoneField`: labelled 56px phone control with country selector — `countries`, `country`, `national`, `onCountryChange`, `onNationalChange`, `invalid`
 - `pieces/photo-card.tsx` — `PhotoCard`: framed photo with caption fade — `photo`, `sizes`, `eager`
 - `pieces/photo-tile.tsx` — `PhotoTile`: member photo (object URL) cropped to its frame — `src`, `alt`, `frame` (tile 232 | preview fill)
+- `pieces/portal-back.tsx` — `PortalBack`: 160×44 Back row — `action`, `onClick` (earlier state)
+- `pieces/portal-card.tsx` — `PortalCard`: portal surface — `surface` (outline | plain | rose | cool | summary), `padding` (none | sm 16 | md 20 | lg 24 | xl 32), `radius` (16 | 20 | 24), `as`
+- `pieces/portal-header.tsx` — `PortalHeader`: "48Date / Web Header" (logo, Discover / Matches / Chats / Stories, notifications, avatar) — `active`
+- `pieces/portal-shell.tsx` — `PortalShell`: header over the grey 1280px workspace — `active`, children
 - `pieces/profile-preview.tsx` — `ProfilePreview`: illustrative match profile — `profile`
 - `pieces/quote-card.tsx` — `QuoteCard`: frosted message bubble with typing dots — `quote`
 - `pieces/ready-card.tsx` — `ReadyCard`: the member's own profile preview — `name`, `line`, `footer`, `interests`, `interestsLabel`, `photo`
@@ -110,31 +124,37 @@ All under `src/components/`. Every composite piece also takes `revealDelay` and 
 - `pieces/rich-text.tsx` — `RichText` (atom): renders `\n` breaks and `*highlight*` — `copy`
 - `pieces/scroll-to-section.tsx` — `ScrollToSection` (client): scrolls the section named by the URL path into view — `id`
 - `pieces/section.tsx` — `Section`: full-bleed band — `id`, `labelledBy`, `surface`, `spacing` (md | lg | xl), `contained`
-- `pieces/select-field.tsx` — `SelectField`: labelled 56px native select with arrow — `label`, `value`, `onChange`, `options`, `placeholder`, `state`, `message`
+- `pieces/select-field.tsx` — `SelectField`: labelled 56px native select with arrow — `label`, `value`, `onChange`, `options`, `placeholder` (optional), `state`, `message`
 - `pieces/selection-mark.tsx` — `SelectionMark` (atom): decorative 20px radio / checkbox — `type`, `checked`
 - `pieces/setup-shell.tsx` — `SetupShell`: guided setup frame (sidebar ≥1280, logo header below, panel chrome ≥768) — `step`, children
 - `pieces/setup-sidebar.tsx` — `SetupSidebar`: logo, five stages (done / current / upcoming), privacy promise, back link — `step`
 - `pieces/setup-step.tsx` — `SetupStep`: one onboarding screen as a form — `intro`, `align`, `headerAlign` (center centres the shell header), `placement` (top | fill), children, `secondary`, `back`, `primary`, `onSubmit`, `busy`
 - `pieces/section-intro.tsx` — `SectionIntro`: eyebrow + heading + description — `intro`, `titleVariant`, `descriptionVariant`, `eyebrowVariant`, `spacing`, `tone` (light | dark | neutral), `titleTone`, `align`, `level`, `omitDescription`, children
 - `pieces/settings-card.tsx` — `SettingsCard`: illustrative frosted controls menu — `card`
+- `pieces/signal-bar.tsx` — `SignalBar`: compatibility signal row over a 12px rose bar — `label`, `value`, `format`
 - `pieces/site-footer.tsx` — `SiteFooter`: brand, link columns, legal bar
 - `pieces/site-nav.tsx` — `SiteNav`: public navigation — `variant` (glass | solid)
 - `pieces/soft-panel.tsx` — `SoftPanel`: 16px-radius grey "Visual / …" panel — `align`, children
-- `pieces/status-note.tsx` — `StatusNote`: tinted, announced feedback — `variant` (error | success | notice | pending | reassure), `message`, `id`
-- `pieces/status-badge.tsx` — `StatusBadge`: Align UI status badge with a dot, announced — `variant` (warning), `label`
+- `pieces/status-note.tsx` — `StatusNote`: tinted, announced feedback — `variant` (error | success | notice | pending | reassure | highlight | deadline), `message`, `id`
+- `pieces/status-artwork.tsx` — `StatusArtwork`: rose-light panel with 64px icon, 36px timer and optional 96px photo — `icon`, `timer`, `timerLabel`, `photo`
+- `pieces/status-badge.tsx` — `StatusBadge`: Align UI status badge with a dot — `variant` (warning | success | urgent), `label`, `live`
 - `pieces/status-pill.tsx` — `StatusPill`: frosted icon + label chip — `icon`, `label`
+- `pieces/status-summary.tsx` — `StatusSummary`: 48px icon + 18px title + line in a grey-hairline card — `summary`
+- `pieces/status-tabs.tsx` — `StatusTabs`: 44px pill tabs, one URL each, `aria-current` on the open one — `label`, `tabs`, `active`; also exports `statusTabClass(active)`
 - `pieces/step-card.tsx` — `StepCard`: numbered "How it works" step — `step`
 - `pieces/store-badges.tsx` — `StoreBadges`: App Store / Google Play badges — `badges`
 - `pieces/summary-row.tsx` — `SummaryRow`: read-only 64px label / value row inside a `dl` — `label`, `value`
 - `pieces/suggestion-chips.tsx` — `SuggestionChips`: 44px rose-light pills that fill a field — `label`, `suggestions`, `onPick`, `disabled`
-- `pieces/text-field.tsx` — `TextField`: labelled 56px input (Default / Error / Disabled) — `label`, `value`, `onChange`, `type` (text | date), `state`, `message`, `describedBy`, `inputRef`
-- `pieces/text.tsx` — `Text`: every run of text — `as` (incl. `li`, `dt`, `dd`), `variant` (lib/type-scale), `tone` (lib/tones)
+- `pieces/swipe-card.tsx` — `SwipeCard`: "48Date / Web / Swipe card" with decision feedback and a draggable photo — `member`, `title`, `verifiedLine`, `feedback`, `offset`, `dragging`, `drag`, `dragHintId`, `titleId`
+- `pieces/text-field.tsx` — `TextField`: labelled 56px input (Default / Error / Disabled) — `label`, `value`, `onChange`, `type` (text | date), `inputMode`, `state`, `message`, `describedBy`, `inputRef`
+- `pieces/text.tsx` — `Text`: every run of text — `as` (incl. `li`, `dt`, `dd`, `legend`), `variant` (lib/type-scale), `tone` (lib/tones)
 - `pieces/trust-panel.tsx` — `TrustPanel`: 40px rose icon, explanation and three verification steps — `trust`
 - `pieces/typing-dots.tsx` — `TypingDots`: three rose dots — `variant` (typing | activity), `label`
 - `pieces/upload-status.tsx` — `UploadStatus`: thumbnail, status line and progress track — `thumbnail`, `title`, `status`, `percent`, `progressLabel`
 - `pieces/venue-card.tsx` — `VenueCard`: illustrative date suggestion — `venue`
 - `sections/onboarding/step-actions.tsx` — `SetupPrimary`, `SetupTextAction`, `SetupBack`, `useAdvance(step)`: the onboarding action row, shared by every step
-- `sections/auth/auth-route.tsx` / `sections/legal/legal-route.tsx` / `sections/onboarding/onboarding-route.tsx` — route factories (`generateStaticParams`, metadata, Suspense-wrapped page) shared by sibling routes
+- `sections/portal/workspace.tsx` — `Workspace`: white 20px "Primary workspace" beside the optional 352px flow context; `sections/portal/status-screen.tsx` — `StatusScreen`: Back, heading, summary or artwork and the action pair, shared by every W04 status screen
+- `sections/auth/auth-route.tsx` / `sections/legal/legal-route.tsx` / `sections/onboarding/onboarding-route.tsx` / `sections/portal/portal-route.tsx` — route factories (`generateStaticParams`, metadata, Suspense-wrapped page) shared by sibling routes
 - `ui/accordion.tsx` — shadcn Accordion (Radix), cleaned per rule 23
 - `ui/button.tsx` — shadcn Button + `buttonVariants` (cva), cleaned per rule 23
 - `ui/dialog.tsx` — shadcn Dialog (Radix), cleaned per rule 23: no built-in close button, 56% black overlay
@@ -146,7 +166,7 @@ All under `src/components/`. Every composite piece also takes `revealDelay` and 
 - **Mobile:** no mobile frames exist in this section. Sections stack in reading order; the hero collage becomes two photos side by side with the quote card below; the safety overlays stay pinned to the photo corners; phones in the download gallery scale as one row; nav links move into a `<details>` "Menu" below 1024px (Log in / Get started join it below 640px).
 - **Nav casing:** the shared nav component is sentence case ("How it works"); the floating landing bar and footer are Title Case in Figma. One label set is stored and the glass bar / Explore column apply `capitalize`; footer copy that `capitalize` can't produce ("Get the App") is stored as drawn.
 - **Screen codes:** the Terms frame is labelled L02 like the landing page; it is keyed `L02-TC` (`/terms`). Privacy is `L03` (`/privacy`).
-- **Not functional yet:** App Store and Google Play badges and "Open my portal" (user portal) use `notFunctional`. "Set up my profile" now opens `/onboarding/location`. In onboarding, READY "Start discovering" leads to DISCOVER (the portal) and stays `notFunctional` until that section is built; PHOTO-READY Continue and NOTIFY Back now open VERIFY-INTRO. Get started / Log in now open `/signup` and `/signin`.
+- **Not functional yet:** App Store and Google Play badges use `notFunctional`. "Set up my profile" opens `/onboarding/location`; READY "Start discovering" and SIGNIN-VERIFIED "Open my portal" open DISCOVER; PHOTO-READY Continue and NOTIFY Back open VERIFY-INTRO. In the portal, Chats, Stories, the notifications centre, the member profile, messages (Say hello / Message / Open chat / Open conversation), date planning (Plan date / Plan a date), date details, date feedback and Report profile stay `notFunctional` until those sections exist. Get started / Log in now open `/signup` and `/signin`.
 - **Auth URLs:** `/signup` (WELCOME), `/signup/verify` (OTP), `/signup/verified`, `/signup/google`, `/signup/google/error`, `/signin` (SIGNIN), `/signin/verify` (OTP-SIGNIN), `/signin/verified`, `/signin/google`, `/signin/google/error`, `/signin/session-ended` (SESSION). Visiting a verify URL without an entered number returns to the flow's entry.
 - **Auth mock:** any six-digit code verifies except `000000` (mismatch) and `999999` (expired); the fourth resend hits the request limit (`lib/auth/mock-auth-service.ts`). Replace before release.
 - **Auth layout:** 1440 and 1024 follow the frames (photo panel width interpolates 648→400px). Below 1024 the AUTH-PORTRAIT layout applies; phones use it with 16px gutters and OTP cells that share the width (8px gaps).
@@ -165,6 +185,12 @@ All under `src/components/`. Every composite piece also takes `revealDelay` and 
 - **Verification mock:** a submitted selfie stays in review for ~6s, then is approved, or sent back to VERIFY-RETRY when the photo is too dark to see a face (average brightness under 50/255) (`lib/onboarding/mock-onboarding-service.ts`). Nothing leaves the browser. Replace before release.
 - **Verification behaviour:** any camera failure (refused, blocked or no camera) opens VERIFY-DENIED; "Open browser settings" returns to VERIFY-CAMERA, since a page cannot open browser settings. The preview is mirrored and the selfie is saved as seen. VERIFY-STATUS lists the phone as verified (the member reached onboarding through phone verification) and the selfie status from the service ("Not verified", "In review", "Verified"). "Allow camera & continue" and other long primary labels truncate only on phones narrower than the label.
 - **Responsive specimens:** W02B draws a 40px context header (29×32 logo) below 1280px; it is built. Its PHOTO-READY specimen uses older copy ("Add your photos", "2 photos added" and an extra note); the build keeps the desktop frame's copy, which the specimen's own note names as the interactive review path.
+- **Portal URLs:** `/discover` (DISCOVER with SWIPE-PASS / LIKE / SUPER, DISCOVER-NEXT, MATCH-NEW, DISCOVER-EMPTY and FILTERS-EMPTY as client states), `/discover/filters`, `/discover/profile/<member>` (DISCOVER-PROFILE), `/discover/compatibility/<member>` (COMPAT / COMPAT-PENDING), `/matches` (MATCHES / MATCHES-EMPTY), `/matches/cancelled`, `/matches/complete`, `/matches/match/<member>` (MATCH-EXPIRING / MATCH-EXPIRED). Only sample members prerender; other ids are 404.
+- **Portal mock:** preferences filter the sample deck (Wildflower, GoldenHour) by who to meet, age, distance and verification; "Share one of my interests" is stored but not applied. A Like or Super Like on GoldenHour is mutual (MATCH-NEW), as the DISCOVER-NEXT note describes. The three sample matches count down from when the tab first opened the portal (GoldenHour 42h, WildRose 1h 24m, RiverStone confirmed). State lives in sessionStorage and is validated on read (`lib/portal/mock-portal-service.ts`). Replace before release.
+- **Portal behaviour:** dragging the photo 96px passes (left) or likes (right); the buttons offer the same choices and each decision is announced. Feedback shows for 0.8s, then the next candidate. "Like {name}" / "Pass for now" on the profile return to DISCOVER and play that feedback there. Back on MATCH-NEW returns to the deck (like Keep discovering); Back on DISCOVER-EMPTY and FILTERS-EMPTY goes back in history, since those states live on DISCOVER itself; other Backs open DISCOVER (MATCHES for match details). COMPAT-PENDING shows until the member has saved interests in onboarding. COMPAT "View profile" opens the member's DISCOVER-PROFILE (the handoff says DISCOVER; the profile is what the label promises). Show matches saves (the button reads "Saving…" and ignores repeat submits) and opens DISCOVER; Reset filters restores the defaults (everyone, 15 miles, 25–35, both boxes on) and opens DISCOVER.
+- **Portal copy gaps:** Figma draws the age limits as text inputs with no validation copy; "Enter an age from 18 to 80." covers a missing or out-of-range age. "All profiles" is the verification value when the box is off. Match details with more than two hours left use "Make a plan while there’s time" / "Active match", and a confirmed date "Your date is confirmed"; only the expiring detail is drawn. All for owner approval.
+- **Portal sample data:** the cancelled summary shows WildRose's photo to match its "WildRose · 24 Oct" line (Figma reuses Wildflower's). Compatibility bars fill to their stated percentage (the Figma bars are drawn at about 72–76% for 86–92%). "More photos" keep the Figma screen tint (`photo-tint`).
+- **Portal layout:** ≥1280 follows the frames (80px gutters; 240 / 448 / fill columns; 904 + 352 workspace and flow context). 1024–1279: preferences span the top, deck and overview side by side. Below 1024 everything stacks in reading order with 48 / 32 / 16px gutters; header nav labels hide below 640px (icons keep accessible names); action rows stack on phones; match cards go 3 → 2 → 1 columns.
 - **`priority` → `preload`:** Next 16 deprecates `priority`; the hero background uses `preload`, hero collage photos `loading="eager"`.
 
 <!-- BEGIN:nextjs-agent-feedback -->
