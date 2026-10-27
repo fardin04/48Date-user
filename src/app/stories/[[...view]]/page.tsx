@@ -1,4 +1,4 @@
-import { portalRoute } from "@/components/sections/portal/portal-route";
+import { portalRoute } from "@/components/sections/portal/shared/portal-route";
 
 /** Success stories: /stories · /stories/story/<id> · /stories/new · /stories/mine */
 const route = portalRoute("stories");

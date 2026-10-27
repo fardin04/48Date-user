@@ -1,4 +1,4 @@
-import { portalRoute } from "@/components/sections/portal/portal-route";
+import { portalRoute } from "@/components/sections/portal/shared/portal-route";
 
 /** Settings: /settings · /settings/account · /settings/notifications · /settings/privacy · /settings/blocked · /settings/delete */
 const route = portalRoute("settings");
