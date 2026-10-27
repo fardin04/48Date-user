@@ -65,6 +65,9 @@
   --color-rose-mid: #fbd4de;
   --color-alert: #b91c1c;
   --color-alert-bg: #fef2f2;
+  /* W06 date picker: disabled day and the floating calendar's shadow (regular-shadow/medium). */
+  --color-disabled: #d1d1d1;
+  --shadow-picker: 0 16px 32px -12px rgb(14 18 27 / 0.1);
 
   /* Onboarding — W02 fills */
   --color-stage-idle: #f4f4f5;
@@ -91,6 +94,7 @@
   --font-sans: var(--font-manrope), ui-sans-serif, system-ui, sans-serif;
 
   --radius-6: 6px;
+  --radius-8: 8px;
   --radius-9: 9px;
   --radius-10: 10px;
   --radius-11: 11px;
