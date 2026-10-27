@@ -68,6 +68,9 @@
   /* W06 date picker: disabled day and the floating calendar's shadow (regular-shadow/medium). */
   --color-disabled: #d1d1d1;
   --shadow-picker: 0 16px 32px -12px rgb(14 18 27 / 0.1);
+  /* W09 settings rows: "Open" pill and the rose "Blocked" pill. */
+  --color-row-pill: #f5f5f5;
+  --color-rose-pill: #ffeef3;
 
   /* Onboarding — W02 fills */
   --color-stage-idle: #f4f4f5;
