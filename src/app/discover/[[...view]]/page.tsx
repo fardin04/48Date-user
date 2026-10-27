@@ -1,4 +1,4 @@
-import { portalRoute } from "@/components/sections/portal/portal-route";
+import { portalRoute } from "@/components/sections/portal/shared/portal-route";
 
 /** Discovery: /discover · /discover/filters · /discover/profile/<member> · /discover/compatibility/<member> */
 const route = portalRoute("discover");

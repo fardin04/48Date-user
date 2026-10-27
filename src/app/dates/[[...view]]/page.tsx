@@ -1,4 +1,4 @@
-import { portalRoute } from "@/components/sections/portal/portal-route";
+import { portalRoute } from "@/components/sections/portal/shared/portal-route";
 
 /** Date planning: /dates/<venues|place|time|review|plan|manage|feedback|complete>/<member> */
 const route = portalRoute("dates");

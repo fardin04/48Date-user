@@ -1,4 +1,4 @@
-import { portalRoute } from "@/components/sections/portal/portal-route";
+import { portalRoute } from "@/components/sections/portal/shared/portal-route";
 
 /** Icebreaker games: /games/<member> */
 const route = portalRoute("games");
