@@ -1,0 +1,1093 @@
+{
+  "info": {
+    "_postman_id": "f8a9e102-1234-4567-89ab-cdef01234567",
+    "name": "48Date - WebSocket & Real-Time Gateway",
+    "description": "# 48Date WebSocket & Real-Time Gateway Collection\n\nDedicated collection containing **all real-time Socket.IO events, client actions, server broadcasts, and message payload variants** for 48Date (Chat Module 05, Games Module 06, Dates Module 07).\n\n### Connection Configuration\n- **Base Socket URL:** `{{socketUrl}}` (Default: `http://localhost:3000`)\n- **Protocol:** Socket.IO v4 (Engine.IO v4)\n- **Authentication:** Bearer Access Token passed via:\n  - Handshake query parameter: `?token={{accessToken}}`\n  - OR Handshake header: `Authorization: Bearer {{accessToken}}`\n- **Transports:** `['websocket', 'polling']`\n\n### Collection Structure\n1. **00 - Connection & Handshake:** Initial handshake, auth verification, and client setup.\n2. **01 - Client Actions (Emit Events):** Events sent by the Flutter client (`joinConversation`, `typing`, `message:seen`, etc.) with success and error responses.\n3. **02 - Server Broadcasts: message:new:** All 9 rich payload variants (`TEXT`, `IMAGE`, `VOICE`, `GAME` invitation/result, `DATE` requested/accepted/cancelled, `SYSTEM`).\n4. **03 - Server Broadcasts: Status & Receipts:** Live delivery receipts, seen receipts, typing indicators, and room closures.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "socketUrl",
+      "value": "http://localhost:3000",
+      "type": "string"
+    },
+    {
+      "key": "accessToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "conversationId",
+      "value": "90b495d9-aca0-4b9b-b009-370a83356ea3",
+      "type": "string"
+    },
+    {
+      "key": "otherUserId",
+      "value": "983d5a42-5f60-4b10-8588-e21545452203",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "00 - Connection & Handshake",
+      "description": "Initial HTTP handshake and connection verification endpoints.",
+      "item": [
+        {
+          "name": "01 Handshake (HTTP Polling) - Connect & Authenticate",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "description": "Bearer access token for handshake authentication (alternative to ?token query parameter)."
+              }
+            ],
+            "url": {
+              "raw": "{{socketUrl}}/socket.io/?EIO=4&transport=polling&token={{accessToken}}",
+              "host": [
+                "{{socketUrl}}"
+              ],
+              "path": [
+                "socket.io",
+                ""
+              ],
+              "query": [
+                {
+                  "key": "EIO",
+                  "value": "4",
+                  "description": "Engine.IO protocol version. Allowed values: 4."
+                },
+                {
+                  "key": "transport",
+                  "value": "polling",
+                  "description": "Transport mechanism. Allowed values: polling, websocket."
+                },
+                {
+                  "key": "token",
+                  "value": "{{accessToken}}",
+                  "description": "JWT bearer access token for socket authentication."
+                }
+              ]
+            },
+            "description": "Executes the initial Engine.IO handshake to establish a socket session.\n\n**Query params:**\n- `EIO` (string, required): Engine.IO protocol version (`4`).\n- `transport` (string, required): Initial transport (`polling`).\n- `token` (string, optional): Bearer token if not sent in Authorization header."
+          },
+          "response": [
+            {
+              "name": "200 OK — Handshake Successful",
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"sid\": \"vraA7ZBlWRjQeTuSAAAQ\",\n  \"upgrades\": [\n    \"websocket\"\n  ],\n  \"pingInterval\": 25000,\n  \"pingTimeout\": 20000,\n  \"maxPayload\": 1000000\n}"
+            },
+            {
+              "name": "401 Unauthorized — Missing or Invalid Token",
+              "status": "Unauthorized",
+              "code": 401,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"code\": 4,\n  \"message\": \"Authentication token missing or invalid\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "02 Client Initialization & Connection (Flutter & JS Snippets)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{socketUrl}}/socket.io/info",
+              "host": [
+                "{{socketUrl}}"
+              ],
+              "path": [
+                "socket.io",
+                "info"
+              ]
+            },
+            "description": "### Flutter `socket_io_client` Configuration\n\n```dart\nimport 'package:socket_io_client/socket_io_client.dart' as IO;\n\nfinal socket = IO.io(\n  'http://localhost:3000',\n  IO.OptionBuilder()\n    .setTransports(['websocket', 'polling'])\n    .disableAutoConnect()\n    .setAuth({'token': accessToken})\n    .setQuery({'token': accessToken})\n    .build(),\n);\n\nsocket.connect();\n\nsocket.onConnect((_) => print('Connected: ${socket.id}'));\nsocket.onDisconnect((_) => print('Disconnected'));\nsocket.on('message:new', (data) => handleNewMessage(data));\nsocket.on('conversation:receipt', (data) => handleReceipt(data));\nsocket.on('typing', (data) => handleTyping(data));\nsocket.on('conversation:closed', (data) => handleClosed(data));\n```\n\n### JavaScript / Web Client Configuration\n\n```javascript\nimport { io } from 'socket.io-client';\n\nconst socket = io('http://localhost:3000', {\n  auth: { token: accessToken },\n  query: { token: accessToken },\n  transports: ['websocket', 'polling']\n});\n```"
+          },
+          "response": [
+            {
+              "name": "Client Config Reference",
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"transports\": [\n    \"websocket\",\n    \"polling\"\n  ],\n  \"authParam\": \"token\",\n  \"heartbeatIntervalMs\": 25000,\n  \"heartbeatTimeoutMs\": 20000\n}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "01 - Client Actions (Emit Events)",
+      "description": "Events emitted by the client to the server with their respective payloads and acknowledgments.",
+      "item": [
+        {
+          "name": "01 Emit: joinConversation",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"conversationId\": \"{{conversationId}}\" // UUID of the conversation room to join\n}"
+            },
+            "url": {
+              "raw": "{{socketUrl}}/events/joinConversation",
+              "host": [
+                "{{socketUrl}}"
+              ],
+              "path": [
+                "events",
+                "joinConversation"
+              ]
+            },
+            "description": "Emitted when a user opens a conversation screen in the app.\nAdds the client's socket connection to `conversation:{id}` room.\n\n**Body fields:**\n- `conversationId` (string, required, UUID): The conversation ID."
+          },
+          "response": [
+            {
+              "name": "Success Ack — Joined Room",
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": true\n}"
+            },
+            {
+              "name": "Error Ack — Conversation Not Found",
+              "status": "Not Found",
+              "code": 404,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"error\": \"Conversation not found\"\n}"
+            },
+            {
+              "name": "Error Ack — Not a Participant",
+              "status": "Forbidden",
+              "code": 403,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"error\": \"You are not a participant in this conversation\"\n}"
+            },
+            {
+              "name": "Error Ack — Conversation Closed",
+              "status": "Conflict",
+              "code": 409,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"error\": \"This conversation is closed\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "02 Emit: leaveConversation",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"conversationId\": \"{{conversationId}}\" // UUID of the conversation room to leave\n}"
+            },
+            "url": {
+              "raw": "{{socketUrl}}/events/leaveConversation",
+              "host": [
+                "{{socketUrl}}"
+              ],
+              "path": [
+                "events",
+                "leaveConversation"
+              ]
+            },
+            "description": "Emitted when the user navigates back from a chat screen.\nRemoves the client's socket connection from `conversation:{id}` room.\n\n**Body fields:**\n- `conversationId` (string, required, UUID): The conversation ID."
+          },
+          "response": [
+            {
+              "name": "Success Ack — Left Room",
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": true\n}"
+            }
+          ]
+        },
+        {
+          "name": "03 Emit: typing (Start Typing)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"conversationId\": \"{{conversationId}}\", // UUID of conversation\n  \"isTyping\": true // Set to true when user actively types\n}"
+            },
+            "url": {
+              "raw": "{{socketUrl}}/events/typing",
+              "host": [
+                "{{socketUrl}}"
+              ],
+              "path": [
+                "events",
+                "typing"
+              ]
+            },
+            "description": "Relays typing indicator status to the conversation room without database persistence.\n\n**Body fields:**\n- `conversationId` (string, required, UUID): Conversation ID.\n- `isTyping` (boolean, required): Set to `true` when user types."
+          },
+          "response": [
+            {
+              "name": "Relayed to Partner",
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"relayedEvent\": \"typing\",\n  \"targetRoom\": \"conversation:{{conversationId}}\",\n  \"payload\": {\n    \"conversationId\": \"{{conversationId}}\",\n    \"nickname\": \"ava_stone\",\n    \"isTyping\": true\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "04 Emit: typing (Stop Typing)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"conversationId\": \"{{conversationId}}\", // UUID of conversation\n  \"isTyping\": false // Set to false when user stops typing or input clears\n}"
+            },
+            "url": {
+              "raw": "{{socketUrl}}/events/typing",
+              "host": [
+                "{{socketUrl}}"
+              ],
+              "path": [
+                "events",
+                "typing"
+              ]
+            },
+            "description": "Relays typing stopped indicator status to the partner.\n\n**Body fields:**\n- `conversationId` (string, required, UUID): Conversation ID.\n- `isTyping` (boolean, required): Set to `false` when typing stops."
+          },
+          "response": [
+            {
+              "name": "Relayed to Partner",
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"relayedEvent\": \"typing\",\n  \"targetRoom\": \"conversation:{{conversationId}}\",\n  \"payload\": {\n    \"conversationId\": \"{{conversationId}}\",\n    \"nickname\": \"ava_stone\",\n    \"isTyping\": false\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "05 Emit: message:delivered",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"conversationId\": \"{{conversationId}}\", // UUID of conversation\n  \"upToSeq\": 12 // Monotonic sequence number received by client device\n}"
+            },
+            "url": {
+              "raw": "{{socketUrl}}/events/message:delivered",
+              "host": [
+                "{{socketUrl}}"
+              ],
+              "path": [
+                "events",
+                "message:delivered"
+              ]
+            },
+            "description": "Informs server that messages up to `upToSeq` have reached the device.\nUpdates `conversation_members.delivered_up_to_seq` and notifies partner.\n\n**Body fields:**\n- `conversationId` (string, required, UUID): Conversation ID.\n- `upToSeq` (integer, required): Monotonic sequence number."
+          },
+          "response": [
+            {
+              "name": "Broadcasts conversation:receipt to Partner",
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"conversationId\": \"{{conversationId}}\",\n  \"nickname\": \"ava_stone\",\n  \"deliveredUpToSeq\": 12,\n  \"seenUpToSeq\": 4\n}"
+            }
+          ]
+        },
+        {
+          "name": "06 Emit: message:seen",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"conversationId\": \"{{conversationId}}\", // UUID of conversation\n  \"upToSeq\": 12 // Monotonic sequence number read by user\n}"
+            },
+            "url": {
+              "raw": "{{socketUrl}}/events/message:seen",
+              "host": [
+                "{{socketUrl}}"
+              ],
+              "path": [
+                "events",
+                "message:seen"
+              ]
+            },
+            "description": "Informs server that messages up to `upToSeq` have been read by the user.\nUpdates `seen_up_to_seq` and `delivered_up_to_seq` and notifies partner.\n\n**Body fields:**\n- `conversationId` (string, required, UUID): Conversation ID.\n- `upToSeq` (integer, required): Monotonic sequence number."
+          },
+          "response": [
+            {
+              "name": "Broadcasts conversation:receipt to Partner",
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"conversationId\": \"{{conversationId}}\",\n  \"nickname\": \"ava_stone\",\n  \"deliveredUpToSeq\": 12,\n  \"seenUpToSeq\": 12\n}"
+            }
+          ]
+        },
+        {
+          "name": "07 Emit: heartbeat",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  // Empty payload - heartbeat refreshes Redis presence TTL (60s)\n}"
+            },
+            "url": {
+              "raw": "{{socketUrl}}/events/heartbeat",
+              "host": [
+                "{{socketUrl}}"
+              ],
+              "path": [
+                "events",
+                "heartbeat"
+              ]
+            },
+            "description": "Periodic heartbeat sent every 25-45s by client to maintain presence in Redis.\n\n**Body fields:** None."
+          },
+          "response": [
+            {
+              "name": "Success Ack — Heartbeat OK",
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"ok\": true\n}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "02 - Server Broadcasts: message:new (All Message Types & Payloads)",
+      "description": "Payload structures broadcasted under the 'message:new' socket event for each message type and interactive bubble.",
+      "item": [
+        {
+          "name": "01 message:new — TEXT Message",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{socketUrl}}/events/message:new/text",
+              "host": [
+                "{{socketUrl}}"
+              ],
+              "path": [
+                "events",
+                "message:new",
+                "text"
+              ]
+            },
+            "description": "Broadcasted when a standard text message is sent.\n- `file`: `null`\n- `payload`: `null`\n- `isMine`: `true` for author's socket, `false` for recipient's socket."
+          },
+          "response": [
+            {
+              "name": "Received by Partner (isMine: false)",
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"id\": \"a25f2e81-19a5-46aa-bd12-021e1a70c5bb\",\n  \"conversationId\": \"{{conversationId}}\",\n  \"seq\": 1,\n  \"senderId\": \"983d5a42-5f60-4b10-8588-e21545452203\",\n  \"senderNickname\": \"ava_stone\",\n  \"isMine\": false,\n  \"type\": \"TEXT\",\n  \"text\": \"Hey! Are you free for coffee this Thursday?\",\n  \"file\": null,\n  \"payload\": null,\n  \"status\": \"SENT\",\n  \"createdAt\": \"2026-10-26T14:41:52.802Z\"\n}"
+            },
+            {
+              "name": "Received by Author (isMine: true)",
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"id\": \"a25f2e81-19a5-46aa-bd12-021e1a70c5bb\",\n  \"conversationId\": \"{{conversationId}}\",\n  \"seq\": 1,\n  \"senderId\": \"983d5a42-5f60-4b10-8588-e21545452203\",\n  \"senderNickname\": \"ava_stone\",\n  \"isMine\": true,\n  \"type\": \"TEXT\",\n  \"text\": \"Hey! Are you free for coffee this Thursday?\",\n  \"file\": null,\n  \"payload\": null,\n  \"status\": \"SENT\",\n  \"createdAt\": \"2026-10-26T14:41:52.802Z\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "02 message:new — IMAGE Message",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{socketUrl}}/events/message:new/image",
+              "host": [
+                "{{socketUrl}}"
+              ],
+              "path": [
+                "events",
+                "message:new",
+                "image"
+              ]
+            },
+            "description": "Broadcasted when an image is shared.\n- `file`: Populated with R2 signed download URL and image dimensions.\n- `payload`: `null`."
+          },
+          "response": [
+            {
+              "name": "Image Message Payload",
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"id\": \"b33c4d55-22a1-47bb-a991-112e3b40c6aa\",\n  \"conversationId\": \"{{conversationId}}\",\n  \"seq\": 2,\n  \"senderId\": \"983d5a42-5f60-4b10-8588-e21545452203\",\n  \"senderNickname\": \"ava_stone\",\n  \"isMine\": false,\n  \"type\": \"IMAGE\",\n  \"text\": null,\n  \"file\": {\n    \"fileId\": \"f4567890-1234-abcd-5678-90abcdef1234\",\n    \"url\": \"https://r2.48date.com/users/ava_stone/chat/f4567890.jpg?sig=xyz\",\n    \"mimeType\": \"image/jpeg\",\n    \"width\": 1080,\n    \"height\": 1920,\n    \"durationSeconds\": null\n  },\n  \"payload\": null,\n  \"status\": \"SENT\",\n  \"createdAt\": \"2026-10-26T14:42:10.000Z\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "03 message:new — VOICE Message",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{socketUrl}}/events/message:new/voice",
+              "host": [
+                "{{socketUrl}}"
+              ],
+              "path": [
+                "events",
+                "message:new",
+                "voice"
+              ]
+            },
+            "description": "Broadcasted when a voice note is sent.\n- `file.durationSeconds`: Audio track duration in seconds (1-120s).\n- `payload.durationSeconds`: Also included in payload for client audio scrubber rendering."
+          },
+          "response": [
+            {
+              "name": "Voice Message Payload",
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"id\": \"c44d5e66-33b2-48cc-b002-223f4c50d7bb\",\n  \"conversationId\": \"{{conversationId}}\",\n  \"seq\": 3,\n  \"senderId\": \"983d5a42-5f60-4b10-8588-e21545452203\",\n  \"senderNickname\": \"ava_stone\",\n  \"isMine\": false,\n  \"type\": \"VOICE\",\n  \"text\": null,\n  \"file\": {\n    \"fileId\": \"v7890123-4567-bcde-8901-234567abcdef\",\n    \"url\": \"https://r2.48date.com/users/ava_stone/chat/v7890123.m4a?sig=abc\",\n    \"mimeType\": \"audio/m4a\",\n    \"width\": null,\n    \"height\": null,\n    \"durationSeconds\": 14\n  },\n  \"payload\": {\n    \"durationSeconds\": 14\n  },\n  \"status\": \"SENT\",\n  \"createdAt\": \"2026-10-26T14:43:00.000Z\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "04 message:new — GAME Invitation (This or That)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{socketUrl}}/events/message:new/game-invite",
+              "host": [
+                "{{socketUrl}}"
+              ],
+              "path": [
+                "events",
+                "message:new",
+                "game-invite"
+              ]
+            },
+            "description": "Broadcasted when a user initiates a game challenge (Module 06, D-112).\n\nFlutter renders an interactive game invitation card with a 'Play Game' button.\nTapping invokes `GET /api/v1/games/:id`."
+          },
+          "response": [
+            {
+              "name": "Game Invitation Payload",
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"id\": \"d55e6f77-44c3-49dd-c113-334a5d60e8cc\",\n  \"conversationId\": \"{{conversationId}}\",\n  \"seq\": 4,\n  \"senderId\": \"983d5a42-5f60-4b10-8588-e21545452203\",\n  \"senderNickname\": \"ava_stone\",\n  \"isMine\": false,\n  \"type\": \"GAME\",\n  \"text\": \"Ava invited you to play This or That!\",\n  \"file\": null,\n  \"payload\": {\n    \"gameId\": \"g9988776-1122-3344-5566-778899aabbcc\",\n    \"gameType\": \"THIS_OR_THAT\",\n    \"event\": \"INVITATION\"\n  },\n  \"status\": \"SENT\",\n  \"createdAt\": \"2026-10-26T14:44:00.000Z\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "05 message:new — GAME Results (Completed Score Card)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{socketUrl}}/events/message:new/game-result",
+              "host": [
+                "{{socketUrl}}"
+              ],
+              "path": [
+                "events",
+                "message:new",
+                "game-result"
+              ]
+            },
+            "description": "Broadcasted when both participants complete the game questions.\n\nFlutter renders a summary card with score percentage and common choices."
+          },
+          "response": [
+            {
+              "name": "Game Result Payload",
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"id\": \"e66f7a88-55d4-4aee-d224-445b6e70f9dd\",\n  \"conversationId\": \"{{conversationId}}\",\n  \"seq\": 5,\n  \"senderId\": null,\n  \"senderNickname\": null,\n  \"isMine\": false,\n  \"type\": \"GAME\",\n  \"text\": \"Game Complete! You matched on 8 of 10 answers (80% compatibility).\",\n  \"file\": null,\n  \"payload\": {\n    \"gameId\": \"g9988776-1122-3344-5566-778899aabbcc\",\n    \"gameType\": \"THIS_OR_THAT\",\n    \"event\": \"RESULT\",\n    \"matchScore\": 80,\n    \"commonAnswersCount\": 8,\n    \"totalQuestions\": 10\n  },\n  \"status\": \"SENT\",\n  \"createdAt\": \"2026-10-26T14:45:30.000Z\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "06 message:new — DATE_INVITE Proposed (Venue Card)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{socketUrl}}/events/message:new/date-invite",
+              "host": [
+                "{{socketUrl}}"
+              ],
+              "path": [
+                "events",
+                "message:new",
+                "date-invite"
+              ]
+            },
+            "description": "Broadcasted when a date invitation is sent (Module 07, D-126).\n\nFlutter renders an invitation bubble with venue info and Accept / Decline buttons."
+          },
+          "response": [
+            {
+              "name": "Date Invite Proposed Payload",
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"id\": \"f77a8b99-66e5-4bff-e335-556c7f80a0ee\",\n  \"conversationId\": \"{{conversationId}}\",\n  \"seq\": 6,\n  \"senderId\": \"983d5a42-5f60-4b10-8588-e21545452203\",\n  \"senderNickname\": \"ava_stone\",\n  \"isMine\": false,\n  \"type\": \"DATE_INVITE\",\n  \"text\": \"Date Invitation: Artisan Coffee Roasters, Gulshan-2\",\n  \"file\": null,\n  \"payload\": {\n    \"dateId\": \"d1234567-89ab-cdef-0123-456789abcdef\",\n    \"status\": \"REQUESTED\",\n    \"venueName\": \"Artisan Coffee Roasters\",\n    \"venueAddress\": \"Road 103, House 14, Gulshan-2, Dhaka\",\n    \"scheduledAt\": \"2026-10-29T18:30:00.000Z\"\n  },\n  \"status\": \"SENT\",\n  \"createdAt\": \"2026-10-26T14:46:00.000Z\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "07 message:new — DATE Accepted (Clock Stopped Card)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{socketUrl}}/events/message:new/date-accepted",
+              "host": [
+                "{{socketUrl}}"
+              ],
+              "path": [
+                "events",
+                "message:new",
+                "date-accepted"
+              ]
+            },
+            "description": "Broadcasted when partner accepts the date.\n\nStops the 48-hour match timer permanently (D-86). Flutter updates the header timer."
+          },
+          "response": [
+            {
+              "name": "Date Accepted Payload",
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"id\": \"a88b9c00-77f6-4caa-f446-667d8a90b1ff\",\n  \"conversationId\": \"{{conversationId}}\",\n  \"seq\": 7,\n  \"senderId\": \"12345678-aaaa-bbbb-cccc-111122223333\",\n  \"senderNickname\": \"noah_reed\",\n  \"isMine\": false,\n  \"type\": \"DATE\",\n  \"text\": \"Noah accepted the date plan for Artisan Coffee Roasters!\",\n  \"file\": null,\n  \"payload\": {\n    \"dateId\": \"d1234567-89ab-cdef-0123-456789abcdef\",\n    \"status\": \"ACCEPTED\",\n    \"venueName\": \"Artisan Coffee Roasters\",\n    \"scheduledAt\": \"2026-10-29T18:30:00.000Z\",\n    \"clockStopped\": true\n  },\n  \"status\": \"SENT\",\n  \"createdAt\": \"2026-10-26T14:47:00.000Z\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "08 message:new — DATE Cancelled",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{socketUrl}}/events/message:new/date-cancelled",
+              "host": [
+                "{{socketUrl}}"
+              ],
+              "path": [
+                "events",
+                "message:new",
+                "date-cancelled"
+              ]
+            },
+            "description": "Broadcasted when an accepted date is cancelled with a mandatory reason (D-131)."
+          },
+          "response": [
+            {
+              "name": "Date Cancelled Payload",
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"id\": \"b99c0d11-88a7-4dbb-a557-778e9b00c2aa\",\n  \"conversationId\": \"{{conversationId}}\",\n  \"seq\": 8,\n  \"senderId\": \"12345678-aaaa-bbbb-cccc-111122223333\",\n  \"senderNickname\": \"noah_reed\",\n  \"isMine\": false,\n  \"type\": \"DATE\",\n  \"text\": \"Date was cancelled: Work emergency came up.\",\n  \"file\": null,\n  \"payload\": {\n    \"dateId\": \"d1234567-89ab-cdef-0123-456789abcdef\",\n    \"status\": \"CANCELLED\",\n    \"reason\": \"Work emergency came up\"\n  },\n  \"status\": \"SENT\",\n  \"createdAt\": \"2026-10-26T14:48:00.000Z\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "09 message:new — SYSTEM Milestone (Clock Stopped Banner)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{socketUrl}}/events/message:new/system",
+              "host": [
+                "{{socketUrl}}"
+              ],
+              "path": [
+                "events",
+                "message:new",
+                "system"
+              ]
+            },
+            "description": "Broadcasted as a system-level banner inside the chat conversation."
+          },
+          "response": [
+            {
+              "name": "System Banner Payload",
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"id\": \"c00d1e22-99b8-4ecc-b668-889f0c11d3bb\",\n  \"conversationId\": \"{{conversationId}}\",\n  \"seq\": 9,\n  \"senderId\": null,\n  \"senderNickname\": null,\n  \"isMine\": false,\n  \"type\": \"SYSTEM\",\n  \"text\": \"Congratulations! Your date is confirmed and the 48-hour clock has permanently stopped.\",\n  \"file\": null,\n  \"payload\": {\n    \"event\": \"CLOCK_STOPPED\",\n    \"reason\": \"DATE_ACCEPTED\"\n  },\n  \"status\": \"SENT\",\n  \"createdAt\": \"2026-10-26T14:49:00.000Z\"\n}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "03 - Server Broadcasts: Status & Receipts",
+      "description": "Read receipts, delivered status updates, typing indicators, and room closure broadcasts.",
+      "item": [
+        {
+          "name": "01 conversation:receipt — Delivered Pointer Moved",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{socketUrl}}/events/conversation:receipt/delivered",
+              "host": [
+                "{{socketUrl}}"
+              ],
+              "path": [
+                "events",
+                "conversation:receipt",
+                "delivered"
+              ]
+            },
+            "description": "Emitted to the sender when the recipient's device receives messages.\n`deliveredUpToSeq` indicates messages delivered (double grey checks in UI)."
+          },
+          "response": [
+            {
+              "name": "Delivered Receipt Event",
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"conversationId\": \"{{conversationId}}\",\n  \"nickname\": \"noah_reed\",\n  \"deliveredUpToSeq\": 15,\n  \"seenUpToSeq\": 8\n}"
+            }
+          ]
+        },
+        {
+          "name": "02 conversation:receipt — Seen / Read Pointer Moved",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{socketUrl}}/events/conversation:receipt/seen",
+              "host": [
+                "{{socketUrl}}"
+              ],
+              "path": [
+                "events",
+                "conversation:receipt",
+                "seen"
+              ]
+            },
+            "description": "Emitted to the sender when the recipient opens and reads messages.\n`seenUpToSeq` indicates messages seen (double blue checks in UI)."
+          },
+          "response": [
+            {
+              "name": "Seen / Read Receipt Event",
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"conversationId\": \"{{conversationId}}\",\n  \"nickname\": \"noah_reed\",\n  \"deliveredUpToSeq\": 15,\n  \"seenUpToSeq\": 15\n}"
+            }
+          ]
+        },
+        {
+          "name": "03 typing — Partner Started Typing",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{socketUrl}}/events/typing/partner-started",
+              "host": [
+                "{{socketUrl}}"
+              ],
+              "path": [
+                "events",
+                "typing",
+                "partner-started"
+              ]
+            },
+            "description": "Relayed to the client when the other user is typing."
+          },
+          "response": [
+            {
+              "name": "Partner Started Typing",
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"conversationId\": \"{{conversationId}}\",\n  \"nickname\": \"noah_reed\",\n  \"isTyping\": true\n}"
+            }
+          ]
+        },
+        {
+          "name": "04 typing — Partner Stopped Typing",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{socketUrl}}/events/typing/partner-stopped",
+              "host": [
+                "{{socketUrl}}"
+              ],
+              "path": [
+                "events",
+                "typing",
+                "partner-stopped"
+              ]
+            },
+            "description": "Relayed to the client when the other user stops typing."
+          },
+          "response": [
+            {
+              "name": "Partner Stopped Typing",
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"conversationId\": \"{{conversationId}}\",\n  \"nickname\": \"noah_reed\",\n  \"isTyping\": false\n}"
+            }
+          ]
+        },
+        {
+          "name": "05 conversation:closed — Match Expired",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{socketUrl}}/events/conversation:closed/expired",
+              "host": [
+                "{{socketUrl}}"
+              ],
+              "path": [
+                "events",
+                "conversation:closed",
+                "expired"
+              ]
+            },
+            "description": "Emitted when 48 hours elapse without an accepted date plan.\nFlutter locks the message input and shows match expired overlay."
+          },
+          "response": [
+            {
+              "name": "Conversation Closed — Expired",
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"conversationId\": \"{{conversationId}}\",\n  \"reason\": \"EXPIRED\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "06 conversation:closed — User Blocked",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{socketUrl}}/events/conversation:closed/blocked",
+              "host": [
+                "{{socketUrl}}"
+              ],
+              "path": [
+                "events",
+                "conversation:closed",
+                "blocked"
+              ]
+            },
+            "description": "Emitted when either user blocks the other.\nFlutter removes the active room and marks conversation closed."
+          },
+          "response": [
+            {
+              "name": "Conversation Closed — Blocked",
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"conversationId\": \"{{conversationId}}\",\n  \"reason\": \"BLOCKED\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "07 game:answer — Partner Answered / Match Reveal",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{socketUrl}}/events/game:answer",
+              "host": [
+                "{{socketUrl}}"
+              ],
+              "path": [
+                "events",
+                "game:answer"
+              ]
+            },
+            "description": "Emitted in real-time when either player submits an answer for a question in This or That.\n\n- If partner has NOT answered yet: partnerRevealed is false and partnerChoice is omitted (No Peeking Rule D-113).\n- Once BOTH have answered: partnerRevealed is true, partnerChoice is revealed, and isMatch indicates if both choices agreed."
+          },
+          "response": [
+            {
+              "name": "Partner Answered — Waiting For Me",
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"gameId\": \"{{gameId}}\",\n  \"questionId\": \"{{questionId}}\",\n  \"questionIndex\": 1,\n  \"partnerAnswered\": true,\n  \"partnerRevealed\": false,\n  \"partnerNickname\": \"noah_reed\"\n}"
+            },
+            {
+              "name": "Both Answered — Match Revealed!",
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"gameId\": \"{{gameId}}\",\n  \"questionId\": \"{{questionId}}\",\n  \"questionIndex\": 1,\n  \"partnerAnswered\": true,\n  \"partnerRevealed\": true,\n  \"partnerNickname\": \"noah_reed\",\n  \"partnerChoice\": \"A\",\n  \"isMatch\": true\n}"
+            }
+          ]
+        },
+        {
+          "name": "08 game:completed — Real-Time Game Finished",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{socketUrl}}/events/game:completed",
+              "host": [
+                "{{socketUrl}}"
+              ],
+              "path": [
+                "events",
+                "game:completed"
+              ]
+            },
+            "description": "Emitted in real-time to both players when the 10th and final question is answered by both users."
+          },
+          "response": [
+            {
+              "name": "Game Completed Event",
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"gameId\": \"{{gameId}}\",\n  \"matchCount\": 8,\n  \"totalQuestions\": 10,\n  \"compatibilityPercent\": 80\n}"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
