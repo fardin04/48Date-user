@@ -83,7 +83,10 @@ Sign in to reach the portal:
 
 | Name | Purpose |
 | --- | --- |
-| `NEXT_PUBLIC_API_BASE_URL` | Base URL of the 48Date API, read only in `src/lib/api-config.ts`. Empty while the mocks are in use. |
+| `NEXT_PUBLIC_API_BASE_URL` | Base URL of the 48Date API including `/api/v1` (read only in `src/lib/api/config.ts`). Empty = every service runs on its mock; set = the integrated services call the API. Inlined at build time, so rebuild after changing it. |
+| `NEXT_PUBLIC_APP_VERSION` | Optional; sent as `device.appVersion` on sign-in. |
+
+The backend's default port (3000) is also `next dev`'s, so run one of them elsewhere, for example `NEXT_PUBLIC_API_BASE_URL=http://localhost:4000/api/v1`.
 
 `.env*` files are git-ignored except `.env.example`. Never commit secrets; the frontend holds none.
 
@@ -128,7 +131,8 @@ src/
   lib/
     routes.ts       Screen codes → URLs (hrefFor, to, toItem, notFunctional)
     type-scale.ts control-sizes.ts tones.ts   Design-token scale maps
-    auth/ onboarding/ portal/   Typed services, each with a mocks/ folder
+    api/            HTTP layer: config, endpoints, client, cache, tokens, types/, modules/
+    auth/ onboarding/ portal/   Service contracts, their API implementations and mocks/
 ```
 
 ## How the code is organised
@@ -207,33 +211,64 @@ To see offline states, switch the browser to offline in DevTools. A page opened 
 
 ## Connecting the real API
 
-Each service exports a contract (TypeScript type) and a single binding line:
+The contract is the Postman collection in [`postman/`](postman/README.md) (User folder; Admin endpoints belong to the admin panel). Integration happens in phases; **phase 1 is in place** (44 of 129 user endpoints).
 
-```ts
-// src/lib/portal/chat-service.ts
-export const chatService: ChatService = mockChatService;
+### How a call flows
+
+```
+component → service contract (lib/<feature>/*-service.ts)
+          → API implementation (api-*-service.ts) or the marked mock (mocks/)
+          → module (lib/api/modules/*-api.ts) → client (lib/api/client.ts) → API
 ```
 
-To go live:
-1. Implement the contract against the API (base URL from `src/lib/api-config.ts`).
-2. Change that one line. Components need no change.
+Each contract picks its implementation once:
+
+```ts
+export const authService: AuthService = apiEnabled ? apiAuthService : mockAuthService;
+```
+
+| Piece | File | Does |
+| --- | --- | --- |
+| Config | `lib/api/config.ts` | Base URL from the env, `apiEnabled`, the `device` sent on sign-in |
+| Endpoints | `lib/api/endpoints.ts` | Every path as a constant; dynamic segments encoded |
+| Client | `lib/api/client.ts` | Bearer token, one shared refresh-and-retry on 401 (refresh tokens rotate), normalised `ApiError`, `AbortSignal`, upload progress |
+| Sharing | `lib/api/cache.ts` | Deduplicates concurrent GETs and keeps values for a TTL; writes invalidate their keys; cleared on sign-out |
+| Tokens | `lib/api/tokens.ts` | Access token in memory only; refresh token in this tab's sessionStorage |
+| Types | `lib/api/types/*.ts` | Request and response shapes, field for field with the collection |
+| Modules | `lib/api/modules/*-api.ts` | One typed function per endpoint, per module |
+
+### Phase 1 — on the API
+
+| Module | Endpoints | Screens |
+| --- | --- | --- |
+| Auth | request OTP, verify, refresh, logout | sign up / sign in, OTP, log out, session guard |
+| Onboarding | state, options, nickname suggestions / availability, file upload, 19 step saves | all onboarding steps (answers restored on return) |
+| Verification | start, snapshot (polled every 3 s) | VERIFY-* |
+| Users | me, update profile, update photos, update location, delete | PROFILE, PROFILE-EDIT, PHOTO-MANAGE, DELETE-ACCOUNT, profile cards |
+| Trust | score, history | TRUST, TRUST-HISTORY, profile cards |
+| Notification settings | get, update | NOTIFY-PREFS |
+| Subscriptions | plans, me, entitlements, start (dummy), cancel | PLANS, checkout, MEMBERSHIP, manage, quota |
+
+Still on the mocks until their phase: Google sign-in and account linking, discovery, matches, chat and the Socket.IO gateway, games, dates, AI suggestions, reports and blocks, the notifications inbox, success stories, private account details and trust reviews (no endpoints yet).
 
 | Service | File | Covers |
 | --- | --- | --- |
-| `authService` | `lib/auth/auth-service.ts` | Phone codes, Google, session, sign-out |
-| `onboardingService` | `lib/onboarding/onboarding-service.ts` | Nickname check, area search, photo upload, selfie review |
-| `portalService` | `lib/portal/portal-service.ts` | Preferences, discovery deck, decisions, matches and deadlines |
-| `chatService` | `lib/portal/chat-service.ts` | Conversations, messages, AI suggestions, block / unblock |
-| `dateService` | `lib/portal/date-service.ts` | Venues, date plans, invitations, attendance, feedback |
-| `gameService` | `lib/portal/game-service.ts` | This-or-That rounds |
-| `storyService` | `lib/portal/story-service.ts` | Stories, comments, submissions and moderation |
-| `accountService` | `lib/portal/account-service.ts` | Profile, account details, photos, notification choices, trust reviews, reports, deletion |
-| `membershipService` | `lib/portal/membership-service.ts` | Membership, hosted checkout result, restore, renewal, free quota |
+| `authService` | `lib/auth/auth-service.ts` | Phone codes, session, sign-out — **API** |
+| `onboardingService` | `lib/onboarding/onboarding-service.ts` | Steps, options, nickname, uploads, selfie review — **API** |
+| `accountService` | `lib/portal/account-service.ts` | Profile, photos, trust, notification settings, deletion — **API**; account details, trust reviews, reports — mock |
+| `membershipService` | `lib/portal/membership-service.ts` | Plans, membership, checkout, renewal, quota — **API** |
+| `portalService` | `lib/portal/portal-service.ts` | Preferences, discovery deck, decisions, matches — mock |
+| `chatService` | `lib/portal/chat-service.ts` | Conversations, messages, AI suggestions, block / unblock — mock |
+| `dateService` | `lib/portal/date-service.ts` | Venues, date plans, invitations, attendance, feedback — mock |
+| `gameService` | `lib/portal/game-service.ts` | This-or-That rounds — mock |
+| `storyService` | `lib/portal/story-service.ts` | Stories, comments, submissions — mock |
+
+To connect another module: add its types, endpoints and `modules/<module>-api.ts`, write `api-<feature>-service.ts` implementing the existing contract, and switch the binding line. Components need no change.
 
 Backend notes taken from the design handoff:
 - **Match deadlines** (`expiresAt`) are server-owned; the client only counts down.
 - **Entitlements** come only from verified billing-provider events. Checkout is the provider's hosted page; the app never handles card data.
-- **The session** is a sessionStorage flag in the mock. A real API should use an httpOnly cookie.
+- **The session:** the API returns tokens in the response body. The client keeps the access token in memory and the refresh token in sessionStorage; an httpOnly refresh cookie set by the API would be safer.
 - **Server validation** must reproduce the field rules in `lib/portal/account-rules.ts` and return field errors in the same shape.
 
 ## Responsive layout
