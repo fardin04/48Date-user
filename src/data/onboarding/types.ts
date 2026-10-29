@@ -21,7 +21,9 @@ export type DraftField =
   | "languages"
   | "goal"
   | "personality"
-  | "communication";
+  | "communication"
+  /** NOTIFY: "granted" once the browser allowed notifications (sent as the step's `skipped`). */
+  | "notifications";
 
 /** Onboarding steps in flow order; each owns one URL (rule 32). */
 export type OnboardingStep =
@@ -75,4 +77,5 @@ export type StepFlow = {
 
 export type MapVisual = { image: ImageAsset; title: string; description: string };
 
-export type Area = { id: string; name: string; label: string; region: string };
+/** `center` is the area's approximate centre [latitude, longitude], sent for a manual choice. */
+export type Area = { id: string; name: string; label: string; region: string; countryCode: string; center: [number, number] };
