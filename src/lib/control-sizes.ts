@@ -15,7 +15,11 @@ export const buttonSizes = {
   /** Onboarding secondary text action ("Enter location manually") — 44px. */
   text: `${typeScale.text16Semibold} h-11 px-8 rounded-full`,
   /** Portal pill with a 14/22 bold label (decision controls, card actions). */
-  pillCompact: `${typeScale.text14BoldRelaxed} h-14 px-8 rounded-full`,
+  pillCompact: `${typeScale.text14BoldRelaxed} h-14 px-8 max-sm:px-3 rounded-full`,
+  /** Portal screen action — 56px pill, 16/24 bold. */
+  portalPill: `${typeScale.text16Bold} h-14 px-8 max-sm:px-4 rounded-full`,
+  /** Align UI "Buttons [1.1]" small (PHOTO-MANAGE "Upload", "Replace"): 32px, 14/20 medium. */
+  compact: `${typeScale.text14Medium} h-8 px-2.5 rounded-8`,
 } as const;
 
 export type ButtonSize = keyof typeof buttonSizes;
@@ -30,16 +34,24 @@ export const buttonWidths = {
   /** Onboarding action row: 112px Back, 240px primary (shrinks beside Back on phones). */
   setupBack: "w-28",
   setupPrimary: "w-60 min-w-0 max-sm:shrink max-sm:px-4",
+  /** Portal decision row: 136 / 136 / 152 of the 448px deck, scaling together on narrow screens. */
+  decision: "min-w-0 flex-[136_1_0]",
+  superLike: "min-w-0 flex-[152_1_0]",
   /** Portal fixed widths from the W04 frames. */
-  decision: "w-34",
-  superLike: "w-38",
   portalAction: "w-45",
   findMore: "w-54",
   notifyAction: "w-56",
   summaryAction: "w-60",
   profileAction: "w-75",
-  /** Equal share of a portal action row. */
-  grow: "min-w-0 flex-1",
+  /** W05 screen action slot: 200px, wider for long labels. */
+  actionSlot: "min-w-50 max-sm:w-full",
+  /** Chat composer "Send". */
+  send: "w-20",
+  passAction: "w-50",
+  /** W09 PROFILE "Settings" beside the 160px "Edit profile". */
+  settingsAction: "w-35",
+  /** Equal share of a portal action row; full width when the row stacks on phones. */
+  grow: "w-full min-w-0 sm:w-auto sm:flex-1",
 } as const;
 
 export type ButtonWidth = keyof typeof buttonWidths;
@@ -54,7 +66,11 @@ export const iconSizes = {
   32: "size-8",
   40: "size-10",
   48: "size-12",
+  /** W09 TRUST shield. */
+  56: "size-14",
   64: "size-16",
+  /** BLOCK dialog shield. */
+  120: "size-30",
 } as const;
 
 /** 56px form control (auth + onboarding "Form / Input control"): states from Figma. */
@@ -66,6 +82,12 @@ export const fieldControl = {
 } as const;
 
 export type FieldState = Exclude<keyof typeof fieldControl, "base">;
+
+/** Align UI compact select (48px, soft hairline) and textarea, used in W06 dialogs and forms. */
+export const softControl = {
+  select: `${typeScale.text14} flex h-12 w-full items-center gap-2 rounded-10 border border-soft-line bg-white py-2.5 pr-2.5 pl-3 text-strong shadow-xs`,
+  area: `${typeScale.text14} h-28 w-full resize-none rounded-12 border border-soft-line bg-white py-2.5 pr-2.5 pl-3 text-strong shadow-xs outline-none placeholder:text-gray-400 focus:border-rose`,
+} as const;
 
 /** The bare input inside a field control: takes the control's colour, grey placeholder. */
 export const fieldInput = "h-full min-w-0 flex-1 bg-transparent text-inherit outline-none placeholder:text-gray-400 disabled:cursor-not-allowed";
