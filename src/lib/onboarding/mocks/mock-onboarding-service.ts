@@ -1,5 +1,5 @@
-import type { NicknameCheck, OnboardingService, VerificationStatus } from "./onboarding-service";
-import { getAreas } from "@/stores/onboarding-store";
+import { searchAreaList } from "@/lib/onboarding/area-search";
+import type { NicknameCheck, OnboardingService, VerificationStatus } from "@/lib/onboarding/onboarding-service";
 
 /**
  * MOCK — stands in for the real profile API so every Figma state can be reviewed.
@@ -18,9 +18,6 @@ const UPLOAD_STEP = 5;
 const taken: Record<string, Extract<NicknameCheck, { available: false }>> = {
   goldenhour: { available: false, suggestions: ["GoldenHour_28", "CityGolden", "CityLights"], recommended: "CityLights" },
 };
-
-/** Lower-case words of a query or label ("San Francisco, CA" → san, francisco, ca). */
-const words = (text: string) => text.toLowerCase().split(/[^\p{L}\p{N}]+/u).filter(Boolean);
 
 const REVIEW_MS = 6000;
 /** Average luma (0–255) under which the mock asks for another selfie. */
@@ -62,22 +59,29 @@ export const mockOnboardingService: OnboardingService = {
     await wait();
     return taken[nickname.toLowerCase()] ?? { available: true };
   },
+  async getNicknameSuggestions() {
+    return null;
+  },
   async searchAreas(query) {
-    const terms = words(query);
-    if (terms.length === 0) return [];
-    return getAreas().filter((area) => {
-      const haystack = words(`${area.label} ${area.region}`);
-      return terms.every((term) => haystack.some((word) => word.startsWith(term)));
-    });
+    return searchAreaList(query);
+  },
+  async getOptions() {
+    return null;
+  },
+  async getProgress() {
+    return null;
+  },
+  // Answers stay in the session draft; nothing is sent anywhere.
+  async saveStep() {
+    return { ok: true };
   },
   async uploadPhoto(_file, onProgress, signal) {
     for (let percent = 0; percent <= 100; percent += UPLOAD_STEP) {
-      if (signal.aborted) return "failed";
-      if (!navigator.onLine) return "failed";
+      if (signal.aborted || !navigator.onLine) return { status: "failed" };
       onProgress(percent);
       await wait(UPLOAD_TICK_MS);
     }
-    return "uploaded";
+    return { status: "uploaded" };
   },
   async submitSelfie(selfie) {
     const outcome = (await brightness(selfie)) < MIN_BRIGHTNESS ? "retry" : "verified";
