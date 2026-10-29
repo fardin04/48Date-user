@@ -1,10 +1,9 @@
-import { notFunctional, to } from "@/lib/routes";
+import { to } from "@/lib/routes";
 import type { Action, IconName } from "../types";
-import type { SelectOption } from "../onboarding/types";
-import type { MemberId, StatusSummaryCopy } from "./types";
+import type { DeckEntry, DistancePreference, MeetPreference, MemberLink, Preferences, StatusSummaryCopy } from "./types";
 
-const reportProfile = notFunctional("Reporting (REPORT-DETAIL) is not built yet");
-const sayHello = notFunctional("Messages (MSG-01) are not built yet");
+const reportProfile: MemberLink = { label: "Report profile", step: "REPORT-DETAIL" };
+const heart: IconName = "favourite";
 
 export type Decision = "pass" | "like" | "super";
 
@@ -27,7 +26,9 @@ export const discoverPage = {
   card: {
     deckLabel: "Profile to review",
     hint: "Swipe to explore, or use the buttons below.",
+    /** Screen-reader description of the drag zones (the buttons offer the same choices). */
     dragHint: "Drag the photo left to pass or right to like.",
+    decisionsLabel: "Your decision",
     decisions: { pass: "Pass", like: "Like", super: "Super Like" } satisfies Record<Decision, string>,
     feedback: {
       pass: { label: "PASS", icon: "cancel-01" },
@@ -36,17 +37,21 @@ export const discoverPage = {
     } satisfies Record<Decision, { label: string; icon: IconName }>,
     /** Announced after a decision. */
     sent: { pass: "Passed. Showing the next profile.", like: "Like sent.", super: "Super Like sent." } satisfies Record<Decision, string>,
+    /** `{name}, {age}` and `Verified · {distance}`. */
+    title: "{name}, {age}",
+    verifiedLine: "Verified · {distance}",
   },
   overview: {
     verified: "Verified",
     /** `{percent}` is the member's compatibility. */
     compatibility: "{percent}% compatibility",
     viewProfile: "View full profile",
+    whyClick: "Why we could click",
   },
   beforeConnect: {
     title: "Your connection, your pace",
     description: "A mutual like opens a 48-hour window to agree on a date. Your phone number stays private.",
-    report: { label: "Report profile", to: reportProfile } satisfies Action,
+    report: reportProfile,
   },
   /** Feedback stays on screen this long before the next candidate (handoff: 0.8 s). */
   feedbackMs: 800,
@@ -56,8 +61,9 @@ export const discoverPage = {
     description: "You and {name} have 48 hours to agree on a date.",
     timer: "48:00:00",
     timerLabel: "48 hours to agree on a date",
-    icon: "favourite" satisfies IconName,
-    primary: { label: "Say hello", to: sayHello } satisfies Action,
+    icon: heart,
+    /** Opens the matched member's conversation (MSG-01 on first open). */
+    primary: "Say hello",
     secondary: "Keep discovering",
   },
   empty: {
@@ -74,14 +80,14 @@ export const discoverPage = {
     primary: { label: "Adjust preferences", to: to("FILTERS") } satisfies Action,
     secondary: "Clear filters",
   },
-  /** Candidate order of the sample deck. */
-  deck: ["wildflower", "goldenhour"] satisfies MemberId[],
+  /** Sample deck in order; DISCOVER-NEXT (GoldenHour) links to "Why we could click". */
+  deck: [
+    { member: "wildflower", overview: "profile" },
+    { member: "goldenhour", overview: "compat" },
+  ] satisfies DeckEntry[],
 };
 
-const ageOptions = (from: number, to: number): SelectOption[] =>
-  Array.from({ length: to - from + 1 }, (_, index) => ({ value: String(from + index), label: String(from + index) }));
-
-/** W04 / FILTERS. */
+/** W04 / FILTERS. Age limits are text inputs, as drawn. */
 export const filtersPage = {
   title: "Find your kind of connection",
   description: "Choose what matters. You can always change these later.",
@@ -92,7 +98,7 @@ export const filtersPage = {
         { value: "everyone", label: "Everyone" },
         { value: "women", label: "Women" },
         { value: "men", label: "Men" },
-      ],
+      ] satisfies { value: MeetPreference; label: string }[],
     },
     distance: {
       label: "Distance",
@@ -101,13 +107,18 @@ export const filtersPage = {
         { value: "15", label: "Within 15 miles" },
         { value: "30", label: "Within 30 miles" },
         { value: "50", label: "Within 50 miles" },
-      ],
+      ] satisfies { value: DistancePreference; label: string }[],
     },
-    ageRange: { label: "Age range", min: "Minimum age", max: "Maximum age", options: ageOptions(18, 80) },
+    ageRange: { label: "Age range", min: "Minimum age", max: "Maximum age" },
     verifiedOnly: "Verified profiles only",
     sharedInterest: "Share one of my interests",
   },
+  /** Members must be adults; the upper bound keeps the range meaningful. */
+  ageLimits: { min: 18, max: 80 },
+  /** Figma has no copy for these; for owner approval. */
+  ageInvalid: "Enter an age from 18 to 80.",
   ageError: "Minimum age must be lower than the maximum age.",
+  defaults: { meet: "everyone", distance: "15", minAge: 25, maxAge: 35, verifiedOnly: true, sharedInterest: true } satisfies Preferences,
   primary: "Show matches",
   saving: "Saving…",
   reset: "Reset filters",
@@ -116,6 +127,8 @@ export const filtersPage = {
 /** W04 / DISCOVER-PROFILE. */
 export const profilePage = {
   back: { label: "Back to discovery", to: to("DISCOVER") } satisfies Action,
+  /** Page title for the browser tab: `{name}` is the member. */
+  documentTitle: "{name}’s profile",
   title: "Make a real connection",
   notify: {
     title: "Keep up with your connections",
@@ -124,10 +137,13 @@ export const profilePage = {
   },
   description: "People worth getting to know. A real date starts with one hello.",
   verified: "Verified",
-  /** `{distance}` follows the member's area. */
+  /** `{location} · {distance}`. */
+  place: "{location} · {distance}",
   rows: { compatibility: "Compatibility", trust: "Trust Score", interests: "Interests" },
+  /** `{percent}` is the member's compatibility. */
+  percent: "{percent}%",
   note: "Your match starts a 48-hour window to agree on a date.",
-  report: { label: "Report profile", to: reportProfile } satisfies Action,
+  report: reportProfile,
   interestsTitle: "My interests",
   about: { title: "About me", description: "Profile details shared by this member." },
   photos: "More photos",
@@ -151,7 +167,8 @@ export const compatPage = {
   ],
   highlight: "You both enjoy photography, coffee and thoughtful conversation.",
   primary: "View profile",
-  secondary: { label: "Say hello", to: sayHello } satisfies Action,
+  /** Opens the member's conversation. */
+  secondary: "Say hello",
   pending: {
     title: "Getting to know your preferences",
     description: "Add a little more about yourself so we can make more meaningful suggestions.",

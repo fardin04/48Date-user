@@ -1,7 +1,7 @@
 import type { ImageAsset } from "../types";
 import type { Fact, Member, MemberId } from "./types";
 
-const photo = (name: string, alt: string, height: number): ImageAsset => ({ src: `/images/portal/${name}.webp`, alt, width: 720, height });
+const photo = (name: string, alt: string, height: number, width = 720): ImageAsset => ({ src: `/images/portal/${name}.webp`, alt, width, height });
 
 const overviewFacts: Fact[] = [
   { label: "Height", value: "165 cm" },
@@ -56,8 +56,8 @@ export const members: Record<MemberId, Member> = {
     gender: "woman",
     photo: photo("wildflower", "Wildflower in a straw hat and red sunglasses", 1080),
     morePhotos: [
-      photo("wildflower-2", "Wildflower adjusting her sunglasses", 1024),
-      photo("wildflower-3", "Wildflower in an art studio", 1024),
+      photo("wildflower-2", "Wildflower adjusting her sunglasses", 1024, 683),
+      photo("wildflower-3", "Wildflower in an art studio", 1024, 683),
     ],
   },
   goldenhour: {
@@ -66,6 +66,7 @@ export const members: Record<MemberId, Member> = {
     name: "GoldenHour",
     age: 26,
     gender: "woman",
+    bio: "Photography, good coffee and a little spontaneity. Looking for someone to turn a first hello into a real plan.",
     photo: photo("goldenhour", "GoldenHour smiling in a pink sweater", 1082),
     morePhotos: [],
   },
@@ -85,6 +86,15 @@ export const members: Record<MemberId, Member> = {
     age: 28,
     gender: "man",
     photo: photo("riverstone", "RiverStone in a dark shirt", 960),
+    morePhotos: [],
+  },
+  northpeak: {
+    ...sample,
+    id: "northpeak",
+    name: "NorthPeak",
+    age: 29,
+    gender: "man",
+    photo: photo("northpeak", "NorthPeak in a black jacket", 871),
     morePhotos: [],
   },
 };
