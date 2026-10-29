@@ -1,6 +1,7 @@
 import { useSyncExternalStore } from "react";
 
-export type DraftPhoto = { id: string; url: string };
+/** `fileId` is the API's id for the uploaded file (none with the mock). */
+export type DraftPhoto = { id: string; url: string; fileId?: string };
 
 let photos: DraftPhoto[] = [];
 const listeners = new Set<() => void>();
@@ -22,9 +23,10 @@ function subscribe(listener: () => void) {
  */
 export const photoStore = {
   /** Takes ownership of an object URL created for an uploaded file. */
-  add(url: string) {
-    emit([...photos, { id: crypto.randomUUID(), url }]);
+  add(url: string, fileId?: string) {
+    emit([...photos, { id: crypto.randomUUID(), url, fileId }]);
   },
+  read: () => photos,
   clear() {
     photos.forEach((photo) => URL.revokeObjectURL(photo.url));
     emit([]);
