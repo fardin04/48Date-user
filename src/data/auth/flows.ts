@@ -1,4 +1,4 @@
-import { notFunctional, to, type ScreenCode } from "@/lib/routes";
+import { to, type ScreenCode } from "@/lib/routes";
 import type { Action, Intro } from "../types";
 
 export type AuthFlowName = "signup" | "signin";
@@ -123,7 +123,7 @@ export const authFlows: Record<AuthFlowName, AuthFlow> = {
         title: "You’re signed in.",
         description: "Your matches, conversations and plans are ready when you are.",
       },
-      cta: { label: "Open my portal", to: notFunctional("User portal (Discover) is not built yet") },
+      cta: { label: "Open my portal", to: to("DISCOVER") },
     },
     google: {
       intro: google,
