@@ -5,10 +5,14 @@ export type IconName =
   | "add-01"
   | "arrow-down-01"
   | "arrow-left-02"
+  /** Remix arrows on the Align UI date picker (as exported from Figma). */
+  | "arrow-left-s-line"
+  | "arrow-right-s-line"
   /** Heroicons micro chevron — the one non-Hugeicons glyph, used by the Figma phone field. */
   | "chevron-down-micro"
   | "arrow-up-right-01"
   | "book-open-01"
+  | "bubble-chat"
   | "calendar-03"
   | "cancel-01"
   | "camera-01"
@@ -19,6 +23,7 @@ export type IconName =
   | "favourite"
   /** Web header navigation glyphs: Flowbite, Mingcute, MDI, Material Symbols and Tabler, as drawn in W04 (not Hugeicons). */
   | "flowbite-fire-solid"
+  | "game-controller-03"
   | "image-add-01"
   | "location-01"
   | "material-auto-stories"
