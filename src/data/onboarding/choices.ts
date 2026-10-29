@@ -29,10 +29,11 @@ export const choiceSteps = {
     mode: "single",
     field: "goal",
     choices: [
-      { value: "relationship", icon: "favourite", title: "A real relationship", description: "Ready to build something lasting" },
-      { value: "meaningful", icon: "shield-01", title: "Something meaningful", description: "Connection with genuine intention" },
-      { value: "open", icon: "coffee-01", title: "See where it goes", description: "Stay open and get to know someone" },
-      { value: "friends", icon: "user-circle", title: "New friends first", description: "Begin with an easy friendship" },
+      // Values are the API `lookingFor` enum.
+      { value: "REAL_RELATIONSHIP", icon: "favourite", title: "A real relationship", description: "Ready to build something lasting" },
+      { value: "SOMETHING_MEANINGFUL", icon: "shield-01", title: "Something meaningful", description: "Connection with genuine intention" },
+      { value: "SEE_WHERE_IT_GOES", icon: "coffee-01", title: "See where it goes", description: "Stay open and get to know someone" },
+      { value: "NEW_FRIENDS_FIRST", icon: "user-circle", title: "New friends first", description: "Begin with an easy friendship" },
     ],
   },
   personality: {

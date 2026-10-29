@@ -1,4 +1,4 @@
-import { notFunctional, to } from "@/lib/routes";
+import { to } from "@/lib/routes";
 import type { OnboardingStep, StepFlow } from "./types";
 
 /** Step order, numbers and Back / Continue targets from the W02 handoff notes. */
@@ -17,5 +17,5 @@ export const onboardingFlow = {
   photos: { screen: "PHOTOS", number: 12, back: "communication", next: "verify" },
   verify: { screen: "VERIFY-INTRO", number: 13, back: "photos", next: "notify" },
   notify: { screen: "NOTIFY", number: 14, back: "verify", next: "ready" },
-  ready: { screen: "READY", number: 15, back: "notify", next: notFunctional("Discover (user portal) is not built yet") },
+  ready: { screen: "READY", number: 15, back: "notify", next: to("DISCOVER") },
 } satisfies Record<OnboardingStep, StepFlow>;

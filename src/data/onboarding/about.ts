@@ -6,7 +6,7 @@ export const nicknameStep = {
   field: { label: "Public nickname", placeholder: "Your nickname" },
   suggestionsLabel: "Suggested nicknames",
   suggestions: ["GoldenHour", "WildRose", "CityLights", "NorthPeak"],
-  invalid: "Use 3–20 letters, numbers or underscores.",
+  invalid: "Use 3–20 letters, numbers, underscores or dots, starting with a letter.",
   checking: {
     intro: { title: "Checking your nickname", description: "We’re checking availability before you continue." },
     note: "Checking availability…",
@@ -28,13 +28,8 @@ export const privateNameStep = {
   ] satisfies SetupField[],
 };
 
-const occupations: SelectOption[] = [
-  { value: "product-designer", label: "Product designer" },
-  { value: "software-engineer", label: "Software engineer" },
-  { value: "teacher", label: "Teacher" },
-  { value: "healthcare", label: "Healthcare" },
-  { value: "other", label: "Other" },
-];
+/** `occupation` is free text (2–50 chars) on the API, so the value is the label itself. */
+const occupations: SelectOption[] = ["Product designer", "Software engineer", "Teacher", "Healthcare", "Other"].map((label) => ({ value: label, label }));
 
 /** BIRTHDAY and its states SELECT-OCCUPATION and AGE-GATE. */
 export const birthdayStep = {

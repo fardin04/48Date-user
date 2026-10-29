@@ -39,14 +39,17 @@ export const locationStep = {
   currentAreaLabel: "Current area",
 };
 
-/** Starter list for the frontend area search (lib/onboarding/mock-onboarding-service). */
+/**
+ * Starter list for the area search (the API has no place search). Each area carries its city centre,
+ * sent as the location step's coordinates for a manual choice — never the member's own position.
+ */
 export const areas: Area[] = [
-  { id: "sf", name: "San Francisco", label: "San Francisco, California", region: "United States" },
-  { id: "ssf", name: "South San Francisco", label: "South San Francisco", region: "California" },
-  { id: "oakland", name: "Oakland", label: "Oakland, California", region: "United States" },
-  { id: "berkeley", name: "Berkeley", label: "Berkeley, California", region: "United States" },
-  { id: "dhaka", name: "Dhaka", label: "Dhaka", region: "Bangladesh" },
-  { id: "chattogram", name: "Chattogram", label: "Chattogram", region: "Bangladesh" },
-  { id: "london", name: "London", label: "London", region: "United Kingdom" },
-  { id: "new-york", name: "New York", label: "New York, New York", region: "United States" },
+  { id: "sf", name: "San Francisco", label: "San Francisco, California", region: "United States", countryCode: "US", center: [37.77, -122.42] },
+  { id: "ssf", name: "South San Francisco", label: "South San Francisco", region: "California", countryCode: "US", center: [37.65, -122.41] },
+  { id: "oakland", name: "Oakland", label: "Oakland, California", region: "United States", countryCode: "US", center: [37.8, -122.27] },
+  { id: "berkeley", name: "Berkeley", label: "Berkeley, California", region: "United States", countryCode: "US", center: [37.87, -122.27] },
+  { id: "dhaka", name: "Dhaka", label: "Dhaka", region: "Bangladesh", countryCode: "BD", center: [23.81, 90.41] },
+  { id: "chattogram", name: "Chattogram", label: "Chattogram", region: "Bangladesh", countryCode: "BD", center: [22.36, 91.78] },
+  { id: "london", name: "London", label: "London", region: "United Kingdom", countryCode: "GB", center: [51.51, -0.13] },
+  { id: "new-york", name: "New York", label: "New York, New York", region: "United States", countryCode: "US", center: [40.71, -74.01] },
 ];

@@ -19,6 +19,10 @@ export const authShared = {
     placeholder: "Enter your phone number",
     hint: "Your number stays off your public profile.",
     invalid: "Enter a valid mobile number for the selected country.",
+    /** Design-silent: the API refused a new code (cooldown / hourly / daily limit). */
+    limited: "Code requests are temporarily paused. Please wait a moment and try again.",
+    /** Design-silent: the code couldn't be sent (offline, server error). */
+    failed: "We couldn’t send a code right now. Check your connection and try again.",
   },
   continuePhone: "Continue with phone",
   continueGoogle: "Continue with Google",
@@ -44,6 +48,9 @@ export const authShared = {
     resent: "A new code is on its way. Use the most recent message.",
     expired: "This code is no longer valid. Your phone number is still saved.",
     limited: "Code requests are temporarily paused. Your number is saved.",
+    /** Design-silent: ACCOUNT_BANNED and connection failures on verify. */
+    banned: "This account has been banned.",
+    failed: "We couldn’t check your code right now. Check your connection and try again.",
     processingLabel: "Checking your code",
   },
   successMark: { src: "/brand/success-mark.svg", alt: "", width: 96, height: 96 } satisfies ImageAsset,
