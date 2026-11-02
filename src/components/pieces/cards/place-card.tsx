@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/cn";
 import { Reveal } from "@/components/pieces/layout/reveal";
 import { Text } from "@/components/pieces/content/text";
+import { isRawImage } from "@/lib/image";
 
 type PlaceCardProps = {
   venue: Venue;
@@ -25,7 +26,7 @@ export function PlaceCard({ venue, selected, viewLabel, onView, className, revea
       className={cn("flex w-full gap-4 rounded-16 bg-white p-4", selected ? "border-[1.5px] border-rose" : "border border-soft-line", className)}
     >
       <div className="relative h-32 w-28 shrink-0 overflow-hidden rounded-12">
-        <Image src={venue.photo.src} alt={venue.photo.alt} fill sizes="112px" className="object-cover" />
+        <Image src={venue.photo.src} unoptimized={isRawImage(venue.photo.src)} alt={venue.photo.alt} fill sizes="112px" className="object-cover" />
       </div>
       <div className="flex min-w-0 flex-1 flex-col gap-2">
         <Text as="h2" variant="text20SemiboldSnug" tone="strong">

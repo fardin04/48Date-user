@@ -4,6 +4,7 @@ import { cn } from "@/lib/cn";
 import { ActionButton } from "@/components/pieces/actions/action-button";
 import { PortalCard } from "@/components/pieces/layout/portal-card";
 import { Text } from "@/components/pieces/content/text";
+import { isRawImage } from "@/lib/image";
 
 type OutcomeCardProps = {
   image: ImageAsset;
@@ -22,7 +23,7 @@ export function OutcomeCard({ image, title, meta, description, primary, secondar
   return (
     <PortalCard as="article" surface="cool" padding="lg" revealDelay={revealDelay} className={cn("flex w-full flex-col gap-6 md:flex-row", className)}>
       <div className="relative aspect-square w-full shrink-0 overflow-hidden rounded-16 md:size-60">
-        <Image src={image.src} alt={image.alt} fill sizes="(min-width: 768px) 240px, 100vw" className="object-cover" />
+        <Image src={image.src} unoptimized={isRawImage(image.src)} alt={image.alt} fill sizes="(min-width: 768px) 240px, 100vw" className="object-cover" />
       </div>
       <div className="flex min-w-0 flex-1 flex-col justify-center gap-4">
         <div className="flex flex-col gap-2">

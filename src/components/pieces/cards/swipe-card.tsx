@@ -7,6 +7,7 @@ import { Chip } from "@/components/pieces/content/chip";
 import { Icon } from "@/components/pieces/content/icon";
 import { Reveal } from "@/components/pieces/layout/reveal";
 import { Text } from "@/components/pieces/content/text";
+import { isRawImage } from "@/lib/image";
 
 /** Pointer handlers of the photo's drag zone (left half passes, right half likes). */
 export type DragZone = {
@@ -55,7 +56,7 @@ export function SwipeCard({ member, title, verifiedLine, feedback, offset = 0, d
     >
       <div {...drag} aria-describedby={dragHintId} className={cn("relative aspect-[448/464] w-full select-none", drag && "cursor-grab touch-pan-y active:cursor-grabbing")}>
         <Image
-          src={member.photo.src}
+          src={member.photo.src} unoptimized={isRawImage(member.photo.src)}
           alt={member.photo.alt}
           fill
           draggable={false}

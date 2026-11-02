@@ -7,6 +7,7 @@ import { ActionTarget } from "@/components/pieces/actions/action-target";
 import { Reveal } from "@/components/pieces/layout/reveal";
 import { statusTabClass } from "@/components/pieces/feedback/status-tabs";
 import { Text } from "@/components/pieces/content/text";
+import { isRawImage } from "@/lib/image";
 
 type MatchCardProps = {
   name: string;
@@ -27,7 +28,7 @@ export function MatchCard({ name, photo, badge, preview, primary, secondary, det
   return (
     <Reveal as="article" delay={revealDelay} className={cn("flex h-full flex-col gap-3 overflow-hidden rounded-20 border border-soft-line bg-white p-4", className)}>
       <div className="relative h-60 w-full overflow-hidden rounded-16">
-        <Image src={photo.src} alt={photo.alt} fill sizes="(min-width: 1024px) 360px, (min-width: 640px) 50vw, 100vw" className="object-cover" />
+        <Image src={photo.src} unoptimized={isRawImage(photo.src)} alt={photo.alt} fill sizes="(min-width: 1024px) 360px, (min-width: 640px) 50vw, 100vw" className="object-cover" />
       </div>
       <div className="flex flex-1 flex-col items-start gap-4">
         <Text as="h2" variant="text20SemiboldSnug" tone="strong">
