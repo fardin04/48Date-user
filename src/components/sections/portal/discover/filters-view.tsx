@@ -17,6 +17,7 @@ import { useLoaded } from "@/hooks/use-loaded";
 import { getFiltersPage, getPortalShell } from "@/stores/portal-store";
 import { FlowContext } from "@/components/sections/portal/shared/flow-context";
 import { Workspace } from "@/components/sections/portal/shared/workspace";
+import { screenKeys } from "@/lib/screen-keys";
 
 type AgeErrors = { min?: string; max?: string };
 
@@ -30,7 +31,7 @@ function parseAge(value: string) {
 
 /** W04 / FILTERS: saved preferences are edited as one form; Show matches and Reset filters open DISCOVER. */
 export function FiltersView() {
-  const saved = useLoaded(portalService.getPreferences).value;
+  const saved = useLoaded(screenKeys.preferences, portalService.getPreferences).value;
   // The form mounts once the saved preferences are read, so it starts from them.
   return (
     <Workspace aside={<FlowContext />}>

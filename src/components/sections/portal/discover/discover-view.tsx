@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useEffect, useState, type PointerEvent } from "react";
+import { useEffect, useRef, useState, type PointerEvent } from "react";
 import { ActionButton } from "@/components/pieces/actions/action-button";
 import { FormHeader } from "@/components/pieces/forms/form-header";
 import { PortalBack } from "@/components/pieces/actions/portal-back";
@@ -17,7 +17,11 @@ import { deckIntent } from "@/lib/portal/deck-intent";
 import { portalService, type DeckStatus } from "@/lib/portal/portal-service";
 import { preferenceFacts } from "@/lib/portal/preference-facts";
 import { useMemberLocation } from "@/hooks/use-member-location";
-import { getDiscoverPage, getMember, getPortalShell } from "@/stores/portal-store";
+import { getDiscoverPage, getMemberName, getPortalShell } from "@/stores/portal-store";
+import { useLoaded } from "@/hooks/use-loaded";
+import { useMember } from "@/hooks/use-member";
+import { screenKeys } from "@/lib/screen-keys";
+import { LoadFailed } from "@/components/sections/portal/shared/load-failed";
 import { DiscoverSidebar } from "@/components/sections/portal/discover/discover-sidebar";
 import { ProfileOverview } from "@/components/sections/portal/discover/profile-overview";
 import { StatusScreen } from "@/components/sections/portal/shared/status-screen";
@@ -25,12 +29,16 @@ import { StatusScreen } from "@/components/sections/portal/shared/status-screen"
 /** A drag further than this (px) decides: left passes, right likes. */
 const SWIPE_PX = 96;
 
-type Loaded = Awaited<ReturnType<typeof loadDiscovery>>;
 type Drag = { pointer: number; startX: number; offset: number };
 
 async function loadDiscovery() {
-  const [deck, preferences, matches] = await Promise.all([portalService.getDeck(), portalService.getPreferences(), portalService.getMatches()]);
-  return { deck, preferences, activeMatches: matches.length };
+  const [deck, preferences, activeMatches, unseen] = await Promise.all([
+    portalService.getDeck(),
+    portalService.getPreferences(),
+    portalService.getActiveCount(),
+    portalService.getUnseenMatch().catch(() => null),
+  ]);
+  return { deck, preferences, activeMatches, unseen };
 }
 
 const pause = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -45,67 +53,93 @@ function screenFor(deck: DeckStatus, matched: MemberId | null, deciding: boolean
 
 /**
  * W04 / DISCOVER on one URL: the three-column deck with SWIPE-PASS / LIKE / SUPER feedback
- * (0.8 s) and DISCOVER-NEXT, then MATCH-NEW after a mutual like, DISCOVER-EMPTY once everyone
- * was reviewed and FILTERS-EMPTY when no one fits the preferences.
+ * (0.8 s) and DISCOVER-NEXT, then MATCH-NEW after a mutual like (or for a match made in the
+ * background), DISCOVER-EMPTY once everyone was reviewed and FILTERS-EMPTY when no one fits.
  */
 export function DiscoverView() {
   const copy = getDiscoverPage();
   const shell = getPortalShell();
   const router = useRouter();
   const location = useMemberLocation();
-  const [data, setData] = useState<Loaded | null>(null);
+  const { value: data, error, reload } = useLoaded(screenKeys.deck, loadDiscovery);
   const [feedback, setFeedback] = useState<{ member: MemberId; decision: Decision } | null>(null);
   const [matched, setMatched] = useState<MemberId | null>(null);
+  const [seenUnseen, setSeenUnseen] = useState(false);
   const [announcement, setAnnouncement] = useState("");
   const [drag, setDrag] = useState<Drag | null>(null);
+  const intentTaken = useRef(false);
 
-  const refresh = async () => setData(await loadDiscovery());
+  const shownMatch = matched ?? (seenUnseen ? null : (data?.unseen ?? null));
+  const memberId = data ? (feedback?.member ?? data.deck.remaining[0] ?? null) : null;
+  const nextId = data?.deck.remaining.find((id) => id !== memberId) ?? null;
+  const member = useMember(memberId);
+  // Warm the next candidate's profile so DISCOVER-NEXT doesn't wait for it.
+  useMember(nextId);
+  const matchedMember = useMember(shownMatch);
 
-  const decide = async (member: MemberId, decision: Decision) => {
-    setFeedback({ member, decision });
+  const decide = async (id: MemberId, decision: Decision) => {
+    setFeedback({ member: id, decision });
     setAnnouncement(copy.card.sent[decision]);
-    const [result] = await Promise.all([portalService.decide(member, decision), pause(copy.feedbackMs)]);
-    await refresh();
-    setFeedback(null);
-    if (result.matched) setMatched(member);
+    try {
+      const [result] = await Promise.all([portalService.decide(id, decision), pause(copy.feedbackMs)]);
+      await reload();
+      if (result.matched) setMatched(id);
+    } finally {
+      setFeedback(null);
+    }
   };
 
-  // First read; a decision made on the full profile plays its feedback here.
+  // A decision made on the full profile plays its feedback here, once the deck is read.
+  const ready = data !== undefined;
   useEffect(() => {
-    let active = true;
-    void loadDiscovery().then((loaded) => {
-      if (!active) return;
-      setData(loaded);
-      const intent = deckIntent.take();
-      if (intent) void decide(intent.member, intent.decision);
-    });
-    return () => {
-      active = false;
-    };
-    // `decide` reads only setters and data copy; the read runs once per visit.
+    if (!ready || intentTaken.current) return;
+    intentTaken.current = true;
+    const intent = deckIntent.take();
+    if (intent) void Promise.resolve().then(() => decide(intent.member, intent.decision));
+    // `decide` reads only setters and data copy; the intent is taken once per visit.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [ready]);
 
-  if (!data) return null;
+  // A candidate who became unavailable since the deck was built is passed over quietly.
+  const unavailable = member === null && memberId !== null && feedback === null;
+  const passedOver = useRef(new Set<MemberId>());
+  useEffect(() => {
+    if (!unavailable || !memberId || passedOver.current.has(memberId)) return;
+    passedOver.current.add(memberId);
+    void portalService
+      .decide(memberId, "pass")
+      .catch(() => undefined)
+      .then(() => reload());
+  }, [unavailable, memberId, reload]);
 
-  const screen = screenFor(data.deck, matched, feedback !== null);
+  // MATCH-NEW has been shown: the service stops offering it.
+  useEffect(() => {
+    if (shownMatch) void portalService.markMatchSeen(shownMatch);
+  }, [shownMatch]);
+
+  if (!data) return error ? <LoadFailed onRetry={() => void reload()} error={error} /> : null;
+
+  const screen = screenFor(data.deck, shownMatch, feedback !== null);
   const runAgain = (action: () => Promise<unknown>) => () => {
     setAnnouncement("");
-    void action().then(refresh);
+    void action().then(reload);
   };
 
-  if (screen === "match" && matched) {
-    const member = getMember(matched);
-    const keepDiscovering = () => setMatched(null);
+  if (screen === "match" && shownMatch) {
+    const keepDiscovering = () => {
+      setMatched(null);
+      setSeenUnseen(true);
+    };
+    const name = matchedMember?.name ?? getMemberName(shownMatch);
     return (
       <StatusScreen
         back={<PortalBack action={shell.back} onClick={keepDiscovering} />}
         title={copy.matchNew.title}
-        description={fill(copy.matchNew.description, { name: member.name })}
-        primary={{ label: copy.matchNew.primary, to: toItem("CHAT-01", member.id) }}
+        description={fill(copy.matchNew.description, { name })}
+        primary={{ label: copy.matchNew.primary, to: toItem("CHAT-01", shownMatch) }}
         secondary={{ label: copy.matchNew.secondary, onClick: keepDiscovering }}
       >
-        <StatusArtwork icon={copy.matchNew.icon} timer={copy.matchNew.timer} timerLabel={copy.matchNew.timerLabel} photo={member.photo} />
+        <StatusArtwork icon={copy.matchNew.icon} timer={copy.matchNew.timer} timerLabel={copy.matchNew.timerLabel} photo={matchedMember?.photo} />
       </StatusScreen>
     );
   }
@@ -125,9 +159,9 @@ export function DiscoverView() {
     );
   }
 
-  const memberId = feedback?.member ?? data.deck.remaining[0];
-  const member = getMember(memberId);
-  const entry = copy.deck.find((candidate) => candidate.member === memberId) ?? copy.deck[0];
+  // The candidate's profile is still loading, or they became unavailable (the deck moves on when re-read).
+  if (!memberId || !member) return null;
+  const entry = copy.deck.find((candidate) => candidate.member === memberId);
   const deciding = feedback !== null;
 
   const onPointerDown = (event: PointerEvent<HTMLDivElement>) => {
@@ -203,7 +237,7 @@ export function DiscoverView() {
             {announcement}
           </p>
         </section>
-        <ProfileOverview member={member} overview={entry.overview} />
+        <ProfileOverview member={member} overview={entry?.overview ?? "profile"} />
       </div>
     </>
   );

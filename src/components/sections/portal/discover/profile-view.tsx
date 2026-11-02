@@ -1,3 +1,5 @@
+"use client";
+
 import Image from "next/image";
 import { ActionButton } from "@/components/pieces/actions/action-button";
 import { CardHeading } from "@/components/pieces/content/card-heading";
@@ -11,14 +13,20 @@ import { Text } from "@/components/pieces/content/text";
 import type { MemberId } from "@/data/portal/types";
 import { fill } from "@/lib/format";
 import { forMember } from "@/lib/portal/member-link";
-import { getDiscoverPage, getMember, getProfilePage } from "@/stores/portal-store";
+import { getDiscoverPage, getProfilePage } from "@/stores/portal-store";
+import { useMember } from "@/hooks/use-member";
+import { sharedInterestsText } from "@/lib/portal/shared-interests";
+import { MemberUnavailable } from "@/components/sections/portal/shared/member-unavailable";
 import { ProfileDecisions } from "@/components/sections/portal/discover/profile-decisions";
 import { Workspace } from "@/components/sections/portal/shared/workspace";
+import { isRawImage } from "@/lib/image";
 
 /** W04 / DISCOVER-PROFILE: every profile detail, without leaving the discovery journey. */
 export function ProfileView({ memberId }: { memberId: MemberId }) {
   const copy = getProfilePage();
-  const member = getMember(memberId);
+  const member = useMember(memberId);
+  if (member === null) return <MemberUnavailable />;
+  if (!member) return null;
   return (
     <Workspace>
       <ActionButton action={copy.back} variant="roseOutline" size="pillCompact" width="portalAction" revealDelay={0} />
@@ -41,7 +49,7 @@ export function ProfileView({ memberId }: { memberId: MemberId }) {
       </Text>
       <div className="grid w-full gap-8 lg:grid-cols-2">
         <div className="relative aspect-[600/660] w-full overflow-hidden rounded-16 lg:aspect-auto">
-          <Image src={member.photo.src} alt={member.photo.alt} fill loading="eager" sizes="(min-width: 1024px) 600px, 100vw" className="object-cover" />
+          <Image src={member.photo.src} unoptimized={isRawImage(member.photo.src)} alt={member.photo.alt} fill loading="eager" sizes="(min-width: 1024px) 600px, 100vw" className="object-cover" />
         </div>
         <div className="flex min-w-0 flex-col items-start gap-5">
           {member.verified && <StatusBadge variant="success" label={copy.verified} live={false} />}
@@ -58,7 +66,11 @@ export function ProfileView({ memberId }: { memberId: MemberId }) {
             </Text>
           </PortalCard>
           <dl className="flex w-full flex-col">
-            <DetailRow variant="column" label={copy.rows.compatibility} value={fill(copy.percent, { percent: member.compatibility })} />
+            <DetailRow
+              variant="column"
+              label={copy.rows.compatibility}
+              value={member.compatibility === null ? sharedInterestsText(member) : fill(copy.percent, { percent: member.compatibility })}
+            />
             <DetailRow variant="column" label={copy.rows.trust} value={member.trustScore} />
             <DetailRow variant="column" label={copy.rows.interests} value={member.interestsSummary} />
           </dl>
@@ -88,7 +100,7 @@ export function ProfileView({ memberId }: { memberId: MemberId }) {
           <ul className="grid gap-6 md:grid-cols-2">
             {member.morePhotos.map((photo) => (
               <li key={photo.src} className="relative h-80 overflow-hidden rounded-16">
-                <Image src={photo.src} alt={photo.alt} fill sizes="(min-width: 768px) 600px, 100vw" className="object-cover object-bottom" />
+                <Image src={photo.src} unoptimized={isRawImage(photo.src)} alt={photo.alt} fill sizes="(min-width: 768px) 600px, 100vw" className="object-cover object-bottom" />
                 <span aria-hidden="true" className="absolute inset-0 bg-photo-tint mix-blend-screen" />
               </li>
             ))}

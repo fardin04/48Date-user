@@ -9,6 +9,7 @@ import { fill } from "@/lib/format";
 import { forMember } from "@/lib/portal/member-link";
 import { toItem } from "@/lib/routes";
 import { getDiscoverPage } from "@/stores/portal-store";
+import { sharedInterestsText } from "@/lib/portal/shared-interests";
 
 type ProfileOverviewProps = {
   member: Member;
@@ -29,7 +30,9 @@ export function ProfileOverview({ member, overview }: ProfileOverviewProps) {
         <div className="flex flex-wrap gap-2">
           {member.verified && <Chip variant="rose">{copy.overview.verified}</Chip>}
           <ActionTarget to={compat} className="focus-ring flex rounded-full">
-            <Chip variant="rose">{fill(copy.overview.compatibility, { percent: member.compatibility })}</Chip>
+            <Chip variant="rose">
+              {member.compatibility === null ? sharedInterestsText(member) : fill(copy.overview.compatibility, { percent: member.compatibility })}
+            </Chip>
           </ActionTarget>
         </div>
         <Text as="h2" id="overview-title" variant="text20SemiboldSnug" tone="strong">
