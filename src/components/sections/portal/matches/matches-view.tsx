@@ -14,9 +14,13 @@ import { useLoaded } from "@/hooks/use-loaded";
 import { forMember } from "@/lib/portal/member-link";
 import { useNow } from "@/hooks/use-now";
 import { toItem } from "@/lib/routes";
-import { getMatchesPage, getMember, getPortalShell } from "@/stores/portal-store";
+import { getAccountPage, getMatchesPage, getPortalShell } from "@/stores/portal-store";
+import { useServiceAction } from "@/hooks/use-service-action";
+import { Text } from "@/components/pieces/content/text";
+import { LoadFailed } from "@/components/sections/portal/shared/load-failed";
 import { StatusScreen } from "@/components/sections/portal/shared/status-screen";
 import { Workspace } from "@/components/sections/portal/shared/workspace";
+import { screenKeys } from "@/lib/screen-keys";
 
 /** Time-left badge of a card: urgent under two hours, success otherwise, "Date confirmed" once agreed. */
 function MatchBadge({ match, now }: { match: Match; now: number }) {
@@ -33,8 +37,14 @@ function MatchBadge({ match, now }: { match: Match; now: number }) {
  */
 export function MatchesView({ tab }: { tab: MatchTab }) {
   const copy = getMatchesPage();
-  const loaded = useLoaded(portalService.getMatches).value;
+  const { value: loaded, error, reload } = useLoaded(screenKeys.matches, portalService.getMatches, { refetchOnWindowFocus: true });
+  const outcomeTab = tab === "all" ? null : tab;
+  const outcomes = useLoaded([...screenKeys.matches, "outcomes", tab], () => portalService.getOutcomes(outcomeTab ?? "cancelled"), {
+    enabled: outcomeTab !== null,
+  }).value;
   const now = useNow();
+  const finding = useServiceAction(getAccountPage().profile.loadFailed);
+  if (error && !loaded) return <LoadFailed onRetry={() => void reload()} error={error} />;
   if (!loaded || now === null) return null;
 
   const open = loaded.filter((match) => match.expiresAt === null || match.expiresAt > now);
@@ -46,12 +56,16 @@ export function MatchesView({ tab }: { tab: MatchTab }) {
         description={copy.empty.description}
         summary={copy.empty.summary}
         primary={copy.empty.primary}
+        secondary={{
+          label: finding.busy ? copy.empty.finding : copy.empty.find,
+          busy: finding.busy,
+          onClick: () => void finding.run(() => portalService.findMatches()).then(() => reload()),
+        }}
       />
     );
   }
 
   const tabs = copy.tabs.map((item) => ({ ...item, label: fill(item.label, { count: open.length }) }));
-  const cancelledPhoto = getMember(copy.cancelled.photoOf).photo;
 
   return (
     <Workspace>
@@ -60,7 +74,7 @@ export function MatchesView({ tab }: { tab: MatchTab }) {
       {tab === "all" && (
         <ul className="grid w-full gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {open.map((match, index) => {
-            const member = getMember(match.member);
+            const member = match.summary;
             const agreed = match.expiresAt === null;
             return (
               <li key={match.member} className="flex">
@@ -80,25 +94,26 @@ export function MatchesView({ tab }: { tab: MatchTab }) {
           })}
         </ul>
       )}
-      {tab === "cancelled" && (
-        <OutcomeCard
-          image={cancelledPhoto}
-          title={copy.cancelled.title}
-          meta={copy.cancelled.meta}
-          description={copy.cancelled.description}
-          primary={copy.cancelled.primary}
-        />
+      {outcomeTab && outcomes?.length === 0 && (
+        <Text variant="text16" tone="sub">
+          {copy.outcome.empty}
+        </Text>
       )}
-      {tab === "complete" && (
-        <OutcomeCard
-          image={copy.complete.image}
-          title={copy.complete.title}
-          meta={copy.complete.meta}
-          description={copy.complete.description}
-          primary={copy.complete.primary}
-          secondary={copy.complete.secondary}
-        />
-      )}
+      {outcomeTab &&
+        outcomes?.map((outcome) => {
+          const state = outcomeTab === "cancelled" ? copy.cancelled : copy.complete;
+          return (
+            <OutcomeCard
+              key={outcome.member}
+              image={outcome.image}
+              title={state.title}
+              meta={outcome.meta}
+              description={state.description}
+              primary={outcomeTab === "cancelled" ? copy.cancelled.primary : { ...copy.complete.primary, to: toItem("FEEDBACK", outcome.member) }}
+              secondary={outcomeTab === "complete" ? { ...copy.complete.secondary, to: toItem("DATE-COMPLETE", outcome.member) } : undefined}
+            />
+          );
+        })}
       <ActionButton
         action={copy.findMore}
         variant="confirm"

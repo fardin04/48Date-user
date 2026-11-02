@@ -31,6 +31,7 @@ export function CheckoutView({ planId }: { planId: PlanId }) {
   const [phase, setPhase] = useState<Phase>("review");
   const [agreed, setAgreed] = useState(false);
   const [missing, setMissing] = useState(false);
+  if (!plan) return null;
   const values = { price: plan.price, period: plan.period, plan: plan.name, billing: plan.billing };
   const aside = <MembershipContext />;
   // Back leaves checkout for PLANS, or returns to the previous step when one is given.

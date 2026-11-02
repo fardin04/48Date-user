@@ -17,10 +17,11 @@ import { Button } from "@/components/ui/button";
 import type { ImageAsset } from "@/data/types";
 import type { MemberId } from "@/data/portal/types";
 import { fill } from "@/lib/format";
-import { gameService } from "@/lib/portal/game-service";
+import { gameService, type GameState } from "@/lib/portal/game-service";
+import { failureReason } from "@/lib/portal/failure";
 import { forMember } from "@/lib/portal/member-link";
 import { toItem } from "@/lib/routes";
-import { getGamePage, getMember } from "@/stores/portal-store";
+import { getGamePage, getMemberName } from "@/stores/portal-store";
 import { GameContext } from "@/components/sections/portal/games/game-context";
 import { StatusScreen } from "@/components/sections/portal/shared/status-screen";
 import { Workspace } from "@/components/sections/portal/shared/workspace";
@@ -54,9 +55,13 @@ function GameCard({ title, description, body }: { title: string; description: st
  */
 export function GameView({ memberId }: { memberId: MemberId }) {
   const copy = getGamePage();
-  const name = getMember(memberId).name;
-  const total = copy.questions.length;
+  const name = getMemberName(memberId);
+  const [game, setGame] = useState<GameState | null>(null);
+  const questions = game?.questions ?? copy.questions;
+  const total = questions.length;
   const [phase, setPhase] = useState<Phase>("intro");
+  const [starting, setStarting] = useState(false);
+  const [startError, setStartError] = useState<string | null>(null);
   const [round, setRound] = useState(0);
   const [choice, setChoice] = useState("");
   const [answers, setAnswers] = useState<string[]>([]);
@@ -69,6 +74,7 @@ export function GameView({ memberId }: { memberId: MemberId }) {
 
   const restart = () => {
     pending.current?.abort();
+    setGame(null);
     setPhase("intro");
     setRound(0);
     setChoice("");
@@ -76,19 +82,51 @@ export function GameView({ memberId }: { memberId: MemberId }) {
     setPartner([]);
   };
 
-  const submit = async () => {
-    if (!choice) return;
-    setAnswers((current) => [...current.slice(0, round), choice]);
+  /** Sends a round's choice (or waits again for one already sent) until the match has answered. */
+  const sendRound = async (at: number, picked: string) => {
+    setAnswers((current) => [...current.slice(0, at), picked]);
     setPhase("wait");
     const controller = new AbortController();
     pending.current = controller;
     try {
-      const result = await gameService.answer(memberId, round, choice, controller.signal);
+      const result = await gameService.answer(memberId, at, picked, controller.signal);
       if (result.status === "left") return setPhase("left");
-      setPartner((current) => [...current.slice(0, round), result.choice]);
+      setPartner((current) => [...current.slice(0, at), result.choice]);
     } catch {
       // Stopped: the member left the game or the page.
     }
+  };
+
+  /** GAMES → the first question, or back to where an earlier visit left off. */
+  const begin = async () => {
+    if (starting) return;
+    setStarting(true);
+    setStartError(null);
+    try {
+      const state = await gameService.start(memberId);
+      setGame(state);
+      setAnswers(state.answers);
+      setPartner(state.partner);
+      const count = state.questions.length;
+      if (state.answers.length >= count && state.partner.length >= count) return setPhase("result");
+      if (state.answers.length > state.partner.length) {
+        const at = state.answers.length - 1;
+        setRound(at);
+        return void sendRound(at, state.answers[at]);
+      }
+      setRound(state.answers.length);
+      setChoice("");
+      setPhase("question");
+    } catch (error) {
+      setStartError(failureReason(error) ?? copy.intro.failed);
+    } finally {
+      setStarting(false);
+    }
+  };
+
+  const submit = async () => {
+    if (!choice) return;
+    await sendRound(round, choice);
   };
 
   const advance = () => {
@@ -101,7 +139,7 @@ export function GameView({ memberId }: { memberId: MemberId }) {
   const roundNumber = Math.min(round + 1, total);
   const aside = <GameContext member={memberId} round={roundNumber} />;
   const back = <PortalBack action={{ ...copy.back, to: toItem("CHAT-01", memberId) }} onClick={phase === "question" || phase === "wait" ? () => setLeaving(true) : undefined} />;
-  const question = copy.questions[round];
+  const question = questions[round];
   const prompt = fill(copy.question.prompt, { round: roundNumber, total, prompt: question.prompt });
   const answered = partner.length > round;
 
@@ -149,8 +187,9 @@ export function GameView({ memberId }: { memberId: MemberId }) {
         <FormHeader variant="portal" title={intro.title} description={intro.description} />
         <GameArt art={intro.art} />
         <GameCard title={intro.card.title} description={intro.card.description} body={intro.body} />
+        {startError && <StatusNote variant="alert" message={startError} />}
         <ActionRow>
-          <Button type="button" variant="confirm" size="portalPill" width="actionSlot" onClick={() => setPhase("question")}>
+          <Button type="button" variant="confirm" size="portalPill" width="actionSlot" disabled={starting} aria-busy={starting || undefined} onClick={() => void begin()}>
             {intro.primary}
           </Button>
         </ActionRow>
@@ -161,7 +200,7 @@ export function GameView({ memberId }: { memberId: MemberId }) {
   if (phase === "result") {
     const { result } = copy;
     const common = answers.filter((answer, index) => answer === partner[index]).length;
-    const first = copy.questions[0].choices.find((option) => option.value === answers[0]);
+    const first = questions[0].choices.find((option) => option.value === answers[0]);
     const description = first && answers[0] === partner[0] ? fill(result.matched, { choice: first.noun ?? first.label }) : result.general;
     return (
       <Workspace aside={aside}>

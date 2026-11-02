@@ -16,11 +16,12 @@ import { getMembershipPage } from "@/stores/portal-store";
 import { MembershipContext } from "@/components/sections/portal/membership/membership-context";
 import { LoadFailed } from "@/components/sections/portal/shared/load-failed";
 import { Workspace } from "@/components/sections/portal/shared/workspace";
+import { screenKeys } from "@/lib/screen-keys";
 
 /** W10 / MEMBERSHIP (and -WEEKLY / -YEARLY) for Premium, MEMBERSHIP-FREE on the free plan. */
 export function MembershipView() {
   const page = getMembershipPage().membership;
-  const { value: membership, error, reload } = useLoaded(membershipService.getMembership);
+  const { value: membership, error, reload } = useLoaded(screenKeys.membership, membershipService.getMembership);
   const plans = usePlans();
   if (!membership) {
     return (

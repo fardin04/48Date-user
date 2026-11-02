@@ -18,10 +18,15 @@ import { portalService } from "@/lib/portal/portal-service";
 import { useLoaded } from "@/hooks/use-loaded";
 import { forMember } from "@/lib/portal/member-link";
 import { useNow } from "@/hooks/use-now";
-import { getMatchDetailPage, getMatchesPage, getMember } from "@/stores/portal-store";
+import { getDatePage, getMatchDetailPage, getMatchesPage } from "@/stores/portal-store";
+import { useDatePlan } from "@/hooks/use-date-plan";
+import { liveData } from "@/lib/portal/live";
+import { formatDay, formatTime } from "@/lib/portal/date-format";
+import { isRawImage } from "@/lib/image";
 import { FlowContext } from "@/components/sections/portal/shared/flow-context";
 import { StatusScreen } from "@/components/sections/portal/shared/status-screen";
 import { Workspace } from "@/components/sections/portal/shared/workspace";
+import { screenKeys } from "@/lib/screen-keys";
 
 /**
  * W04 / MATCH-EXPIRING on the match's URL, counting down to the server-owned deadline: under two
@@ -30,13 +35,28 @@ import { Workspace } from "@/components/sections/portal/shared/workspace";
 export function MatchDetailView({ memberId }: { memberId: MemberId }) {
   const copy = getMatchDetailPage();
   const { urgentMinutes, confirmed: confirmedLabel, timeLeft: timeLeftLabel } = getMatchesPage();
-  const member = getMember(memberId);
-  const match = useLoaded(() => portalService.getMatch(memberId)).value;
+  const match = useLoaded(screenKeys.match(memberId), () => portalService.getMatch(memberId)).value;
+  const { plan } = useDatePlan(memberId);
   const now = useNow();
   if (match === undefined || now === null) return null;
 
   const back = <PortalBack action={copy.back} />;
   if (!match || (match.expiresAt !== null && match.expiresAt <= now)) return <ExpiredMatchScreen />;
+  const member = match.summary;
+  // Live: the plan's own place and time (nothing while no plan is sent); the mocks keep the drawn sample.
+  const planned = plan && plan.status !== "draft" && plan.place.name ? plan : null;
+  const rows = getDatePage().rows;
+  const facts = !liveData
+    ? copy.expiring.facts
+    : planned
+      ? [
+          { label: rows.where, value: planned.place.name },
+          { label: rows.when, value: planned.date && planned.time !== null ? `${formatDay(planned.date)} · ${formatTime(planned.time)}` : "" },
+          { label: rows.timezone, value: planned.timezone },
+          { label: rows.meeting, value: planned.place.meetingPlace },
+        ]
+      : [];
+  const image = !liveData ? copy.expiring.image : (planned?.place.photo ?? null);
 
   const left = match.expiresAt === null ? null : timeLeft(match.expiresAt, now);
   const urgent = left !== null && left.totalMinutes < urgentMinutes;
@@ -53,14 +73,18 @@ export function MatchDetailView({ memberId }: { memberId: MemberId }) {
       {back}
       <FormHeader variant="portal" title={state.title} description={fill(state.description, { name: member.name })} badge={badge} />
       <MemberRow photo={member.photo} title={fill(copy.expiring.pairTitle, { name: member.name })} description={status} />
-      <div className="relative h-65 w-full overflow-hidden rounded-16">
-        <Image src={copy.expiring.image.src} alt={copy.expiring.image.alt} fill sizes="(min-width: 1280px) 860px, 100vw" className="object-cover" />
-      </div>
-      <dl className="flex w-full flex-col">
-        {copy.expiring.facts.map((fact) => (
-          <DetailRow key={fact.label} label={fact.label} value={fact.value} divided />
-        ))}
-      </dl>
+      {image && (
+        <div className="relative h-65 w-full overflow-hidden rounded-16">
+          <Image src={image.src} alt={image.alt} unoptimized={isRawImage(image.src)} fill sizes="(min-width: 1280px) 860px, 100vw" className="object-cover" />
+        </div>
+      )}
+      {facts.length > 0 && (
+        <dl className="flex w-full flex-col">
+          {facts.map((fact) => (
+            <DetailRow key={fact.label} label={fact.label} value={fact.value} divided />
+          ))}
+        </dl>
+      )}
       {left && <StatusNote variant="deadline" message={fill(copy.expiring.deadline, { hours: left.paddedHours, minutes: left.minutes })} />}
       <ActionRow>
         <ActionButton action={forMember(copy.expiring.primary, memberId)} variant="confirm" size="portalPill" width="grow" />
