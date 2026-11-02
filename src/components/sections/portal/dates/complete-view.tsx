@@ -9,7 +9,7 @@ import type { MemberId } from "@/data/portal/types";
 import { fill } from "@/lib/format";
 import { useDatePlan } from "@/hooks/use-date-plan";
 import { to, toItem } from "@/lib/routes";
-import { getDatePage, getMember } from "@/stores/portal-store";
+import { getDatePage, getMemberName } from "@/stores/portal-store";
 import { DateContext } from "@/components/sections/portal/dates/date-context";
 import { DateSummary } from "@/components/sections/portal/dates/date-summary";
 import { Workspace } from "@/components/sections/portal/shared/workspace";
@@ -21,12 +21,12 @@ export function CompleteView({ memberId }: { memberId: MemberId }) {
   if (!plan) return null;
   const chat = toItem("CHAT-01", memberId);
   return (
-    <Workspace aside={<DateContext member={memberId} venue={plan.venue} />}>
+    <Workspace aside={<DateContext member={memberId} place={plan.place} />}>
       <PortalBack action={{ ...copy.back, to: to("MATCHES-COMPLETE") }} />
       <FormHeader
         variant="portal"
         title={copy.complete.title}
-        description={fill(copy.complete.description, { name: getMember(memberId).name })}
+        description={fill(copy.complete.description, { name: getMemberName(memberId) })}
         badge={<StatusBadge variant="success" label={copy.complete.badge} />}
       />
       <DateSummary plan={plan} status={copy.complete.status} />
