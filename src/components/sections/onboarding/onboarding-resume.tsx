@@ -35,7 +35,7 @@ export function OnboardingResume() {
         interests: draft.interests.length > 0 ? draft.interests : (saved.interests ?? []),
         area: draft.area ?? saved.area,
       }));
-    });
+    }).catch(() => undefined);
     return () => {
       active = false;
     };

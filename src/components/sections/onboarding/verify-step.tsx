@@ -58,7 +58,7 @@ export function VerifyStep() {
       if (!active) return;
       setStatus(current);
       setPhase(phaseFor[current]);
-    });
+    }).catch(() => undefined);
     return () => {
       active = false;
       stream.current?.getTracks().forEach((track) => track.stop());

@@ -14,7 +14,7 @@ import { useLoaded } from "@/hooks/use-loaded";
 import { forMember } from "@/lib/portal/member-link";
 import { useNow } from "@/hooks/use-now";
 import { toItem } from "@/lib/routes";
-import { getAccountPage, getMatchesPage, getPortalShell } from "@/stores/portal-store";
+import { getAccountPage, getMatchDetailPage, getMatchesPage, getPortalShell } from "@/stores/portal-store";
 import { useServiceAction } from "@/hooks/use-service-action";
 import { Text } from "@/components/pieces/content/text";
 import { LoadFailed } from "@/components/sections/portal/shared/load-failed";
@@ -25,7 +25,9 @@ import { screenKeys } from "@/lib/screen-keys";
 /** Time-left badge of a card: urgent under two hours, success otherwise, "Date confirmed" once agreed. */
 function MatchBadge({ match, now }: { match: Match; now: number }) {
   const copy = getMatchesPage();
-  if (match.expiresAt === null) return <StatusBadge variant="success" label={copy.confirmed} live={false} />;
+  if (match.confirmed) return <StatusBadge variant="success" label={copy.confirmed} live={false} />;
+  // No running window (the server stopped or didn't start the clock): an open match without a countdown.
+  if (match.expiresAt === null) return <StatusBadge variant="success" label={getMatchDetailPage().active.label} live={false} />;
   const left = timeLeft(match.expiresAt, now);
   const variant = left.totalMinutes < copy.urgentMinutes ? "urgent" : "success";
   return <StatusBadge variant={variant} label={fill(copy.timeLeft, { hours: left.hours, minutes: left.minutes })} live={false} />;
@@ -75,7 +77,7 @@ export function MatchesView({ tab }: { tab: MatchTab }) {
         <ul className="grid w-full gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {open.map((match, index) => {
             const member = match.summary;
-            const agreed = match.expiresAt === null;
+            const agreed = match.confirmed;
             return (
               <li key={match.member} className="flex">
                 <MatchCard

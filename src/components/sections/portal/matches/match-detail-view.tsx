@@ -44,7 +44,8 @@ export function MatchDetailView({ memberId }: { memberId: MemberId }) {
   if (!match || (match.expiresAt !== null && match.expiresAt <= now)) return <ExpiredMatchScreen />;
   const member = match.summary;
   // Live: the plan's own place and time (nothing while no plan is sent); the mocks keep the drawn sample.
-  const planned = plan && plan.status !== "draft" && plan.place.name ? plan : null;
+  // Only a plan still in play: sent, received or confirmed (not a declined or cancelled one).
+  const planned = plan && ["pending", "invited", "confirmed"].includes(plan.status) && plan.place.name ? plan : null;
   const rows = getDatePage().rows;
   const facts = !liveData
     ? copy.expiring.facts
@@ -60,12 +61,12 @@ export function MatchDetailView({ memberId }: { memberId: MemberId }) {
 
   const left = match.expiresAt === null ? null : timeLeft(match.expiresAt, now);
   const urgent = left !== null && left.totalMinutes < urgentMinutes;
-  const state = left === null ? copy.confirmed : urgent ? copy.expiring : copy.active;
-  const status = left === null ? confirmedLabel : urgent ? copy.expiring.badge : copy.active.label;
+  const state = match.confirmed ? copy.confirmed : urgent ? copy.expiring : copy.active;
+  const status = match.confirmed ? confirmedLabel : urgent ? copy.expiring.badge : copy.active.label;
   const badge = urgent ? (
     <StatusBadge variant="urgent" label={copy.expiring.badge} />
   ) : (
-    <StatusBadge variant="success" label={left ? fill(timeLeftLabel, { hours: left.hours, minutes: left.minutes }) : confirmedLabel} live={false} />
+    <StatusBadge variant="success" label={left ? fill(timeLeftLabel, { hours: left.hours, minutes: left.minutes }) : status} live={false} />
   );
 
   return (
