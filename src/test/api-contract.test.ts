@@ -10,11 +10,11 @@ const BASE = "http://localhost:3000/api/v1";
 let calls: Call[];
 
 /** Fresh modules per test, in "browser" mode so the shared TanStack client is used as in the app. */
-async function load() {
+async function load(overrides: Record<string, unknown> = {}) {
   vi.resetModules();
   vi.stubEnv("NEXT_PUBLIC_API_BASE_URL", BASE);
   vi.stubGlobal("window", globalThis);
-  const replay = replayFetch(BASE);
+  const replay = replayFetch(BASE, overrides);
   calls = replay.calls;
   vi.stubGlobal("fetch", replay.fetchStub);
   const { tokenStore } = await import("@/lib/api/tokens");
@@ -190,5 +190,65 @@ describe("caching", () => {
     await Promise.all([account.getOverview(), account.getProfile(), account.getPhotos(), account.getAvatar()]);
     await account.getProfile();
     expect(count("GET", "/users/me")).toBe(1);
+  });
+});
+
+/** Shapes the live backend sends that differ from the collection's examples (found against the API). */
+describe("live API shapes", () => {
+  const MATCH = "019283aa-0000-7000-8000-000000000001";
+  const ok = (data: unknown, meta?: unknown) => ({ success: true, data, ...(meta ? { meta } : {}) });
+
+  it("reads venue suggestions returned as the run itself (not `{ run }`)", async () => {
+    const { dates } = await load({
+      [`POST /matches/${MATCH}/venue-suggestions`]: ok({
+        runId: "run-1",
+        matchId: MATCH,
+        status: "COMPLETED",
+        venues: [{ venueRef: "venue_1", name: "The Glasshouse Garden Café", address: "14 Parkside Boulevard", category: "Café & Bakery", isAiPick: true, latitude: 23.79, longitude: 90.42, rating: 4.9, photoUrl: "https://images.unsplash.com/x", distanceKmFromMe: 2.4 }],
+        aiPickRef: "venue_1",
+      }),
+    });
+    const venues = await dates.getVenues("GoldenHour");
+    expect(venues).toHaveLength(1);
+    expect(venues[0]).toMatchObject({ id: "venue_1", name: "The Glasshouse Garden Café", highlightTone: "rose" });
+    expect(venues[0].meta).toContain("2.4 km");
+  });
+
+  it("opens a notification whose target has no params", async () => {
+    const { account } = await load({
+      "GET /notifications": ok(
+        [{ id: "n1", type: "STORY_PARTNER_REQUESTED", category: "STORIES", title: "Success Story Consent", body: "ava_stone asked for your approval.", imageUrl: null, actor: { nickname: "ava_stone", availability: "ACTIVE", age: 29, mainPhotoUrl: null, isVerified: true }, target: { screen: "STORY_DETAIL" }, createdAt: "2026-11-02T03:48:17.952Z", readAt: null }],
+        { nextCursor: null, hasMore: false, unreadCount: 1 },
+      ),
+    });
+    const [item] = await account.getNotifications();
+    expect(item).toMatchObject({ title: "Success Story Consent", unread: true, to: { screen: "STORIES" } });
+  });
+
+  it("treats a match without a deadline as open, not as a confirmed date", async () => {
+    const { portal } = await load({
+      "GET /matches": ok(
+        [
+          { id: "m1", otherUser: { nickname: "liam_chen", age: 31, mainPhotoUrl: null, isVerified: true, availability: "ACTIVE" }, displayStatus: "NEW", actions: [], createdAt: "2026-10-27T10:14:23.636Z", expiresAt: null, clockStoppedAt: null, latestDate: { id: "d1", status: "CANCELLED", place: { name: "Blue Note Jazz Club", address: null } }, conversationId: "c1", lastMessagePreview: null, lastActivityAt: null },
+          { id: "m2", otherUser: { nickname: "mia_khan", age: 27, mainPhotoUrl: null, isVerified: true, availability: "ACTIVE" }, displayStatus: "DATE_SET", actions: [], createdAt: "2026-10-27T10:14:23.636Z", expiresAt: null, clockStoppedAt: "2026-10-28T10:00:00.000Z", latestDate: { id: "d2", status: "SET" }, conversationId: "c2", lastMessagePreview: null, lastActivityAt: null },
+        ],
+        { nextCursor: null, hasMore: false, activeCount: 1, serverTime: "2026-11-02T09:34:22.674Z" },
+      ),
+    });
+    const [open, set] = await portal.getMatches();
+    expect(open).toMatchObject({ member: "liam_chen", confirmed: false, expiresAt: null });
+    expect(set).toMatchObject({ member: "mia_khan", confirmed: true, expiresAt: null });
+  });
+
+  it("reads the date partner's live fields (mainPhotoUrl, isVerified)", async () => {
+    const { dates } = await load({
+      "GET /dates": ok(
+        [{ id: "d1", matchId: "m1", proposerId: "a", receiverId: "b", counterpart: { nickname: "noah_reed", age: 32, mainPhotoUrl: "https://r2.example.com/noah.webp", isVerified: true, availability: "ACTIVE" }, venueName: "Artisan Coffee Roasters", venueCategory: "Specialty Coffee", venueAddress: "28 Orchard Way", venueLatitude: 23.79, venueLongitude: 90.4, venueRating: 4.8, venuePhotoRef: null, distanceKmFromMe: null, scheduledAt: "2026-11-05T13:00:00.000Z", timeZone: "UTC", status: "SET", cancelReason: null, cancelNote: null, pendingPostponeRequest: null, canAccept: false, canDecline: false, canWithdraw: false, canCancel: true, canPostpone: true, canRate: false, hasRated: false, createdAt: "2026-11-01T00:00:00.000Z", updatedAt: "2026-11-01T00:00:00.000Z" }],
+        { page: 1, limit: 50, total: 1, totalPages: 1 },
+      ),
+    });
+    const plan = await dates.getPlan("noah_reed");
+    expect(plan.status).toBe("confirmed");
+    expect(plan.partner).toMatchObject({ name: "noah_reed", verified: true, photo: { src: "https://r2.example.com/noah.webp" } });
   });
 });

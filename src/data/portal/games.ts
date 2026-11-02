@@ -18,6 +18,8 @@ export const gamePage = {
   documentTitle: "This or That with {name}",
   name: "This or That",
   intro: {
+    /** The game couldn't be started (design-silent; for owner approval). */
+    failed: "We couldn’t start the game. Check your connection and try again.",
     title: "Break the ice",
     description: "A few easy choices can turn a first hello into a good conversation.",
     art: image("game", "Two pink ice cubes with small hearts", 720, 480),

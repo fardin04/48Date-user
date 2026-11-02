@@ -53,6 +53,8 @@ export const matchesPage = {
     details: { label: "View match details", screen: "MATCH-EXPIRING" } satisfies { label: string; screen: ScreenCode },
   },
   findMore: { label: "Find more connections", to: to("DISCOVER") } satisfies Action,
+  /** Live outcomes: `{name}`, then the date's day and venue when known (design-silent; for owner approval). */
+  outcome: { meta: "{name}", when: "{meta} · {when}", venue: "{meta} · {venue}", empty: "Nothing here yet." },
   cancelled: {
     photoOf: cancelledMember,
     title: "This plan was cancelled",
@@ -73,6 +75,9 @@ export const matchesPage = {
     description: "When you both like each other, your matches will appear here.",
     summary: { icon: "favourite", title: "Start with someone who interests you", description: "A mutual like opens a conversation and your 48-hour window." } satisfies StatusSummaryCopy,
     primary: { label: "Start discovering", to: to("DISCOVER") } satisfies Action,
+    /** Asks the service to look for matches (Auto-Matching; design-silent, for owner approval). */
+    find: "Find matches for me",
+    finding: "Looking for matches…",
   },
 };
 

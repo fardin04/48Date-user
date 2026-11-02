@@ -330,6 +330,8 @@ export const accountPage = {
     save: "Save account details",
     saving: "Saving…",
     failed: "We couldn’t save your details. Check your connection and try again.",
+    /** The API has no endpoint to change private details yet (design-silent). */
+    unavailable: "Changing your private details isn’t available yet.",
   },
   notifyPrefs: {
     back: back("SETTINGS"),
