@@ -10,6 +10,7 @@ import { profileDraft, useProfileDraft } from "@/lib/onboarding/profile-draft";
 import { useLoaded } from "@/hooks/use-loaded";
 import { getNicknameStep, getOnboardingShared, getStepFlow } from "@/stores/onboarding-store";
 import { SetupBack, SetupError, SetupPrimary, useSaveStep } from "./step-actions";
+import { screenKeys } from "@/lib/screen-keys";
 
 /** The API's rule (Postman `07 Save Onboarding Step — Nickname`): 3–20 characters, starts with a letter. */
 const NICKNAME = /^[A-Za-z][A-Za-z0-9_.]{2,19}$/;
@@ -24,7 +25,7 @@ export function NicknameStep() {
   const shared = getOnboardingShared();
   const flow = getStepFlow("nickname");
   const { save, saving, error } = useSaveStep("nickname");
-  const suggestions = useLoaded(onboardingService.getNicknameSuggestions).value ?? copy.suggestions;
+  const suggestions = useLoaded(screenKeys.nicknameSuggestions, onboardingService.getNicknameSuggestions).value ?? copy.suggestions;
   const noteId = useId();
   const draft = useProfileDraft();
   const [phase, setPhase] = useState<Phase>({ kind: "edit" });

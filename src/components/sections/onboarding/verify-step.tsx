@@ -15,7 +15,6 @@ type Phase = "intro" | "camera" | "denied" | "capture" | "review" | "pending" | 
 type Selfie = { blob: Blob; url: string };
 
 /** Review polling (`GET /verification/:id`, the documented fallback to its SSE stream). */
-const POLL_MS = 3000;
 const SELFIE_QUALITY = 0.9;
 
 /** Screen that a stored review result reopens on. */
@@ -64,26 +63,18 @@ export function VerifyStep() {
     };
   }, []);
 
-  // While in review, check for the result; setup can continue meanwhile (handoff).
+  // While in review, wait for the result (the service's live updates); setup can continue meanwhile (handoff).
   useEffect(() => {
     if (phase !== "pending") return;
-    let active = true;
-    let timer: ReturnType<typeof setTimeout>;
-    // Each check waits for the previous one, so slow responses never pile up.
-    const poll = () => {
-      timer = setTimeout(async () => {
-        const current = await onboardingService.getVerification();
-        if (!active) return;
-        if (current === "pending") return poll();
+    const controller = new AbortController();
+    onboardingService.waitForVerification(controller.signal).then(
+      (current) => {
         setStatus(current);
         setPhase(phaseFor[current]);
-      }, POLL_MS);
-    };
-    poll();
-    return () => {
-      active = false;
-      clearTimeout(timer);
-    };
+      },
+      () => undefined,
+    );
+    return () => controller.abort();
   }, [phase]);
 
   // Attach the live stream once the capture frame is on screen.

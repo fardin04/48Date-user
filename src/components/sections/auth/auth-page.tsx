@@ -4,9 +4,11 @@ import { AuthShell } from "@/components/pieces/shells/auth-shell";
 import { ConsentNote } from "@/components/pieces/forms/consent-note";
 import { OrDivider } from "@/components/pieces/forms/or-divider";
 import type { AuthFlowName, AuthStep } from "@/data/auth/flows";
-import { to } from "@/lib/routes";
+import { notFunctional, to } from "@/lib/routes";
+import { googleMode } from "@/lib/auth/google-mode";
 import { getAuthFlow, getAuthShared, getCountries } from "@/stores/auth-store";
 import { SessionGate } from "@/components/pieces/shells/session-gate";
+import { GoogleStep } from "./google-step";
 import { MessageStep } from "./message-step";
 import { PhoneStep } from "./phone-step";
 import { SignOut } from "./sign-out";
@@ -48,7 +50,10 @@ export function AuthPage({ flowName, step }: { flowName: AuthFlowName; step: Aut
             />
             <OrDivider label={shared.or} revealDelay={120} />
             <ActionButton
-              action={{ label: shared.continueGoogle, to: to(flow.routes.google) }}
+              action={{
+                label: shared.continueGoogle,
+                to: googleMode === "unavailable" ? notFunctional(shared.googleUnavailable) : to(flow.routes.google),
+              }}
               variant="google"
               size="pill"
               width="full"
@@ -65,6 +70,8 @@ export function AuthPage({ flowName, step }: { flowName: AuthFlowName; step: Aut
       case "verified":
         return <MessageStep intro={flow.verified.intro} visual={{ kind: "success", image: shared.successMark }} primary={flow.verified.cta} />;
       case "google":
+        if (googleMode === "live")
+          return <GoogleStep intro={flow.google.intro} waitingLabel={shared.waitingLabel} primary={flow.google.primary} failed={flow.routes.googleError} />;
         return (
           <MessageStep
             intro={flow.google.intro}
