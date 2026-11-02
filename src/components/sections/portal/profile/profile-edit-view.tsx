@@ -23,6 +23,7 @@ import { ProfileContext } from "@/components/sections/portal/profile/profile-con
 import { ProfileSaved } from "@/components/sections/portal/profile/profile-saved";
 import { LoadFailed } from "@/components/sections/portal/shared/load-failed";
 import { Workspace } from "@/components/sections/portal/shared/workspace";
+import { screenKeys } from "@/lib/screen-keys";
 
 /**
  * W09 / PROFILE-EDIT, then PROFILE-SAVED on the same URL (`PATCH /users/me/profile` with the API).
@@ -30,7 +31,7 @@ import { Workspace } from "@/components/sections/portal/shared/workspace";
  */
 export function ProfileEditView() {
   const page = getAccountPage().edit;
-  const { value: profile, error, reload } = useLoaded(accountService.getProfile);
+  const { value: profile, error, reload } = useLoaded(screenKeys.profile, accountService.getProfile);
   if (profile) return <ProfileForm initial={profile} />;
   return (
     <Workspace aside={<ProfileContext />}>

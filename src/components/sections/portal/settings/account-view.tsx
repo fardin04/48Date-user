@@ -15,11 +15,13 @@ import { getAccountPage } from "@/stores/portal-store";
 import { ProfileContext } from "@/components/sections/portal/profile/profile-context";
 import { ProfileSaved } from "@/components/sections/portal/profile/profile-saved";
 import { Workspace } from "@/components/sections/portal/shared/workspace";
+import { screenKeys } from "@/lib/screen-keys";
+import { SignInMethods } from "@/components/sections/portal/settings/sign-in-methods";
 
 /** W09 / ACCOUNT (private name, mobile, email), then PROFILE-SAVED. Never shown on the public profile. */
 export function AccountView() {
-  const account = useLoaded(accountService.getAccount).value;
-  const nickname = useLoaded(accountService.getProfile).value?.nickname;
+  const account = useLoaded(screenKeys.account, accountService.getAccount).value;
+  const nickname = useLoaded(screenKeys.profile, accountService.getProfile).value?.nickname;
   if (!account || !nickname) return null;
   return <AccountForm initial={account} nickname={nickname} />;
 }
@@ -85,6 +87,7 @@ function AccountForm({ initial, nickname }: { initial: AccountDetails; nickname:
           </Button>
         </ActionRow>
       </form>
+      <SignInMethods />
     </Workspace>
   );
 }

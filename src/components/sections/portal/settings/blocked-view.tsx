@@ -11,15 +11,16 @@ import type { MemberId } from "@/data/portal/types";
 import { fill } from "@/lib/format";
 import { chatService } from "@/lib/portal/chat-service";
 import { useLoaded } from "@/hooks/use-loaded";
-import { getAccountPage, getMember } from "@/stores/portal-store";
+import { getAccountPage, getMemberName } from "@/stores/portal-store";
 import { ProfileContext } from "@/components/sections/portal/profile/profile-context";
 import { StatusScreen } from "@/components/sections/portal/shared/status-screen";
 import { Workspace } from "@/components/sections/portal/shared/workspace";
+import { screenKeys } from "@/lib/screen-keys";
 
 /** W09 / BLOCKED with the UNBLOCK dialog, or BLOCKED-EMPTY once nobody is blocked. */
 export function BlockedView() {
   const page = getAccountPage().blocked;
-  const { value: blocked, reload } = useLoaded(chatService.getBlocked);
+  const { value: blocked, reload } = useLoaded(screenKeys.blocked, chatService.getBlocked);
   const [unblocking, setUnblocking] = useState<MemberId | null>(null);
   const [busy, setBusy] = useState(false);
   const back = <PortalBack action={page.back} />;
@@ -39,7 +40,7 @@ export function BlockedView() {
     reload();
   };
 
-  const name = unblocking ? getMember(unblocking).name : "";
+  const name = unblocking ? getMemberName(unblocking) : "";
   return (
     <Workspace aside={<ProfileContext />}>
       {back}
@@ -47,14 +48,14 @@ export function BlockedView() {
       <ul className="flex w-full flex-col">
         {blocked.map((member) => (
           <li key={member}>
-            <SettingsRow label={getMember(member).name} value={page.status} pill="blocked" />
+            <SettingsRow label={getMemberName(member)} value={page.status} pill="blocked" />
           </li>
         ))}
       </ul>
       <ActionRow>
         {blocked.map((member) => (
           <Button key={member} type="button" variant="confirm" size="portalPill" width="actionSlot" aria-haspopup="dialog" onClick={() => setUnblocking(member)}>
-            {fill(page.unblock, { name: getMember(member).name })}
+            {fill(page.unblock, { name: getMemberName(member) })}
           </Button>
         ))}
       </ActionRow>

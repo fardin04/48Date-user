@@ -16,12 +16,13 @@ import { getAccountPage } from "@/stores/portal-store";
 import { ProfileContext } from "@/components/sections/portal/profile/profile-context";
 import { LoadFailed } from "@/components/sections/portal/shared/load-failed";
 import { Workspace } from "@/components/sections/portal/shared/workspace";
+import { screenKeys } from "@/lib/screen-keys";
 
 /** W09 / TRUST: the score, what builds it and the three signals behind it (`GET /users/me/trust-score`). */
 export function TrustView() {
   const page = getAccountPage().trust;
-  const { value: trust, error, reload } = useLoaded(accountService.getTrust);
-  const status = useLoaded(onboardingService.getVerification).value;
+  const { value: trust, error, reload } = useLoaded(screenKeys.trust, accountService.getTrust);
+  const status = useLoaded(screenKeys.verification, onboardingService.getVerification).value;
   const reviewed = status === "verified" ? page.verification.verified : status === "pending" ? page.verification.pending : page.verification.none;
   // The score's own flag when the service has one; the selfie review otherwise.
   const verification = trust?.verification ?? (status === undefined ? "" : reviewed);

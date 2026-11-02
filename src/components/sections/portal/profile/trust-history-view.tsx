@@ -13,11 +13,12 @@ import { getAccountPage } from "@/stores/portal-store";
 import { ProfileContext } from "@/components/sections/portal/profile/profile-context";
 import { LoadFailed } from "@/components/sections/portal/shared/load-failed";
 import { Workspace } from "@/components/sections/portal/shared/workspace";
+import { screenKeys } from "@/lib/screen-keys";
 
 /** W09 / TRUST-HISTORY: verification and attended dates that shape the Trust Score (`GET /trust-score/history`). */
 export function TrustHistoryView() {
   const page = getAccountPage().trustHistory;
-  const { value: events, error, reload } = useLoaded(accountService.getTrustHistory);
+  const { value: events, error, reload } = useLoaded(screenKeys.trustHistory, accountService.getTrustHistory);
   return (
     <Workspace aside={<ProfileContext />}>
       <PortalBack action={page.back} />
