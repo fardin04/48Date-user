@@ -1,7 +1,8 @@
 "use client";
 
 import Image from "next/image";
-import { useEffect, useState, type FormEvent } from "react";
+import { useQueryClient } from "@tanstack/react-query";
+import { useEffect, useRef, useState, type ChangeEvent, type FormEvent } from "react";
 import { ActionRow } from "@/components/pieces/actions/action-row";
 import { CheckboxField } from "@/components/pieces/forms/checkbox-field";
 import { FormHeader } from "@/components/pieces/forms/form-header";
@@ -14,53 +15,79 @@ import { TextAreaField } from "@/components/pieces/forms/text-area-field";
 import { TextField } from "@/components/pieces/forms/text-field";
 import { ActionButton } from "@/components/pieces/actions/action-button";
 import { Button } from "@/components/ui/button";
-import { formatMonth, todayIso } from "@/lib/portal/date-format";
+import { PhotoTile } from "@/components/pieces/media/photo-tile";
+import { failureReason } from "@/lib/portal/failure";
+import { isRawImage } from "@/lib/image";
 import { storyService, type StoryDraft } from "@/lib/portal/story-service";
-import { getStoriesPage } from "@/stores/portal-store";
+import { screenKeys } from "@/lib/screen-keys";
+import { useLoaded } from "@/hooks/use-loaded";
+import { getLiveStoryCopy, getStoriesPage } from "@/stores/portal-store";
 import { StoryContext } from "@/components/sections/portal/stories/story-context";
 import { Workspace } from "@/components/sections/portal/shared/workspace";
 
-type Errors = Partial<Record<keyof StoryDraft, string>>;
+type Errors = Partial<Record<keyof StoryDraft | "photo", string>>;
 const EMPTY: StoryDraft = { title: "", met: "", body: "", consent: false };
-
-/** The last `count` months, newest first, as `YYYY-MM` options ("June 2026"). */
-function recentMonths(count: number) {
-  const [year, month] = todayIso().split("-").map(Number);
-  return Array.from({ length: count }, (_, index) => {
-    const date = new Date(Date.UTC(year, month - 1 - index, 1));
-    const value = date.toISOString().slice(0, 7);
-    return { value, label: formatMonth(`${value}-01`) };
-  });
-}
 
 /** W08 / STORY-CREATE with STORY-ERROR and STORY-PENDING on the same URL (rule 32). */
 export function StoryCreateView() {
+  const queryClient = useQueryClient();
   const [initial, setInitial] = useState<StoryDraft | null>(null);
+  const [editing, setEditing] = useState(false);
 
   // Start from the kept draft, else the submission being edited, else empty.
   useEffect(() => {
     let active = true;
-    void Promise.all([storyService.getDraft(), storyService.getSubmission()]).then(([draft, submission]) => {
+    // The draft lives in this tab; the submission is shared with STORY-MINE through the query cache.
+    void Promise.all([storyService.getDraft(), queryClient.fetchQuery({ queryKey: screenKeys.storySubmission, queryFn: storyService.getSubmission })]).then(([draft, submission]) => {
       if (!active) return;
       setInitial(draft ?? (submission ? { title: submission.title, met: submission.met, body: submission.body, consent: submission.consent } : EMPTY));
+      setEditing(submission !== null);
+    }).catch(() => {
+      // Signed out or offline: start from an empty story (the guard handles a lost session).
+      if (active) setInitial(EMPTY);
     });
     return () => {
       active = false;
     };
-  }, []);
+  }, [queryClient]);
 
   if (!initial) return null;
-  return <StoryForm initial={initial} />;
+  return <StoryForm initial={initial} editing={editing} />;
 }
 
-function StoryForm({ initial }: { initial: StoryDraft }) {
+function StoryForm({ initial, editing }: { initial: StoryDraft; editing: boolean }) {
   const copy = getStoriesPage();
   const form = copy.create;
   const [draft, setDraft] = useState(initial);
   const [errors, setErrors] = useState<Errors>({});
   const [phase, setPhase] = useState<"form" | "error" | "pending">("form");
   const [busy, setBusy] = useState(false);
-  const months = recentMonths(form.limits.months);
+  const [failure, setFailure] = useState<string | null>(null);
+  const months = useLoaded(screenKeys.storyMeetOptions, storyService.getMeetOptions).value ?? [];
+  const live = getLiveStoryCopy().photo;
+  const [photo, setPhoto] = useState<{ file: File; url: string } | null>(null);
+  const photoUrl = useRef<string | null>(null);
+  const fileInput = useRef<HTMLInputElement>(null);
+
+  // The chosen photo stays in memory only; its URL is freed when replaced or when leaving.
+  useEffect(
+    () => () => {
+      if (photoUrl.current) URL.revokeObjectURL(photoUrl.current);
+    },
+    [],
+  );
+
+  const choosePhoto = (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file) return;
+    if (!live.accept.includes(file.type) || file.size > live.maxBytes) return setErrors({ photo: live.invalid });
+    if (photoUrl.current) URL.revokeObjectURL(photoUrl.current);
+    const url = URL.createObjectURL(file);
+    photoUrl.current = url;
+    setPhoto({ file, url });
+    setErrors({});
+  };
 
   const change = (patch: Partial<StoryDraft>) => {
     const next = { ...draft, ...patch };
@@ -75,6 +102,8 @@ function StoryForm({ initial }: { initial: StoryDraft }) {
     if (!draft.met) found.met = form.errors.met;
     if (draft.body.trim().length < form.limits.bodyMin) found.body = form.errors.body;
     if (!draft.consent) found.consent = form.errors.consent;
+    // A new story needs a photo (API); editing a submission keeps its photo unless another is chosen.
+    if (storyService.photoRequired && !photo && !editing) found.photo = live.required;
     return found;
   };
 
@@ -85,10 +114,12 @@ function StoryForm({ initial }: { initial: StoryDraft }) {
     setErrors(found);
     if (Object.keys(found).length > 0) return;
     setBusy(true);
+    setFailure(null);
     try {
-      await storyService.submit({ ...draft, title: draft.title.trim(), body: draft.body.trim() });
+      await storyService.submit({ ...draft, title: draft.title.trim(), body: draft.body.trim() }, photo?.file ?? null);
       setPhase("pending");
-    } catch {
+    } catch (error) {
+      setFailure(failureReason(error));
       setPhase("error");
     }
     setBusy(false);
@@ -117,10 +148,23 @@ function StoryForm({ initial }: { initial: StoryDraft }) {
       <form onSubmit={submit} noValidate aria-busy={busy || undefined} className="flex w-full flex-col gap-5">
         <FormHeader variant={failed ? "portal" : "portalStatus"} title={failed ? form.error.title : form.title} description={failed ? form.error.description : form.description} />
         {failed ? (
-          <StatusNote variant="alert" message={form.error.note} />
+          <StatusNote variant="alert" message={failure ?? form.error.note} />
+        ) : storyService.photoRequired ? (
+          <div className="flex w-full flex-col items-start gap-3">
+            {photo && (
+              <div className="relative h-45 w-full overflow-hidden rounded-16">
+                <PhotoTile src={photo.url} alt={live.alt} frame="preview" />
+              </div>
+            )}
+            <Button type="button" variant="roseOutline" size="pillCompact" width="auto" onClick={() => fileInput.current?.click()}>
+              {photo ? live.change : live.choose}
+            </Button>
+            {errors.photo && <StatusNote variant="alert" message={errors.photo} />}
+            <input ref={fileInput} type="file" accept={live.accept.join(",")} onChange={choosePhoto} className="sr-only" tabIndex={-1} aria-label={live.label} />
+          </div>
         ) : (
           <div className="relative h-45 w-full overflow-hidden rounded-16">
-            <Image src={form.photo.src} alt={form.photo.alt} fill sizes="(min-width: 1280px) 860px, 100vw" className="object-cover" />
+            <Image src={form.photo.src} unoptimized={isRawImage(form.photo.src)} alt={form.photo.alt} fill sizes="(min-width: 1280px) 860px, 100vw" className="object-cover" />
           </div>
         )}
         <TextField

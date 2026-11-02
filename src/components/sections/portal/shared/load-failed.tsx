@@ -8,10 +8,10 @@ import { getAccountPage } from "@/stores/portal-store";
  * failure shows the service's own message ("Location is required to access discovery.").
  */
 export function LoadFailed({ onRetry, error }: { onRetry: () => void; error?: unknown }) {
-  const { loadFailed, retry } = getAccountPage().profile;
+  const { loadFailedView, retry } = getAccountPage().profile;
   return (
     <div className="flex w-full flex-col items-start gap-4">
-      <StatusNote variant="alert" message={failureReason(error) ?? loadFailed} />
+      <StatusNote variant="alert" message={failureReason(error) ?? loadFailedView} />
       <Button type="button" variant="roseOutline" size="portalPill" width="actionSlot" onClick={onRetry}>
         {retry}
       </Button>

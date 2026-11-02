@@ -8,6 +8,8 @@ import { FormHeader } from "@/components/pieces/forms/form-header";
 import { PortalBack } from "@/components/pieces/actions/portal-back";
 import { TextField } from "@/components/pieces/forms/text-field";
 import { Button } from "@/components/ui/button";
+import { StatusNote } from "@/components/pieces/feedback/status-note";
+import { useServiceAction } from "@/hooks/use-service-action";
 import { fill } from "@/lib/format";
 import { storyService } from "@/lib/portal/story-service";
 import { useLoaded } from "@/hooks/use-loaded";
@@ -16,16 +18,60 @@ import { getStoriesPage } from "@/stores/portal-store";
 import { StoryBody } from "@/components/sections/portal/stories/story-body";
 import { StoryContext } from "@/components/sections/portal/stories/story-context";
 import { Workspace } from "@/components/sections/portal/shared/workspace";
+import { screenKeys } from "@/lib/screen-keys";
 
 /** W08 / STORY-DETAIL, then COMMENT-SENT once a comment is posted (rule 32). */
 export function StoryView({ id }: { id: string }) {
   const copy = getStoriesPage();
-  const { value: story, reload } = useLoaded(() => storyService.getStory(id));
+  const { value: story, reload } = useLoaded(screenKeys.story(id), () => storyService.getStory(id));
   const [comment, setComment] = useState("");
   const [posted, setPosted] = useState<string | null>(null);
   const [error, setError] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [likes, setLikes] = useState<{ count: number; liked: boolean } | null>(null);
+  const [answered, setAnswered] = useState<boolean | null>(null);
+  const answer = useServiceAction(copy.detail.consent.declined);
   if (!story) return null;
+  const shownLikes = likes ?? story.likes;
+
+  const like = async () => {
+    if (busy) return;
+    setBusy(true);
+    try {
+      setLikes(await storyService.toggleLike(id));
+    } catch {
+      // The count stays as it was.
+    }
+    setBusy(false);
+  };
+
+  if (story.consent) {
+    const { consent } = copy.detail;
+    const respond = (accept: boolean) =>
+      void answer.run(() => storyService.respond(id, accept)).then((ok) => {
+        if (ok) setAnswered(accept);
+      });
+    return (
+      <Workspace aside={<StoryContext />}>
+        <PortalBack action={copy.back} />
+        <FormHeader variant="portalStatus" title={story.detailTitle} description={fill(consent.note, { name: story.consent.author })} />
+        <StoryBody photo={story.photo} title={story.couple} meta={story.met} body={story.body} />
+        {answered !== null ? (
+          <StatusNote variant={answered ? "success" : "notice"} message={answered ? consent.approved : consent.declined} />
+        ) : (
+          <ActionRow>
+            <Button type="button" variant="confirm" size="portalPill" width="actionSlot" disabled={answer.busy} aria-busy={answer.busy || undefined} onClick={() => respond(true)}>
+              {consent.approve}
+            </Button>
+            <Button type="button" variant="roseOutline" size="portalPill" width="actionSlot" disabled={answer.busy} onClick={() => respond(false)}>
+              {consent.decline}
+            </Button>
+          </ActionRow>
+        )}
+        {answer.failure && <StatusNote variant="alert" message={answer.failure} />}
+      </Workspace>
+    );
+  }
 
   const submit = async (event: FormEvent) => {
     event.preventDefault();
@@ -50,6 +96,11 @@ export function StoryView({ id }: { id: string }) {
           description={posted ? fill(copy.detail.posted.description, { comment: posted }) : fill(copy.feed.meta, { couple: story.couple, met: story.met })}
         />
         <StoryBody photo={story.photo} title={story.couple} meta={story.met} body={story.body} />
+        {shownLikes && (
+          <Button type="button" variant="roseOutline" size="pillCompact" width="auto" aria-pressed={shownLikes.liked} disabled={busy} onClick={() => void like()}>
+            {fill(shownLikes.liked ? copy.detail.liked : copy.detail.like, { count: shownLikes.count })}
+          </Button>
+        )}
         {story.comments.length > 0 && (
           <dl aria-label={copy.detail.commentsLabel} className="flex w-full flex-col">
             {story.comments.map((item, index) => (

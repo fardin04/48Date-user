@@ -8,7 +8,6 @@ import { FormHeader } from "@/components/pieces/forms/form-header";
 import { PortalBack } from "@/components/pieces/actions/portal-back";
 import { PortalDialog } from "@/components/pieces/overlays/portal-dialog";
 import { Button } from "@/components/ui/button";
-import { formatMonth } from "@/lib/portal/date-format";
 import { storyService } from "@/lib/portal/story-service";
 import { useLoaded } from "@/hooks/use-loaded";
 import { hrefFor } from "@/lib/routes";
@@ -17,12 +16,13 @@ import { StatusScreen } from "@/components/sections/portal/shared/status-screen"
 import { StoryBody } from "@/components/sections/portal/stories/story-body";
 import { StoryContext } from "@/components/sections/portal/stories/story-context";
 import { Workspace } from "@/components/sections/portal/shared/workspace";
+import { screenKeys } from "@/lib/screen-keys";
 
 /** W08 / STORY-MINE (pending), STORY-REJECT when moderation sends it back, and the STORY-DELETE dialog. */
 export function StoryMineView() {
   const copy = getStoriesPage();
   const router = useRouter();
-  const submission = useLoaded(storyService.getSubmission).value;
+  const submission = useLoaded(screenKeys.storySubmission, storyService.getSubmission).value;
   const [removing, setRemoving] = useState(false);
   const [busy, setBusy] = useState(false);
   const none = submission === null;
@@ -60,7 +60,7 @@ export function StoryMineView() {
     <Workspace aside={<StoryContext />}>
       <PortalBack action={copy.back} />
       <FormHeader variant="portalStatus" title={copy.mine.title} description={copy.mine.description} />
-      <StoryBody photo={copy.create.photo} title={submission.title} meta={formatMonth(`${submission.met}-01`)} body={submission.body} />
+      <StoryBody photo={submission.photo ?? copy.create.photo} title={submission.title} meta={submission.metLabel} body={submission.body} />
       <ActionRow>
         <ActionButton action={copy.mine.edit} variant="confirm" size="portalPill" width="actionSlot" />
         <Button type="button" variant="roseOutline" size="portalPill" width="actionSlot" onClick={() => setRemoving(true)}>
