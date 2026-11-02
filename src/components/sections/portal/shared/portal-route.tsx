@@ -6,6 +6,7 @@ import { portalViewParams, resolvePortalView, type PortalArea } from "@/lib/port
 import { getPortalShell } from "@/stores/portal-store";
 import { PortalGuard } from "@/components/sections/portal/shared/portal-guard";
 import { PortalPage, portalViewArea, portalViewTitle } from "@/components/sections/portal/shared/portal-page";
+import { WarningNotice } from "@/components/sections/portal/shared/warning-notice";
 
 type ViewParams = Promise<{ view?: string[] }>;
 
@@ -35,6 +36,7 @@ export function portalRoute(area: PortalArea) {
         <PortalGuard>
           <PortalPage view={view} />
         </PortalGuard>
+        <WarningNotice />
       </PortalShell>
     );
   }

@@ -13,11 +13,13 @@ import { toItem } from "@/lib/routes";
 import { getStoriesPage } from "@/stores/portal-store";
 import { StoryContext } from "@/components/sections/portal/stories/story-context";
 import { Workspace } from "@/components/sections/portal/shared/workspace";
+import { screenKeys } from "@/lib/screen-keys";
+import { isRawImage } from "@/lib/image";
 
 /** W08 / STORIES: published community stories and the way to share yours. */
 export function StoriesView() {
   const copy = getStoriesPage();
-  const stories = useLoaded(storyService.getStories).value;
+  const stories = useLoaded(screenKeys.stories, storyService.getStories).value;
   return (
     <Workspace aside={<StoryContext withPrompt />}>
       <FormHeader variant="portal" title={copy.feed.title} description={copy.feed.description} />
@@ -26,7 +28,7 @@ export function StoriesView() {
           <li key={story.id} className="flex">
             <PortalCard as="article" surface="outline" radius={20} padding="lg" aria-labelledby={`story-${story.id}`} className="flex w-full flex-col gap-4">
               <div className="relative h-75 w-full overflow-hidden rounded-16 max-md:h-56">
-                <Image src={story.photo.src} alt={story.photo.alt} fill sizes="(min-width: 1280px) 810px, 100vw" className="object-cover" />
+                <Image src={story.photo.src} unoptimized={isRawImage(story.photo.src)} alt={story.photo.alt} fill sizes="(min-width: 1280px) 810px, 100vw" className="object-cover" />
               </div>
               <Text as="h2" id={`story-${story.id}`} variant="text20SemiboldSnug" tone="strong">
                 {story.title}

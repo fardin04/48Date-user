@@ -15,7 +15,7 @@ import {
   getInboxPage,
   getMatchDetailPage,
   getMatchesPage,
-  getMember,
+  getMemberName,
   getPortalShell,
   getProfilePage,
 } from "@/stores/portal-store";
@@ -92,21 +92,21 @@ export function portalViewTitle(view: PortalView) {
     case "filters":
       return getFiltersPage().title;
     case "profile":
-      return fill(getProfilePage().documentTitle, { name: getMember(view.member).name });
+      return fill(getProfilePage().documentTitle, { name: getMemberName(view.member) });
     case "compat":
       return getCompatPage().title;
     case "matches":
       return getMatchesPage().documentTitles[view.tab];
     case "match":
-      return fill(getMatchDetailPage().documentTitle, { name: getMember(view.member).name });
+      return fill(getMatchDetailPage().documentTitle, { name: getMemberName(view.member) });
     case "inbox":
       return getInboxPage().title;
     case "chat":
-      return fill(getChatPage().documentTitle, { name: getMember(view.member).name });
+      return fill(getChatPage().documentTitle, { name: getMemberName(view.member) });
     case "date":
-      return fill(getDatePage().documentTitles[view.step], { name: getMember(view.member).name });
+      return fill(getDatePage().documentTitles[view.step], { name: getMemberName(view.member) });
     case "game":
-      return fill(getGamePage().documentTitle, { name: getMember(view.member).name });
+      return fill(getGamePage().documentTitle, { name: getMemberName(view.member) });
     case "stories":
       return getStoriesPage().documentTitles.feed;
     case "story":
