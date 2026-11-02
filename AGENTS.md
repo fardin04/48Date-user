@@ -55,7 +55,7 @@ These rules are binding for every change. Numbers are stable; add new rules at t
 23. shadcn primitives in `components/ui/` are cleaned up: drop unused exports/variants, replace default palette classes with project tokens, remove `dark:` styles the design doesn't have, keep `data-slot` attributes.
 24. Landing display type (≥28px) is fluid: it reaches the exact Figma size at the 1920px frame width and scales down to a set minimum at 390px (formula in `globals.css`), so narrower desktops keep the Figma composition instead of re-wrapping headlines. Text ≤24px is fixed. Authentication type (`type-auth-*`) is fixed: its frames are drawn at 1440 and the responsive specimens keep the same sizes.
 25. Keep the Pieces registry below current: add every new reusable piece with path and props.
-26. `npm run lint`, `npm test` (Vitest unit tests, `src/**/*.test.ts`) and `npm run build` must pass with no new warnings before work is called done.
+26. `npm run lint`, `npm test` (Vitest: unit tests beside the code, and `src/test/api-contract.test.ts`, which runs the real API services against the Postman collection's example responses through `src/test/postman-replay.ts`) and `npm run build` must pass with no new warnings before work is called done. A service change that touches an endpoint gets a contract test.
 27. Never commit or push unless asked.
 28. Legal pages use the draft structure from Figma; their copy is not approved for release.
 29. Record design-silent decisions under "Decisions" below.

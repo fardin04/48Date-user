@@ -9,6 +9,8 @@ import { TextField } from "@/components/pieces/forms/text-field";
 import type { Area } from "@/data/onboarding/types";
 import { onboardingService } from "@/lib/onboarding/onboarding-service";
 import { profileDraft } from "@/lib/onboarding/profile-draft";
+import { screenKeys } from "@/lib/screen-keys";
+import { useLoaded } from "@/hooks/use-loaded";
 import { getLocationStep, getStepFlow } from "@/stores/onboarding-store";
 import { SetupBack, SetupError, SetupPrimary, SetupTextAction, useSaveStep } from "./step-actions";
 
@@ -29,12 +31,14 @@ export function LocationStep() {
   const name = useId();
   const [phase, setPhase] = useState<Phase>("ask");
   const [query, setQuery] = useState("");
-  const [results, setResults] = useState<Area[]>([]);
+  const [searched, setSearched] = useState("");
   const [chosenId, setChosenId] = useState<string | null>(null);
-  const latestQuery = useRef("");
   const searchTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  // One cached search per text; an outdated search is cancelled when the text changes.
+  const found = useLoaded(screenKeys.areas(searched), () => onboardingService.searchAreas(searched), { enabled: searched !== "" });
+  const results: Area[] = searched && query.trim() !== "" ? (found.value ?? []) : [];
   const chosen = results.find((area) => area.id === chosenId) ?? results[0];
-  const noResult = phase === "manual" && query.trim() !== "" && results.length === 0;
+  const noResult = phase === "manual" && searched !== "" && searched === query.trim() && found.value?.length === 0;
 
   // A pending search never fires after the step is left.
   useEffect(() => () => clearTimeout(searchTimer.current), []);
@@ -59,24 +63,15 @@ export function LocationStep() {
 
   function search(value: string) {
     setQuery(value);
-    latestQuery.current = value;
     clearTimeout(searchTimer.current);
-    if (!value.trim()) {
-      setResults([]);
-      return;
-    }
-    searchTimer.current = setTimeout(async () => {
-      const found = await onboardingService.searchAreas(value);
-      // A slower, older search never replaces newer results.
-      if (latestQuery.current === value) setResults(found);
-    }, SEARCH_DEBOUNCE_MS);
+    // Searched once typing pauses; the same text is answered from the query cache.
+    searchTimer.current = setTimeout(() => setSearched(value.trim()), SEARCH_DEBOUNCE_MS);
   }
 
   function resetSearch() {
     clearTimeout(searchTimer.current);
-    latestQuery.current = "";
     setQuery("");
-    setResults([]);
+    setSearched("");
   }
 
   function confirmArea(event: FormEvent<HTMLFormElement>) {
