@@ -13,20 +13,21 @@ import { StatusNote } from "@/components/pieces/feedback/status-note";
 import { TextAreaField } from "@/components/pieces/forms/text-area-field";
 import { Button } from "@/components/ui/button";
 import { reportReasons, type ReportReason } from "@/data/portal/account";
-import { memberIds, type MemberId } from "@/data/portal/types";
+import { memberIdPattern, type MemberId } from "@/data/portal/types";
 import type { Action } from "@/data/types";
 import { fill } from "@/lib/format";
 import { accountService, type ReportSubject } from "@/lib/portal/account-service";
 import { chatService } from "@/lib/portal/chat-service";
 import { hrefFor, to, toItem } from "@/lib/routes";
-import { getAccountPage, getChatPage, getMember } from "@/stores/portal-store";
+import { getAccountPage, getChatPage, getMemberName } from "@/stores/portal-store";
 import { ProfileContext } from "@/components/sections/portal/profile/profile-context";
 import { StatusScreen } from "@/components/sections/portal/shared/status-screen";
 import { Workspace } from "@/components/sections/portal/shared/workspace";
 
 type Errors = { reason?: string; details?: string };
 
-const isMember = (id: string): id is MemberId => (memberIds as readonly string[]).includes(id);
+/** Member ids are nicknames (letters, digits, `_`, `.`); story ids contain hyphens. */
+const isMember = (id: string): id is MemberId => memberIdPattern.test(id);
 
 /**
  * W09 / REPORT-DETAIL with SELECT-REPORT (opened on arrival, as drawn) and REPORT-DONE on the same
@@ -106,7 +107,7 @@ export function ReportView({ subject: param }: { subject: string | null }) {
           <PortalDialog
             open={blocking}
             onOpenChange={setBlocking}
-            title={fill(blockCopy.title, { name: getMember(member).name })}
+            title={fill(blockCopy.title, { name: getMemberName(member) })}
             description={blockCopy.description}
             closeLabel={blockCopy.close}
             header="fit"
@@ -123,6 +124,19 @@ export function ReportView({ subject: param }: { subject: string | null }) {
           />
         )}
       </>
+    );
+  }
+
+  if (!subject && accountService.reportNeedsSubject) {
+    return (
+      <Workspace aside={<ProfileContext />}>
+        <PortalBack action={back} />
+        <FormHeader variant="portalStatus" title={page.title} description={page.description} />
+        <StatusNote variant="notice" message={page.chooseMember} />
+        <ActionRow>
+          <ActionButton action={cancel} variant="roseOutline" size="portalPill" width="actionSlot" />
+        </ActionRow>
+      </Workspace>
     );
   }
 

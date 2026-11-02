@@ -15,6 +15,7 @@ import { ProfileContext } from "@/components/sections/portal/profile/profile-con
 import { StatusScreen } from "@/components/sections/portal/shared/status-screen";
 import { LoadFailed } from "@/components/sections/portal/shared/load-failed";
 import { Workspace } from "@/components/sections/portal/shared/workspace";
+import { screenKeys } from "@/lib/screen-keys";
 
 /** Browser push permission, or "unsupported" where the Notifications API is missing. */
 const permission = () => (typeof Notification === "undefined" ? "unsupported" : Notification.permission);
@@ -26,7 +27,7 @@ const permission = () => (typeof Notification === "undefined" ? "unsupported" : 
  */
 export function NotifyPrefsView() {
   const page = getAccountPage().notifyPrefs;
-  const { value: prefs, error, reload } = useLoaded(accountService.getNotificationPrefs);
+  const { value: prefs, error, reload } = useLoaded(screenKeys.notificationPrefs, accountService.getNotificationPrefs);
   if (prefs) return <PrefsForm initial={prefs} />;
   return (
     <Workspace aside={<ProfileContext />}>
