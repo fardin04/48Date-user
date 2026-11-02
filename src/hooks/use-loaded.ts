@@ -1,34 +1,35 @@
-import { useEffect, useState } from "react";
+import { useQuery, type QueryKey } from "@tanstack/react-query";
+
+type LoadOptions<T> = {
+  /** False holds the read (e.g. until an id is known). */
+  enabled?: boolean;
+  /** Reads again on this interval while the screen is open (chained by TanStack, never overlapping); a function decides from the last value. */
+  refetchInterval?: number | false | ((value: T | undefined) => number | false);
+  /** Read again when the tab regains focus (lists that change while the member is away). */
+  refetchOnWindowFocus?: boolean;
+};
 
 /**
- * Reads a value from a service on the client. `value` is undefined until the first read settles
- * (or when it failed: then `error` is set); `reload` reads it again (after a decision, a reset, a
- * retry). `load` must be stable between renders unless its inputs change (the React Compiler
- * memoises inline loaders). A read that finishes after unmount is ignored.
+ * Reads a value from a service on the client through TanStack Query. Every screen reading the same
+ * `key` shares one request and one cached value; keys nest under `cacheKeys` (lib/api/modules) so
+ * the writes that invalidate them refresh the screen. `value` is undefined until the first read
+ * settles (or when it failed: then `error` is set); `reload` reads again while the last value stays
+ * on screen. `load` receives a signal that aborts when nothing needs the read any more.
  */
-export function useLoaded<T>(load: () => Promise<T>) {
-  const [state, setState] = useState<{ value: T } | { error: unknown } | null>(null);
-  const [version, setVersion] = useState(0);
-
-  useEffect(() => {
-    let active = true;
-    load().then(
-      (value) => {
-        if (active) setState({ value });
-      },
-      (error: unknown) => {
-        if (active) setState({ error });
-      },
-    );
-    return () => {
-      active = false;
-    };
-  }, [load, version]);
+export function useLoaded<T>(key: QueryKey, load: (signal: AbortSignal) => Promise<T>, options: LoadOptions<T> = {}) {
+  const interval = options.refetchInterval;
+  const query = useQuery({
+    queryKey: key,
+    queryFn: ({ signal }) => load(signal),
+    enabled: options.enabled,
+    refetchInterval: typeof interval === "function" ? (query) => interval(query.state.data) : interval,
+    refetchOnWindowFocus: options.refetchOnWindowFocus,
+  });
 
   return {
-    value: state && "value" in state ? state.value : undefined,
-    error: state && "error" in state ? state.error : undefined,
-    /** Reads again; the last value stays on screen meanwhile. */
-    reload: () => setVersion((current) => current + 1),
+    value: query.data,
+    error: query.error ?? undefined,
+    loading: query.isPending && query.fetchStatus !== "idle",
+    reload: () => query.refetch().then(() => undefined),
   };
 }
