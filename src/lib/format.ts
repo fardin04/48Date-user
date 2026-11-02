@@ -12,3 +12,19 @@ export function timeLeft(deadline: number, now: number) {
   const pad = (value: number) => String(value).padStart(2, "0");
   return { totalMinutes: total, hours: String(hours), paddedHours: pad(hours), minutes: pad(total % 60) };
 }
+
+/** Waits `ms`, or rejects as soon as `signal` aborts (chained waits never overlap). */
+export function pause(ms: number, signal: AbortSignal) {
+  return new Promise<void>((resolve, reject) => {
+    if (signal.aborted) return reject(new DOMException("Stopped", "AbortError"));
+    const timer = setTimeout(resolve, ms);
+    signal.addEventListener(
+      "abort",
+      () => {
+        clearTimeout(timer);
+        reject(new DOMException("Stopped", "AbortError"));
+      },
+      { once: true },
+    );
+  });
+}

@@ -13,14 +13,20 @@ export const textTones = {
   iconDark: "text-icon-dark",
   gray900: "text-gray-900",
   error: "text-error",
+  /** W05 AI-ERROR note. */
+  alert: "text-alert",
   success: "text-success",
   notice: "text-notice",
   iconMuted: "text-icon-muted",
   gray400: "text-gray-400",
+  /** Date picker days outside the month or before today. */
+  disabled: "text-disabled",
   warning: "text-warning",
   amber: "text-amber",
   navInk: "text-nav-ink",
   gray25: "text-gray-25",
+  /** Portal header notifications bell. */
+  black: "text-black",
   /** Takes the colour of its control (field states). */
   inherit: "text-inherit",
 } as const;
