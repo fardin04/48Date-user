@@ -9,18 +9,20 @@ import { OptionRow } from "@/components/pieces/forms/option-row";
 import { PortalBack } from "@/components/pieces/actions/portal-back";
 import { SelectField } from "@/components/pieces/forms/select-field";
 import { StatusBadge } from "@/components/pieces/feedback/status-badge";
+import { StatusNote } from "@/components/pieces/feedback/status-note";
 import { StatusSummary } from "@/components/pieces/feedback/status-summary";
 import { TextAreaField } from "@/components/pieces/forms/text-area-field";
 import { Button } from "@/components/ui/button";
 import type { NoShowReason } from "@/data/portal/dates";
 import type { MemberId } from "@/data/portal/types";
 import { fill } from "@/lib/format";
-import { hasPassed } from "@/lib/portal/date-format";
+import { formatShortDay, formatTime, hasPassed } from "@/lib/portal/date-format";
 import { dateService, type DatePlan } from "@/lib/portal/date-service";
 import { useDatePlan } from "@/hooks/use-date-plan";
 import { useMatchClock } from "@/hooks/use-match-clock";
+import { useServiceAction } from "@/hooks/use-service-action";
 import { hrefFor, toItem } from "@/lib/routes";
-import { getDatePage, getMember } from "@/stores/portal-store";
+import { getDatePage, getMemberName } from "@/stores/portal-store";
 import { DateContext } from "@/components/sections/portal/dates/date-context";
 import { DateSummary } from "@/components/sections/portal/dates/date-summary";
 import { StatusScreen } from "@/components/sections/portal/shared/status-screen";
@@ -52,11 +54,11 @@ export function PlanView({ memberId }: { memberId: MemberId }) {
 
 function PlanStatus({ plan, state }: { plan: DatePlan; state: "expired" | "declined" | "cancelled" }) {
   const copy = getDatePage();
-  const name = getMember(plan.member).name;
+  const name = getMemberName(plan.member);
   const chat = toItem("CHAT-01", plan.member);
   const common = {
     back: <PortalBack action={{ ...copy.back, to: chat }} />,
-    aside: <DateContext member={plan.member} venue={plan.venue} />,
+    aside: <DateContext member={plan.member} place={plan.place} />,
     actionWidth: "actionSlot" as const,
   };
   if (state === "declined") {
@@ -78,8 +80,8 @@ function PlanStatus({ plan, state }: { plan: DatePlan; state: "expired" | "decli
 
 function PlanDetails({ plan, onChange }: { plan: DatePlan; onChange: (plan: DatePlan) => void }) {
   const copy = getDatePage();
-  const [busy, setBusy] = useState(false);
-  const name = getMember(plan.member).name;
+  const { busy, failure, run } = useServiceAction(getDatePage().failed);
+  const name = getMemberName(plan.member);
   const chat = toItem("CHAT-01", plan.member);
   const time = toItem("DATE-TIME", plan.member);
   const state = plan.status === "pending" ? copy.pending : plan.status === "invited" ? copy.invited : copy.confirmed;
@@ -90,18 +92,42 @@ function PlanDetails({ plan, onChange }: { plan: DatePlan; onChange: (plan: Date
       <StatusBadge variant="success" label={copy.confirmed.badge} />
     ) : undefined;
 
-  const accept = async () => {
-    if (busy) return;
-    setBusy(true);
-    onChange(await dateService.acceptInvitation(plan.member));
-    setBusy(false);
-  };
+  const accept = () => run(async () => onChange(await dateService.acceptInvitation(plan.member)));
+  const answer = (choice: "accept" | "decline" | "withdraw") => run(async () => onChange(await dateService.answerPostpone(plan.member, choice)));
 
   return (
-    <Workspace aside={<DateContext member={plan.member} venue={plan.venue} />}>
+    <Workspace aside={<DateContext member={plan.member} place={plan.place} />}>
       <PortalBack action={{ ...copy.back, to: chat }} />
       <FormHeader variant="portal" title={state.title} description={fill(state.description, { name })} badge={badge} />
       <DateSummary plan={plan} status={state.status} />
+      {plan.postpone && (
+        <StatusNote
+          variant="pending"
+          message={fill(plan.postpone.mine ? copy.postpone.mine : copy.postpone.theirs, {
+            name,
+            when: `${formatShortDay(plan.postpone.date)} · ${formatTime(plan.postpone.time)}`,
+          })}
+        />
+      )}
+      {plan.postpone && (
+        <ActionRow>
+          {plan.postpone.mine ? (
+            <Button type="button" variant="roseOutline" size="portalPill" width="actionSlot" disabled={busy} onClick={() => void answer("withdraw")}>
+              {copy.postpone.withdraw}
+            </Button>
+          ) : (
+            <>
+              <Button type="button" variant="confirm" size="portalPill" width="actionSlot" disabled={busy} aria-busy={busy || undefined} onClick={() => void answer("accept")}>
+                {copy.postpone.accept}
+              </Button>
+              <Button type="button" variant="roseOutline" size="portalPill" width="actionSlot" disabled={busy} onClick={() => void answer("decline")}>
+                {copy.postpone.decline}
+              </Button>
+            </>
+          )}
+        </ActionRow>
+      )}
+      {failure && <StatusNote variant="alert" message={failure} />}
       <ActionRow>
         {plan.status === "invited" ? (
           <>
@@ -128,15 +154,15 @@ function PlanDetails({ plan, onChange }: { plan: DatePlan; onChange: (plan: Date
 
 function Attendance({ plan, onChange }: { plan: DatePlan; onChange: (plan: DatePlan) => void }) {
   const copy = getDatePage();
-  const name = getMember(plan.member).name;
+  const name = getMemberName(plan.member);
   const [choice, setChoice] = useState<"met" | "missed">("met");
   const [noShow, setNoShow] = useState(false);
   const [reason, setReason] = useState<NoShowReason | "">("");
   const [details, setDetails] = useState("");
   const [error, setError] = useState(false);
-  const [busy, setBusy] = useState(false);
+  const { busy, failure, run } = useServiceAction(getDatePage().failed);
   const back = <PortalBack action={{ ...copy.back, to: toItem("CHAT-01", plan.member) }} />;
-  const aside = <DateContext member={plan.member} venue={plan.venue} />;
+  const aside = <DateContext member={plan.member} place={plan.place} />;
 
   if (plan.attendance === "waiting") {
     const wait = copy.attendanceWait;
@@ -160,9 +186,7 @@ function Attendance({ plan, onChange }: { plan: DatePlan; onChange: (plan: DateP
   const record = async (met: boolean) => {
     if (busy) return;
     if (!met && !reason) return setError(true);
-    setBusy(true);
-    onChange(await dateService.recordAttendance(plan.member, met ? { met: true } : { met: false, reason: reason as NoShowReason, details: details.trim() }));
-    setBusy(false);
+    await run(async () => onChange(await dateService.recordAttendance(plan.member, met ? { met: true } : { met: false, reason: reason as NoShowReason, details: details.trim() })));
   };
 
   if (noShow) {
@@ -190,6 +214,7 @@ function Attendance({ plan, onChange }: { plan: DatePlan; onChange: (plan: DateP
             required
           />
           <TextAreaField label={form.details} value={details} onChange={setDetails} maxLength={form.detailsMax} />
+          {failure && <StatusNote variant="alert" message={failure} />}
           <ActionRow>
             <Button type="submit" variant="confirm" size="portalPill" width="actionSlot" disabled={busy} aria-busy={busy || undefined}>
               {busy ? form.submitting : form.submit}
@@ -213,6 +238,7 @@ function Attendance({ plan, onChange }: { plan: DatePlan; onChange: (plan: DateP
         <OptionRow variant="choice" name="attendance" value="met" label={ask.choices.met} checked={choice === "met"} onSelect={() => setChoice("met")} />
         <OptionRow variant="choice" name="attendance" value="missed" label={ask.choices.missed} checked={choice === "missed"} onSelect={() => setChoice("missed")} />
       </fieldset>
+      {failure && <StatusNote variant="alert" message={failure} />}
       <ActionRow>
         <Button type="button" variant="confirm" size="portalPill" width="actionSlot" disabled={busy} aria-busy={busy || undefined} onClick={() => void record(true)}>
           {ask.met}

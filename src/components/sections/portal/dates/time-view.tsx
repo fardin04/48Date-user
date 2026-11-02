@@ -90,7 +90,7 @@ function TimeForm({ plan }: { plan: DatePlan }) {
     cn("focus-ring min-w-21.5 cursor-pointer rounded-full p-2 text-center", typeScale.text12Medium, on ? cn("bg-rose-light", textTones.rose) : cn("bg-canvas-cool", textTones.sub));
 
   return (
-    <Workspace aside={<DateContext member={plan.member} venue={plan.venue} />}>
+    <Workspace aside={<DateContext member={plan.member} place={plan.place} />}>
       <PortalBack action={{ ...getDatePage().back, to: toItem("VENUE-DETAIL", plan.member) }} />
       <form onSubmit={submit} noValidate aria-busy={busy || undefined} className="flex w-full flex-col gap-5">
         <FormHeader variant="portal" title={copy.title} description={copy.description} />

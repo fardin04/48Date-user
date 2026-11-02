@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { ActionButton } from "@/components/pieces/actions/action-button";
 import { ActionRow } from "@/components/pieces/actions/action-row";
 import { Avatar } from "@/components/pieces/media/avatar";
@@ -13,14 +13,18 @@ import { PortalCard } from "@/components/pieces/layout/portal-card";
 import { StatusNote } from "@/components/pieces/feedback/status-note";
 import { Text } from "@/components/pieces/content/text";
 import { Button } from "@/components/ui/button";
-import type { Venue, VenueId } from "@/data/portal/dates";
+import type { VenueId } from "@/data/portal/dates";
 import type { MemberId } from "@/data/portal/types";
 import { cn } from "@/lib/cn";
 import { fill } from "@/lib/format";
 import { dateService } from "@/lib/portal/date-service";
 import { hrefFor, toItem } from "@/lib/routes";
 import { textTones } from "@/lib/tones";
-import { getDatePage, getMember } from "@/stores/portal-store";
+import { getDatePage } from "@/stores/portal-store";
+import { useDatePlan } from "@/hooks/use-date-plan";
+import { useLoaded } from "@/hooks/use-loaded";
+import { screenKeys } from "@/lib/screen-keys";
+import { LoadFailed } from "@/components/sections/portal/shared/load-failed";
 import { DateContext } from "@/components/sections/portal/dates/date-context";
 import { StatusScreen } from "@/components/sections/portal/shared/status-screen";
 import { Workspace } from "@/components/sections/portal/shared/workspace";
@@ -29,24 +33,13 @@ import { Workspace } from "@/components/sections/portal/shared/workspace";
 export function VenuesView({ memberId }: { memberId: MemberId }) {
   const copy = getDatePage();
   const router = useRouter();
-  const member = getMember(memberId);
-  const [found, setFound] = useState<Venue[] | null>(null);
-  const [selected, setSelected] = useState<VenueId | null>(null);
-  const [attempt, setAttempt] = useState(0);
+  const { plan } = useDatePlan(memberId);
+  const { value: found, error, reload } = useLoaded(screenKeys.venues(memberId), () => dateService.getVenues(memberId));
+  const [chosen, setChosen] = useState<VenueId | null>(null);
 
-  useEffect(() => {
-    let active = true;
-    void Promise.all([dateService.getVenues(memberId), dateService.getPlan(memberId)]).then(([venues, plan]) => {
-      if (!active) return;
-      setFound(venues);
-      setSelected((current) => current ?? plan.venue);
-    });
-    return () => {
-      active = false;
-    };
-  }, [memberId, attempt]);
-
-  if (!found) return null;
+  if (!found || !plan) return error ? <LoadFailed onRetry={() => void reload()} error={error} /> : null;
+  const member = plan.partner;
+  const selected = chosen ?? plan.venue;
   const back = <PortalBack action={{ ...copy.back, to: toItem("CHAT-01", memberId) }} />;
 
   if (found.length === 0) {
@@ -58,8 +51,8 @@ export function VenuesView({ memberId }: { memberId: MemberId }) {
         description={empty.description}
         summary={empty.summary}
         primary={empty.changeArea}
-        secondary={{ label: empty.retry, onClick: () => setAttempt((count) => count + 1) }}
-        aside={<DateContext member={memberId} venue={selected ?? "amber"} />}
+        secondary={{ label: empty.retry, onClick: () => void reload() }}
+        aside={<DateContext member={memberId} place={plan.place} />}
         actionWidth="actionSlot"
       />
     );
@@ -67,7 +60,7 @@ export function VenuesView({ memberId }: { memberId: MemberId }) {
 
   const current = found.find((venue) => venue.id === selected) ?? found[0];
   const open = async (venue: VenueId) => {
-    setSelected(venue);
+    setChosen(venue);
     await dateService.saveDraft(memberId, { venue });
     router.push(hrefFor("VENUE-DETAIL", memberId));
   };
@@ -96,7 +89,7 @@ export function VenuesView({ memberId }: { memberId: MemberId }) {
                 <button
                   key={venue.id}
                   type="button"
-                  onClick={() => setSelected(venue.id)}
+                  onClick={() => setChosen(venue.id)}
                   aria-pressed={on}
                   style={{ left: venue.pin.left, top: venue.pin.top }}
                   className={cn(
