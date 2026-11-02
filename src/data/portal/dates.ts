@@ -2,8 +2,10 @@ import { to } from "@/lib/routes";
 import type { Action, IconName, ImageAsset } from "../types";
 import type { StatusSummaryCopy } from "./types";
 
+/** The sample places (mocks). */
 export const venueIds = ["amber", "garden", "lumen"] as const;
-export type VenueId = (typeof venueIds)[number];
+/** A sample id with the mocks; the API's `venueRef` (or the plan's own place) with the API. */
+export type VenueId = string;
 
 /** A suggested public place (W06 VENUES). Distances are approximate; no home location is shown. */
 export type Venue = {
@@ -79,7 +81,27 @@ export type CancelReason = "plans" | "unwell" | "notMeeting" | "safety";
 export type NoShowReason = "noArrival" | "couldNotMake" | "couldNotFind" | "other";
 
 /** W06 / Date Planning & Feedback. `{name}` is the match, `{venue}` the chosen place. */
+/** Places and plans from the API (design-silent; for owner approval). */
+export const liveVenueCopy = {
+  categories: { CAFE: "Café", RESTAURANT: "Restaurant", BAR: "Bar", PARK: "Park", ACTIVITY: "Activity" } as Record<string, string>,
+  place: "Place",
+  public: "Public",
+  distance: "{km} km",
+  midway: "Midway",
+  rating: "{rating}",
+  aiPick: "{rating} · AI pick",
+  aiPickOnly: "AI pick",
+  arrival: "Meet at the entrance",
+  photoAlt: "{name}",
+  /** Sent with "Suggest another time" on a confirmed date (the API asks for a reason). */
+  postponeReason: "Suggested a new time",
+  /** Sent with feedback ratings: positive and "could have been better" on the API's 1–5 scale. */
+  scores: { positive: 5, better: 2 },
+};
+
 export const datePage = {
+  /** A plan action the service rejected or couldn't reach (design-silent; for owner approval). */
+  failed: "That didn’t go through. Check your connection and try again.",
   documentTitles: {
     venues: "A date that works for both",
     place: "Place details",
@@ -170,6 +192,16 @@ export const datePage = {
     status: "Confirmed",
     manage: "Change or cancel",
   },
+  /** A request to move a confirmed date (design-silent; for owner approval). */
+  postpone: {
+    theirs: "{name} asked to move your date to {when}.",
+    mine: "You asked to move the date to {when}. Waiting for {name}.",
+    accept: "Accept new time",
+    decline: "Keep original time",
+    withdraw: "Withdraw request",
+  },
+  /** Weather on DATE-REVIEW (design-silent). */
+  weather: { label: "Weather", value: "{description} · {min}–{max}°C" },
   manage: {
     title: "Manage your date",
     description: "Keep {name} in the loop if your plans change.",

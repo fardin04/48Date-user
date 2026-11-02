@@ -59,6 +59,37 @@ export type ReportReason = (typeof reportReasons)[number];
 export type SettingsLink = { label: string; to: Action["to"] };
 
 /** W09 / Profile, Trust & Safety (sample content, not production records). */
+/** A moderation warning the member must acknowledge before continuing (D-153; design-silent copy). */
+export const warningCopy = {
+  title: "A note from 48Date safety",
+  acknowledge: "I understand",
+  acknowledging: "Saving…",
+  close: "Close",
+  guidelines: { label: "Read the community guidelines", to: to("L02-TC", "community-conduct") } satisfies Action,
+};
+
+/** ACCOUNT "Sign-in methods" (Auth 06–11; design-silent, for owner approval). */
+export const signInMethodsCopy = {
+  title: "Sign-in methods",
+  description: "Choose how you sign in. Keep at least one.",
+  phone: "Phone",
+  google: "Google",
+  notLinked: "Not linked",
+  remove: "Remove",
+  removing: "Removing…",
+  linkPhone: "Link a phone number",
+  phoneField: "Phone number with country code",
+  phonePlaceholder: "+8801811000001",
+  phoneInvalid: "Enter the number with its country code, like +8801811000001.",
+  sendCode: "Send code",
+  sending: "Sending…",
+  code: "Six-digit code",
+  confirm: "Link phone",
+  confirming: "Linking…",
+  cancel: "Cancel",
+  failed: "That didn’t go through. Try again.",
+};
+
 export const accountPage = {
   documentTitles: {
     profile: "Your profile",
@@ -133,6 +164,8 @@ export const accountPage = {
     /** `{value} {label}` ("4.9 Excellent"). */
     trustValue: "{value} {label}",
     loadFailed: "We couldn’t load your profile. Check your connection and try again.",
+    /** Any other portal view (design-silent). */
+    loadFailedView: "We couldn’t load this page. Check your connection and try again.",
     retry: "Try again",
   },
   /** "Flow support / Profile". */
@@ -380,6 +413,8 @@ export const accountPage = {
     back: back("DISCOVER"),
     title: "Your notifications",
     description: "Stay close to the moments that matter.",
+    /** An empty inbox (design-silent; for owner approval). */
+    empty: "Nothing new yet. We’ll let you know when something happens.",
     items: [
       { title: "A new connection", description: "GoldenHour liked you back.", to: toItem("CHAT-01", "goldenhour") },
       { title: "Your date is tomorrow", description: "Amber & Oak Coffee · 4:00 PM", to: toItem("DATE-PENDING", "riverstone") },
@@ -393,7 +428,8 @@ export const accountPage = {
     description: "Your report won’t be shown to the member you’re reporting.",
     fields: { reason: "Reason", details: "What happened?" },
     placeholders: { reason: "Choose a reason", details: "Share what happened. Avoid sharing contact details." },
-    limits: { details: 1000, detailsMin: 10 },
+    // The API keeps up to 500 characters (`POST /reports`).
+    limits: { details: 500, detailsMin: 10 },
     errors: { reason: "Choose a reason for your report.", details: "Tell us what happened (at least 10 characters)." },
     reasons: { messages: "Inappropriate messages", fake: "Fake profile", noShow: "No-show", money: "Asked for money", other: "Something else" } satisfies Record<
       ReportReason,
@@ -403,6 +439,8 @@ export const accountPage = {
     submit: "Submit report",
     submitting: "Sending…",
     failed: "We couldn’t send your report. Check your connection and try again.",
+    /** Reports name a member (API): from Privacy & safety there is no one chosen yet (design-silent). */
+    chooseMember: "To report someone, open their profile or your conversation with them and choose Report.",
     cancel: "Cancel",
     done: {
       title: "Your report has been received",

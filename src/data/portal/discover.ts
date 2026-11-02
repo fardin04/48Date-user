@@ -107,6 +107,8 @@ export const filtersPage = {
         { value: "15", label: "Within 15 miles" },
         { value: "30", label: "Within 30 miles" },
         { value: "50", label: "Within 50 miles" },
+        // Design-silent: the API's "No limit" (`maxDistanceKm: null`); for owner approval.
+        { value: "any", label: "Any distance" },
       ] satisfies { value: DistancePreference; label: string }[],
     },
     ageRange: { label: "Age range", min: "Minimum age", max: "Maximum age" },

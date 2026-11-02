@@ -26,6 +26,8 @@ export const authShared = {
   },
   continuePhone: "Continue with phone",
   continueGoogle: "Continue with Google",
+  /** Shown while no Google client ID is configured (rule 12). */
+  googleUnavailable: "Google sign-in isn’t set up for this site yet.",
   googleMark: { src: "/brand/google.svg", alt: "", width: 24, height: 24 } satisfies ImageAsset,
   or: "or",
   consent: {

@@ -49,13 +49,15 @@ export const chatPage = {
   documentTitle: "Chat with {name}",
   listTitle: "Your conversations",
   listLabel: "Conversations",
-  status: { open: "{hours}h left · Say hello", agreed: "Date agreed · 24 Oct", plain: "Say hello" },
+  status: { open: "{hours}h left · Say hello", agreed: "Date agreed · 24 Oct", agreedLive: "Date agreed", plain: "Say hello" },
   caption: { open: "Verified · {hours}h {minutes}m left to agree on a date", agreed: "Verified · Date agreed", plain: "Verified" },
   messagesLabel: "Messages",
   sample: { incoming, reply, replyMeta: "Sent · 2:41 PM" },
   firstHello: {
     title: "Your first hello",
     description: "You both love photography and a good coffee.",
+    /** Live conversations: nothing sample-specific (design-silent). */
+    liveDescription: "You have 48 hours to say hello and make a plan.",
     body: "Ask about their favorite photograph or start with a quick game.",
     icon: bubble,
   },
@@ -82,6 +84,13 @@ export const chatPage = {
   composer: { label: "Message", placeholder: "Write a message…", send: "Send", maxLength: 1000 },
   /** `{time}` is the local send time ("2:41 PM"). */
   sent: "Sent · {time}",
+  /** Live conversations (design-silent; for owner approval). */
+  seen: "Seen · {time}",
+  received: "{time}",
+  typing: "{name} is typing",
+  older: "Show earlier messages",
+  voiceLabel: "Voice message from {name}",
+  ownVoiceLabel: "Your voice message",
   sending: "Sending…",
   failed: "Not sent · Tap Retry",
   photoMessage: "Photo",
