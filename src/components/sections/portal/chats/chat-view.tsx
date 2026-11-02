@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import { useRouter } from "next/navigation";
+import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState, type ChangeEvent, type FormEvent, type ReactNode } from "react";
 import { ActionButton } from "@/components/pieces/actions/action-button";
 import { ActionRow } from "@/components/pieces/actions/action-row";
@@ -17,25 +18,29 @@ import { PortalCard } from "@/components/pieces/layout/portal-card";
 import { PortalDialog } from "@/components/pieces/overlays/portal-dialog";
 import { StatusNote } from "@/components/pieces/feedback/status-note";
 import { Text } from "@/components/pieces/content/text";
+import { TypingDots } from "@/components/pieces/content/typing-dots";
 import { Button } from "@/components/ui/button";
 import type { Fact, MemberId } from "@/data/portal/types";
 import { cn } from "@/lib/cn";
 import { fieldControl, fieldInput } from "@/lib/control-sizes";
 import { fill } from "@/lib/format";
-import { chatService, type ChatMessage, type Conversation } from "@/lib/portal/chat-service";
+import { chatService, type ChatMessage, type OutgoingMessage } from "@/lib/portal/chat-service";
 import { dateService } from "@/lib/portal/date-service";
 import { formatShortDay, formatTime } from "@/lib/portal/date-format";
 import { forMember } from "@/lib/portal/member-link";
 import { membershipService } from "@/lib/portal/membership-service";
+import { screenKeys } from "@/lib/screen-keys";
 import { useDatePlan } from "@/hooks/use-date-plan";
+import { useLoaded } from "@/hooks/use-loaded";
 import { useMatchClock } from "@/hooks/use-match-clock";
 import { hrefFor, toItem } from "@/lib/routes";
-import { getChatPage, getInboxPage, getMember } from "@/stores/portal-store";
+import { getChatPage, getInboxPage } from "@/stores/portal-store";
 import { ChatPhoto } from "@/components/sections/portal/chats/chat-photo";
 import { ChatVoice } from "@/components/sections/portal/chats/chat-voice";
 import { ConversationContext } from "@/components/sections/portal/chats/conversation-context";
 import { ConversationList } from "@/components/sections/portal/chats/conversation-list";
 import { ExpiredMatchScreen } from "@/components/sections/portal/matches/match-detail-view";
+import { LoadFailed } from "@/components/sections/portal/shared/load-failed";
 import { StatusScreen } from "@/components/sections/portal/shared/status-screen";
 
 type Suggest = { mode: "ai" | "starters"; status: "generating" | "ready" | "error"; items: string[] };
@@ -78,18 +83,20 @@ function FactRows({ facts }: { facts: Fact[] }) {
 /**
  * W05 on `/chats/<member>` (rule 32): CHAT-01 → CHAT-TYPED → CHAT-SENT / CHAT-FAILED, AI help
  * (AI-GENERATING → CHAT-AI / AI-STARTERS or AI-ERROR), CHAT-ATTACH → CHAT-PHOTO, CHAT-VOICE,
- * the MSG-01 and BLOCK dialogs, BLOCK-DONE, CHAT-INVITE and CHAT-DATE.
+ * the MSG-01 and BLOCK dialogs, BLOCK-DONE, CHAT-INVITE and CHAT-DATE. With the API the
+ * conversation is live: both sides' messages, receipts and typing arrive through the service.
  */
 export function ChatView({ memberId }: { memberId: MemberId }) {
   const copy = getChatPage();
-  const member = getMember(memberId);
-  const opening = getInboxPage().conversations.find((sample) => sample.member === memberId)?.opening ?? "firstHello";
   const clock = useMatchClock(memberId);
   const router = useRouter();
+  const queryClient = useQueryClient();
   const { plan: invite } = useDatePlan(memberId);
-  const [conversation, setConversation] = useState<Conversation | null>(null);
+  const conversationKey = screenKeys.conversation(memberId);
+  const { value: conversation, error, reload } = useLoaded(conversationKey, () => chatService.getConversation(memberId));
   const [panel, setPanel] = useState<Panel>("chat");
-  const [dialog, setDialog] = useState<"intro" | "block" | null>(null);
+  const [dialog, setDialog] = useState<"block" | null>(null);
+  const [introDismissed, setIntroDismissed] = useState(false);
   const [suggest, setSuggest] = useState<Suggest | null>(null);
   const [choice, setChoice] = useState<AttachChoice>("photo");
   const [draft, setDraft] = useState("");
@@ -97,39 +104,60 @@ export function ChatView({ memberId }: { memberId: MemberId }) {
   const [photo, setPhoto] = useState<string | null>(null);
   const [photoError, setPhotoError] = useState("");
   const [busy, setBusy] = useState(false);
+  const [typing, setTyping] = useState(false);
   const input = useRef<HTMLInputElement>(null);
   const fileInput = useRef<HTMLInputElement>(null);
   const messages = useRef<HTMLOListElement>(null);
   const generation = useRef<AbortController | null>(null);
   const photoUrl = useRef<string | null>(null);
+  const photoFile = useRef<File | null>(null);
 
-  const refresh = async () => setConversation(await chatService.getConversation(memberId));
+  const refresh = () => reload();
 
-  // First read; a new match's conversation opens with MSG-01 once. Leaving stops AI and frees the photo.
-  useEffect(() => {
-    let active = true;
-    void chatService.getConversation(memberId).then((loaded) => {
-      if (!active) return;
-      setConversation(loaded);
-      if (opening === "firstHello" && !loaded.introSeen && loaded.messages.length === 0) setDialog("intro");
-    });
-    return () => {
-      active = false;
+  // Live messages, receipts and typing while the conversation is open (the service's socket).
+  useEffect(
+    () =>
+      chatService.watch(memberId, {
+        onChange: (next) => queryClient.setQueryData(screenKeys.conversation(memberId), next),
+        onTyping: setTyping,
+      }),
+    [memberId, queryClient],
+  );
+
+  // Leaving stops AI and frees the photo.
+  useEffect(
+    () => () => {
       generation.current?.abort();
       if (photoUrl.current) URL.revokeObjectURL(photoUrl.current);
-    };
-  }, [memberId, opening]);
+    },
+    [],
+  );
+
+  const opening = conversation?.opening ?? "firstHello";
+  const live = opening === "live";
+  const firstHello = opening === "firstHello" || (live && conversation?.messages.length === 0);
+
+  // A new match's conversation opens with MSG-01 once.
+  const introOpen = Boolean(conversation && firstHello && !introDismissed && !conversation.introSeen && conversation.messages.length === 0 && !conversation.readOnly);
+
+  // Everything on screen has been read.
+  const newest = conversation?.messages.at(-1)?.id;
+  useEffect(() => {
+    if (newest && document.visibilityState === "visible") void chatService.markSeen(memberId);
+  }, [memberId, newest]);
 
   // Keep the newest message in view.
-  const count = (conversation?.messages.length ?? 0) + (pending ? 1 : 0) + (suggest ? 1 : 0);
+  const count = (conversation?.messages.length ?? 0) + (pending ? 1 : 0) + (suggest ? 1 : 0) + (typing ? 1 : 0);
   useEffect(() => {
     const list = messages.current;
     if (list) list.scrollTop = list.scrollHeight;
   }, [count, panel]);
 
-  if (!conversation || clock.status === "loading") return null;
+  if (!conversation) return error ? <LoadFailed onRetry={() => void reload()} error={error} /> : null;
+  if (clock.status === "loading") return null;
 
-  const aside = <ConversationContext member={memberId} withAction />;
+  const member = conversation.partner;
+  const aside = <ConversationContext partner={member} withAction />;
   if (conversation.blocked) {
     const { blocked } = copy;
     return (
@@ -145,17 +173,18 @@ export function ChatView({ memberId }: { memberId: MemberId }) {
       />
     );
   }
-  if (clock.status === "expired") return <ExpiredMatchScreen aside={aside} />;
+  if (clock.status === "expired" || conversation.readOnly) return <ExpiredMatchScreen aside={aside} />;
 
   const closePhoto = () => {
     if (photoUrl.current) URL.revokeObjectURL(photoUrl.current);
     photoUrl.current = null;
+    photoFile.current = null;
     setPhoto(null);
     setPanel("chat");
   };
 
-  const sendMedia = async (kind: "photo" | "voice", text: string) => {
-    await chatService.send(memberId, { kind, text });
+  const sendMedia = async (message: OutgoingMessage) => {
+    await chatService.send(memberId, message);
     await refresh();
   };
 
@@ -166,7 +195,7 @@ export function ChatView({ memberId }: { memberId: MemberId }) {
         url={photo}
         onCancel={closePhoto}
         onSend={async (caption) => {
-          await sendMedia("photo", caption);
+          if (photoFile.current) await sendMedia({ kind: "photo", text: caption, file: photoFile.current });
           closePhoto();
         }}
       />
@@ -177,26 +206,28 @@ export function ChatView({ memberId }: { memberId: MemberId }) {
       <ChatVoice
         member={member}
         onDiscard={() => setPanel("chat")}
-        onSend={async (duration) => {
-          await sendMedia("voice", duration);
+        onSend={async (duration, recording, seconds) => {
+          await sendMedia({ kind: "voice", text: duration, file: recording, seconds });
           setPanel("chat");
         }}
       />
     );
   }
 
-  const own = conversation.messages;
+  const own = conversation.messages.filter((message) => message.mine);
   const last = own.at(-1);
   const failed = last?.status === "failed" ? last : null;
+  // A live conversation opens by its date plan: an invitation to answer, or an agreed date.
+  const stage = live ? (invite?.status === "invited" ? "invite" : invite?.status === "confirmed" ? "agreed" : firstHello ? "firstHello" : "live") : opening;
 
-  const generate = async (mode: Suggest["mode"]) => {
+  const generate = async (mode: Suggest["mode"], again = false) => {
     generation.current?.abort();
     const controller = new AbortController();
     generation.current = controller;
     setPanel("chat");
     setSuggest({ mode, status: "generating", items: [] });
     try {
-      const result = await chatService.getSuggestions(memberId, controller.signal);
+      const result = await chatService.getSuggestions(memberId, controller.signal, again);
       setSuggest(result.status === "ready" ? { mode, status: "ready", items: result.suggestions } : { mode, status: "error", items: [] });
     } catch {
       // Stopped: the conversation is already back to normal.
@@ -220,12 +251,13 @@ export function ChatView({ memberId }: { memberId: MemberId }) {
     if (!text || pending) return;
     setPending(text);
     // A first hello starts a new conversation: the free plan's weekly allowance may be used up (QUOTA).
-    if (opening === "firstHello" && own.length === 0 && (await membershipService.startConversation(memberId)) === "limit") {
+    if (firstHello && own.length === 0 && (await membershipService.startConversation(memberId)) === "limit") {
       setPending(null);
       router.push(hrefFor("QUOTA"));
       return;
     }
     setDraft("");
+    chatService.setTyping(memberId, false);
     await chatService.send(memberId, { kind: "text", text });
     await refresh();
     setPending(null);
@@ -246,6 +278,16 @@ export function ChatView({ memberId }: { memberId: MemberId }) {
     input.current?.focus();
   };
 
+  const loadOlder = async () => {
+    if (busy) return;
+    setBusy(true);
+    try {
+      queryClient.setQueryData(conversationKey, await chatService.loadOlder(memberId));
+    } finally {
+      setBusy(false);
+    }
+  };
+
   const choosePhoto = (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     event.target.value = "";
@@ -257,6 +299,7 @@ export function ChatView({ memberId }: { memberId: MemberId }) {
     setPhotoError("");
     const url = URL.createObjectURL(file);
     photoUrl.current = url;
+    photoFile.current = file;
     setPhoto(url);
     setPanel("photo");
   };
@@ -276,7 +319,7 @@ export function ChatView({ memberId }: { memberId: MemberId }) {
 
   const closeIntro = (open: boolean) => {
     if (open) return;
-    setDialog(null);
+    setIntroDismissed(true);
     void chatService.markIntroSeen(memberId);
   };
 
@@ -287,15 +330,28 @@ export function ChatView({ memberId }: { memberId: MemberId }) {
         ? copy.caption.agreed
         : copy.caption.plain;
 
-  const ownLine = (message: ChatMessage) => {
+  const messageLine = (message: ChatMessage) => {
+    // Lines the service posts (date confirmed or cancelled, game results, milestones) read as notes.
+    if (message.kind === "system" || message.kind === "date" || message.kind === "game" || message.kind === "invite") {
+      return (
+        <li key={message.id} className="flex w-full">
+          <StatusNote variant="highlight" message={message.text} />
+        </li>
+      );
+    }
     const text = message.kind === "photo" ? message.text || copy.photoMessage : message.kind === "voice" ? fill(copy.voiceMessage, { duration: message.text }) : message.text;
+    const time = timeOf(message.sentAt);
+    const meta = !message.mine ? fill(copy.received, { time }) : message.status === "failed" ? copy.failed : fill(message.status === "seen" ? copy.seen : copy.sent, { time });
+    const media = message.mediaUrl;
     return (
       <ChatBubble
         key={message.id}
-        variant="own"
+        variant={message.mine ? "own" : "incoming"}
         text={message.kind === "photo" && message.text ? `${copy.photoMessage} · ${text}` : text}
-        meta={message.status === "failed" ? copy.failed : fill(copy.sent, { time: timeOf(message.sentAt) })}
+        meta={meta}
         metaTone={message.status === "failed" ? "alert" : "sub"}
+        image={message.kind === "photo" && media ? { src: media, alt: copy.photoMessage, width: 720, height: 960 } : undefined}
+        audio={message.kind === "voice" && media ? { src: media, label: message.mine ? copy.ownVoiceLabel : fill(copy.voiceLabel, { name: member.name }) } : undefined}
       />
     );
   };
@@ -335,7 +391,7 @@ export function ChatView({ memberId }: { memberId: MemberId }) {
       return (
         <>
           <ChatAction label={labels.primary} onClick={() => applyText(suggest.items[0] ?? "")} primary />
-          <ChatAction label={labels.secondary} onClick={() => void generate(suggest.mode)} />
+          <ChatAction label={labels.secondary} onClick={() => void generate(suggest.mode, true)} />
         </>
       );
     }
@@ -356,7 +412,7 @@ export function ChatView({ memberId }: { memberId: MemberId }) {
         </>
       );
     }
-    if (own.length === 0 && opening === "invite")
+    if (stage === "invite" && (live || own.length === 0))
       return (
         <>
           <Button type="button" variant="confirm" size="portalPill" width="grow" disabled={busy} aria-busy={busy || undefined} onClick={() => void accept()}>
@@ -365,7 +421,7 @@ export function ChatView({ memberId }: { memberId: MemberId }) {
           <ActionButton action={forMember(copy.actions.invite.secondary, memberId)} variant="roseOutline" size="portalPill" width="grow" />
         </>
       );
-    const pair = own.length > 0 ? copy.actions.sent : opening === "agreed" ? copy.actions.agreed : null;
+    const pair = stage === "agreed" ? copy.actions.agreed : own.length > 0 || stage === "live" ? copy.actions.sent : null;
     if (pair)
       return (
         <>
@@ -390,10 +446,9 @@ export function ChatView({ memberId }: { memberId: MemberId }) {
   const openVoice = () => setPanel("voice");
   const openBlock = () => setDialog("block");
 
-  // The invitation card shows the plan the date screens use (falls back to the sample copy).
-  const inviteFacts = copy.invite.facts.map((fact, index) =>
-    index === 0 && invite?.date && invite.time !== null ? { ...fact, value: `${formatShortDay(invite.date)} · ${formatTime(invite.time)}` } : fact,
-  );
+  // The invitation and agreed-date cards show the plan the date screens use (the samples' copy until it loads).
+  const planFacts = (facts: Fact[]) =>
+    facts.map((fact, index) => (index === 0 && invite?.date && invite.time !== null ? { ...fact, value: `${formatShortDay(invite.date)} · ${formatTime(invite.time)}` } : fact));
 
   const sampleIncoming = <ChatBubble variant="incoming" text={copy.sample.incoming} />;
   const sampleReply = <ChatBubble variant="own" text={copy.sample.reply} meta={copy.sample.replyMeta} />;
@@ -419,6 +474,13 @@ export function ChatView({ memberId }: { memberId: MemberId }) {
           aria-live="polite"
           className="flex min-h-80 flex-1 flex-col gap-4 overflow-x-clip overflow-y-auto rounded-16 bg-canvas-cool p-4 max-lg:max-h-112"
         >
+          {live && conversation.hasOlder && (
+            <li className="flex w-full justify-center">
+              <Button type="button" variant="roseOutline" size="pillCompact" width="auto" disabled={busy} onClick={() => void loadOlder()}>
+                {copy.older}
+              </Button>
+            </li>
+          )}
           {suggest?.status === "generating" && (
             <li className="flex w-full">
               <StatusNote variant="highlight" message={copy.generating} />
@@ -429,28 +491,33 @@ export function ChatView({ memberId }: { memberId: MemberId }) {
               <StatusNote variant="alert" message={copy.aiError} />
             </li>
           )}
-          {opening === "firstHello" && own.length === 0 && !pending && (
-            <MessageCard title={copy.firstHello.title} description={copy.firstHello.description}>
+          {firstHello && own.length === 0 && !pending && (
+            <MessageCard title={copy.firstHello.title} description={live ? copy.firstHello.liveDescription : copy.firstHello.description}>
               <Icon name={copy.firstHello.icon} size={40} tone="rose" />
               <Text variant="text16" tone="sub">
                 {copy.firstHello.body}
               </Text>
             </MessageCard>
           )}
-          {opening === "agreed" && (
+          {stage === "agreed" && !live && (
             <MessageCard title={copy.agreed.title} description={copy.agreed.description}>
               <FactRows facts={copy.agreed.facts} />
             </MessageCard>
           )}
-          {opening !== "firstHello" && sampleIncoming}
-          {(opening === "invite" || opening === "agreed") && sampleReply}
-          {opening === "invite" && (
+          {!live && opening !== "firstHello" && sampleIncoming}
+          {!live && (opening === "invite" || opening === "agreed") && sampleReply}
+          {stage === "invite" && !live && (
             <MessageCard title={copy.invite.title} description={copy.invite.description}>
-              <FactRows facts={inviteFacts} />
+              <FactRows facts={planFacts(copy.invite.facts)} />
             </MessageCard>
           )}
-          {own.map(ownLine)}
+          {(live ? conversation.messages : own).map(messageLine)}
           {pending && <ChatBubble variant="own" text={pending} meta={copy.sending} />}
+          {typing && (
+            <li className="flex w-full">
+              <TypingDots variant="typing" label={fill(copy.typing, { name: member.name })} />
+            </li>
+          )}
           {suggest?.status === "ready" && (
             <MessageCard title={copy.suggestions.title} description={copy.suggestions.description}>
               <ul className="flex flex-col">
@@ -508,7 +575,10 @@ export function ChatView({ memberId }: { memberId: MemberId }) {
                   ref={input}
                   id="chat-message"
                   value={draft}
-                  onChange={(event) => setDraft(event.target.value)}
+                  onChange={(event) => {
+                    setDraft(event.target.value);
+                    chatService.setTyping(memberId, event.target.value.trim().length > 0);
+                  }}
                   placeholder={copy.composer.placeholder}
                   maxLength={copy.composer.maxLength}
                   autoComplete="off"
@@ -524,9 +594,9 @@ export function ChatView({ memberId }: { memberId: MemberId }) {
         <ActionRow>{actions}</ActionRow>
         <input ref={fileInput} type="file" accept={copy.photo.accept.join(",")} onChange={choosePhoto} className="sr-only" tabIndex={-1} aria-hidden="true" />
       </PortalCard>
-      <ConversationContext member={memberId} className="md:max-xl:hidden" />
+      <ConversationContext partner={member} className="md:max-xl:hidden" />
       <PortalDialog
-        open={dialog === "intro"}
+        open={introOpen && dialog === null}
         onOpenChange={closeIntro}
         title={copy.intro.title}
         description={fill(copy.intro.description, { name: member.name })}

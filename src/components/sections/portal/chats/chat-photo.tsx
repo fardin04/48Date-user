@@ -7,14 +7,14 @@ import { FormHeader } from "@/components/pieces/forms/form-header";
 import { PortalBack } from "@/components/pieces/actions/portal-back";
 import { TextField } from "@/components/pieces/forms/text-field";
 import { Button } from "@/components/ui/button";
-import type { Member } from "@/data/portal/types";
+import type { MemberSummary } from "@/data/portal/types";
 import { fill } from "@/lib/format";
 import { getChatPage, getPortalShell } from "@/stores/portal-store";
 import { ConversationContext } from "@/components/sections/portal/chats/conversation-context";
 import { Workspace } from "@/components/sections/portal/shared/workspace";
 
 type ChatPhotoProps = {
-  member: Member;
+  member: MemberSummary;
   /** Object URL of the chosen photo; the conversation owns and revokes it. */
   url: string;
   onSend: (caption: string) => Promise<void>;
@@ -35,7 +35,7 @@ export function ChatPhoto({ member, url, onSend, onCancel }: ChatPhotoProps) {
   };
 
   return (
-    <Workspace aside={<ConversationContext member={member.id} withAction />}>
+    <Workspace aside={<ConversationContext partner={member} withAction />}>
       <PortalBack action={getPortalShell().back} onClick={onCancel} />
       <form onSubmit={submit} aria-busy={busy || undefined} className="flex w-full flex-col gap-5">
         <FormHeader variant="portalStatus" title={copy.title} description={fill(copy.description, { name: member.name })} />

@@ -7,7 +7,7 @@ import { PortalBack } from "@/components/pieces/actions/portal-back";
 import { StatusArtwork } from "@/components/pieces/feedback/status-artwork";
 import { StatusNote } from "@/components/pieces/feedback/status-note";
 import { Button } from "@/components/ui/button";
-import type { Member } from "@/data/portal/types";
+import type { MemberSummary } from "@/data/portal/types";
 import { fill } from "@/lib/format";
 import { getChatPage, getPortalShell } from "@/stores/portal-store";
 import { ConversationContext } from "@/components/sections/portal/chats/conversation-context";
@@ -21,8 +21,9 @@ const SECOND_MS = 1000;
 const clock = (seconds: number) => `${String(Math.floor(seconds / 60)).padStart(2, "0")}:${String(seconds % 60).padStart(2, "0")}`;
 
 type ChatVoiceProps = {
-  member: Member;
-  onSend: (duration: string) => Promise<void>;
+  member: MemberSummary;
+  /** The duration ("00:18"), the recording and its length in seconds. */
+  onSend: (duration: string, recording: Blob, seconds: number) => Promise<void>;
   onDiscard: () => void;
 };
 
@@ -40,6 +41,7 @@ export function ChatVoice({ member, onSend, onDiscard }: ChatVoiceProps) {
   const stream = useRef<MediaStream | null>(null);
   const recorder = useRef<MediaRecorder | null>(null);
   const previewUrl = useRef<string | null>(null);
+  const recording = useRef<Blob | null>(null);
 
   const release = () => {
     const active = recorder.current;
@@ -52,6 +54,7 @@ export function ChatVoice({ member, onSend, onDiscard }: ChatVoiceProps) {
   const dropPreview = () => {
     if (previewUrl.current) URL.revokeObjectURL(previewUrl.current);
     previewUrl.current = null;
+    recording.current = null;
     setPreview(null);
   };
 
@@ -97,7 +100,9 @@ export function ChatVoice({ member, onSend, onDiscard }: ChatVoiceProps) {
         stream.current = null;
         // Discarded or left before the recording finished: keep nothing.
         if (recorder.current !== next) return;
-        const url = URL.createObjectURL(new Blob(chunks, { type: next.mimeType }));
+        const blob = new Blob(chunks, { type: next.mimeType });
+        recording.current = blob;
+        const url = URL.createObjectURL(blob);
         previewUrl.current = url;
         setPreview(url);
         setPhase("review");
@@ -112,9 +117,9 @@ export function ChatVoice({ member, onSend, onDiscard }: ChatVoiceProps) {
   };
 
   const send = async () => {
-    if (busy) return;
+    if (busy || !recording.current) return;
     setBusy(true);
-    await onSend(clock(seconds));
+    await onSend(clock(seconds), recording.current, seconds);
     dropPreview();
   };
 
@@ -127,7 +132,7 @@ export function ChatVoice({ member, onSend, onDiscard }: ChatVoiceProps) {
   const note = { idle: copy.idle, recording: copy.recording, review: copy.paused, denied: copy.denied }[phase];
 
   return (
-    <Workspace aside={<ConversationContext member={member.id} withAction />}>
+    <Workspace aside={<ConversationContext partner={member} withAction />}>
       <PortalBack action={getPortalShell().back} onClick={discard} />
       <FormHeader variant="portalStatus" title={copy.title} description={fill(copy.description, { name: member.name })} />
       <StatusNote variant={phase === "denied" ? "alert" : "highlight"} message={note} />
