@@ -1,8 +1,8 @@
 import { apiBaseUrl } from "./config";
 import { endpoints } from "./endpoints";
-import { ApiError, clientErrorCodes } from "./errors";
-import { shared } from "./cache";
-import { tokenStore } from "./tokens";
+import { ApiError, clientErrorCodes, isApiError } from "./errors";
+import { clearCache } from "./cache";
+import { tokenStore, withRefreshLock } from "./tokens";
 import type { ApiSuccess, CursorMeta, PageMeta } from "./types/envelope";
 
 type Query = Record<string, string | number | boolean | null | undefined>;
@@ -25,8 +25,13 @@ export type ApiResult<T> = { data: T; meta?: CursorMeta | PageMeta };
 /** A 2xx body still has to say `success: true` (the envelope every endpoint uses). */
 const succeeded = (body: unknown) => typeof body === "object" && body !== null && (body as { success?: unknown }).success !== false;
 
+const apiOrigin = apiBaseUrl ? new URL(apiBaseUrl).origin : "";
+
+/** Only paths under the API base: a crafted path ("//elsewhere") never receives the token. */
 function urlFor(path: string, query?: Query) {
+  if (!path.startsWith("/") || path.startsWith("//")) throw new ApiError(0, clientErrorCodes.network, "Invalid request.");
   const url = new URL(apiBaseUrl + path);
+  if (url.origin !== apiOrigin) throw new ApiError(0, clientErrorCodes.network, "Invalid request.");
   for (const [key, value] of Object.entries(query ?? {})) {
     if (value !== undefined && value !== null && value !== "") url.searchParams.set(key, String(value));
   }
@@ -55,6 +60,8 @@ async function fetchJson(method: Method, path: string, options: RequestOptions, 
       body: options.form ?? (options.body !== undefined ? JSON.stringify(options.body) : undefined),
       signal: options.signal,
       cache: "no-store",
+      // Bearer tokens only: no cookies (browsers drop the Authorization header on cross-origin redirects).
+      credentials: "omit",
     });
     return { response, body: await readJson(response) };
   } catch (error) {
@@ -66,18 +73,29 @@ async function fetchJson(method: Method, path: string, options: RequestOptions, 
 
 let refreshing: Promise<boolean> | null = null;
 
+// Signed out in another tab: this tab drops the member's cached data and closes its socket too.
+tokenStore.subscribe(() => {
+  if (!tokenStore.hasSession()) clearCache();
+});
+
 /**
- * Exchanges the refresh token for a new pair. Only one refresh runs at a time: the API rotates the
- * token and treats a reused one as theft (Postman `04 Refresh Token`), so parallel 401s must share it.
+ * Exchanges the refresh token for a new pair. The API rotates the token and treats a reused one as
+ * theft (Postman `04 Refresh Token`), so refreshes never overlap: parallel 401s in this page share
+ * one, and a browser-wide lock serialises it with other tabs (and other copies of this code). The
+ * token is read inside the lock, so it is always the newest one any tab stored.
  */
 export function refreshSession(): Promise<boolean> {
-  refreshing ??= (async () => {
+  refreshing ??= withRefreshLock(async () => {
     const refreshToken = tokenStore.refresh();
     if (!refreshToken) return false;
     try {
       const { response, body } = await fetchJson("POST", endpoints.auth.refresh, { body: { refreshToken } }, null);
       if (!response.ok) {
-        tokenStore.clear();
+        // Only a rejected session signs out; a busy or failing server (429, 5xx) keeps it for the next try.
+        if (response.status === 401 || response.status === 403) {
+          clearCache();
+          tokenStore.clear();
+        }
         return false;
       }
       tokenStore.set((body as ApiSuccess<{ accessToken: string; refreshToken: string }>).data);
@@ -86,10 +104,19 @@ export function refreshSession(): Promise<boolean> {
       // Offline: keep the tokens and let the caller show its error.
       return false;
     }
-  })().finally(() => {
+  }).finally(() => {
     refreshing = null;
   });
   return refreshing;
+}
+
+/**
+ * A usable access token: after a page load only the refresh token is kept, so this refreshes once
+ * (shared with any request doing the same) before the token is needed outside `request` (the socket).
+ */
+export async function ensureAccess(): Promise<string | null> {
+  if (!tokenStore.access() && tokenStore.refresh()) await refreshSession();
+  return tokenStore.access();
 }
 
 /** One API call: base URL, bearer token, a single refresh-and-retry on 401, normalised errors. */
@@ -140,19 +167,85 @@ async function upload<T>(path: string, form: FormData, onProgress: (percent: num
   return (result.body as ApiSuccess<T>).data;
 }
 
-export const api = {
+/** One Server-Sent Event: the `event:` name (default `message`) and its `data:` parsed as JSON. */
+export type StreamEvent = { event: string; data: unknown };
+
+export function parseEvent(block: string): StreamEvent | null {
+  let event = "message";
+  const data: string[] = [];
+  for (const line of block.split(/\r?\n/)) {
+    if (line.startsWith(":")) continue;
+    const colon = line.indexOf(":");
+    const field = colon === -1 ? line : line.slice(0, colon);
+    const value = colon === -1 ? "" : line.slice(colon + 1).replace(/^ /, "");
+    if (field === "event") event = value;
+    else if (field === "data") data.push(value);
+  }
+  if (data.length === 0) return null;
+  const text = data.join("\n");
+  try {
+    return { event, data: JSON.parse(text) };
+  } catch {
+    return { event, data: text };
+  }
+}
+
+async function openStream(path: string, token: string | null, signal: AbortSignal) {
+  const headers: Record<string, string> = { Accept: "text/event-stream" };
+  if (token) headers.Authorization = `Bearer ${token}`;
+  try {
+    return await fetch(urlFor(path), { headers, signal, cache: "no-store", credentials: "omit" });
+  } catch (error) {
+    if (error instanceof DOMException && error.name === "AbortError") throw new ApiError(0, clientErrorCodes.aborted, "Request cancelled.");
+    throw new ApiError(0, clientErrorCodes.network, "We couldn’t reach 48Date. Check your connection and try again.");
+  }
+}
+
+/**
+ * Reads a Server-Sent Events endpoint with the bearer token (EventSource can't send headers) and
+ * calls `onEvent` for each event until the server closes the stream, `onEvent` returns true
+ * (a terminal event) or `signal` aborts. Shares the refresh-once rule with every other call.
+ */
+async function stream(path: string, onEvent: (event: StreamEvent) => boolean | void, signal: AbortSignal): Promise<void> {
+  if (!tokenStore.access() && tokenStore.refresh()) await refreshSession();
+  let response = await openStream(path, tokenStore.access(), signal);
+  if (response.status === 401 && tokenStore.refresh() && (await refreshSession())) response = await openStream(path, tokenStore.access(), signal);
+  if (!response.ok || !response.body) throw ApiError.fromBody(response.status, await readJson(response).catch(() => null));
+  const reader = response.body.pipeThrough(new TextDecoderStream()).getReader();
+  let buffer = "";
+  try {
+    for (;;) {
+      const { value, done } = await reader.read();
+      if (done) {
+        // A stream may close right after its last event without the blank line.
+        const last = parseEvent(buffer);
+        if (last) onEvent(last);
+        return;
+      }
+      buffer += value;
+      const blocks = buffer.split(/\r?\n\r?\n/);
+      buffer = blocks.pop() ?? "";
+      for (const block of blocks) {
+        const event = parseEvent(block);
+        if (event && onEvent(event) === true) return;
+      }
+    }
+  } catch (error) {
+    if (signal.aborted) throw new ApiError(0, clientErrorCodes.aborted, "Request cancelled.");
+    throw isApiError(error) ? error : new ApiError(0, clientErrorCodes.network, "We couldn’t reach 48Date. Check your connection and try again.");
+  } finally {
+    void reader.cancel().catch(() => undefined);
+  }
+}
+
+/** Frozen: nothing else in the app can replace how requests are made. */
+export const api = Object.freeze({
   upload,
-  /**
-   * GET. With `share`, concurrent identical calls share one request and the value is kept for
-   * `share.ttlMs` (screens then read it without refetching); shared calls ignore `signal`.
-   */
-  get<T>(path: string, options: Omit<RequestOptions, "body" | "form"> & { share?: { key: string; ttlMs: number } } = {}) {
-    const { share, ...rest } = options;
-    if (!share) return request<T>("GET", path, rest);
-    return shared(share.key, share.ttlMs, () => request<T>("GET", path, { ...rest, signal: undefined }));
-  },
+  stream,
+  /** GET. Shared reads wrap this in `cached()` (../cache.ts) so concurrent screens make one request. */
+  get: <T>(path: string, options?: Omit<RequestOptions, "body" | "form">) => request<T>("GET", path, options),
   post: <T>(path: string, options?: RequestOptions) => request<T>("POST", path, options),
   put: <T>(path: string, options?: RequestOptions) => request<T>("PUT", path, options),
   patch: <T>(path: string, options?: RequestOptions) => request<T>("PATCH", path, options),
   delete: <T>(path: string, options?: RequestOptions) => request<T>("DELETE", path, options),
-};
+});

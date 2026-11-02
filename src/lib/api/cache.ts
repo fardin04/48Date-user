@@ -1,36 +1,41 @@
+import type { QueryKey } from "@tanstack/react-query";
+import { getQueryClient } from "./query-client";
+
 /**
- * Request sharing for GETs: concurrent calls for the same key share one request, and a value can
- * be kept for a short time so screens that need the same data (the profile card and the profile
- * page) don't fetch it twice. Cleared on sign-out; writes invalidate the keys they change.
+ * API-module reads through the TanStack Query cache: concurrent calls for the same key share one
+ * request, and the value is reused for `staleMs` (the profile card and the profile page read
+ * `GET /users/me` once). Screens read through `useLoaded` with keys nested under these, so one
+ * `invalidate` after a write refreshes both. Cleared on sign-out.
  */
-type Entry = { value: unknown; expires: number };
-
-const values = new Map<string, Entry>();
-const inflight = new Map<string, Promise<unknown>>();
-
-export function shared<T>(key: string, ttlMs: number, load: () => Promise<T>): Promise<T> {
-  const hit = values.get(key);
-  if (hit && hit.expires > Date.now()) return Promise.resolve(hit.value as T);
-  const running = inflight.get(key);
-  if (running) return running as Promise<T>;
-  const request = load()
-    .then((value) => {
-      if (ttlMs > 0) values.set(key, { value, expires: Date.now() + ttlMs });
-      return value;
-    })
-    .finally(() => inflight.delete(key));
-  inflight.set(key, request);
-  return request;
+export function cached<T>(key: QueryKey, staleMs: number, load: () => Promise<T>): Promise<T> {
+  return getQueryClient().fetchQuery({ queryKey: key, queryFn: load, staleTime: staleMs });
 }
 
-/** Replace a cached value after a write that returned the new state. */
-export function prime<T>(key: string, value: T, ttlMs: number) {
-  values.set(key, { value, expires: Date.now() + ttlMs });
+/**
+ * Replace a cached value after a write that returned the new state; screens built on it (keys
+ * nested below) read again from the fresh value without a request.
+ */
+export function prime<T>(key: QueryKey, value: T) {
+  const client = getQueryClient();
+  client.setQueryData(key, value);
+  void client.invalidateQueries({ queryKey: key, predicate: (query) => query.queryKey.length > key.length });
 }
 
-/** Drop cached values whose key starts with any prefix (every key when none is given). */
-export function invalidate(...prefixes: string[]) {
-  for (const key of values.keys()) {
-    if (prefixes.length === 0 || prefixes.some((prefix) => key.startsWith(prefix))) values.delete(key);
-  }
+/** Mark every value under these key prefixes stale; screens showing them read again. */
+export function invalidate(...keys: QueryKey[]) {
+  const client = getQueryClient();
+  for (const queryKey of keys) void client.invalidateQueries({ queryKey });
+}
+
+const resets = new Set<() => void>();
+
+/** Session state kept outside the query cache (a deck in progress) registers here to be dropped with it. */
+export function onCacheClear(reset: () => void) {
+  resets.add(reset);
+}
+
+/** Drop everything cached (sign-out, a rejected session). */
+export function clearCache() {
+  getQueryClient().clear();
+  resets.forEach((reset) => reset());
 }

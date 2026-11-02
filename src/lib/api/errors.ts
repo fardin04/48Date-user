@@ -23,8 +23,10 @@ export class ApiError extends Error {
     const code = failure.error?.code ?? (status === 401 ? "UNAUTHORIZED" : `HTTP_${status}`);
     const message = failure.message ?? failure.error?.message ?? "Something went wrong. Please try again.";
     const fields: Record<string, string> = {};
-    for (const detail of failure.error?.details ?? []) {
-      if (typeof detail === "object" && detail.field) fields[detail.field] = detail.message;
+    // `details` is a list of field errors on validation failures, an object on some others (AI limits).
+    const details: unknown = failure.error?.details;
+    for (const detail of Array.isArray(details) ? details : []) {
+      if (typeof detail === "object" && detail !== null && typeof detail.field === "string") fields[detail.field] = String(detail.message ?? "");
     }
     return new ApiError(status, code, message, fields);
   }
