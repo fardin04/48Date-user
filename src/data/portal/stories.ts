@@ -19,6 +19,10 @@ export type Story = {
   body: string;
   photo: ImageAsset;
   comments: StoryComment[];
+  /** Likes (API stories). */
+  likes?: { count: number; liked: boolean };
+  /** The member is the partner asked to consent before the story is reviewed; `author` asked. */
+  consent?: { author: string };
 };
 
 export const stories: Story[] = [
@@ -36,6 +40,25 @@ export const stories: Story[] = [
 ];
 
 /** W08 / Success Stories. */
+/** Stories from the API (design-silent; for owner approval). */
+export const liveStoryCopy = {
+  couple: "{author} & {partner}",
+  shared: "Shared in {month}",
+  /** A completed date offered under "When did you meet?". */
+  meetOption: "{day} · {venue} with {name}",
+  excerptMax: 160,
+  photo: {
+    label: "A photo of you both",
+    choose: "Choose a photo",
+    change: "Change photo",
+    alt: "Your story photo",
+    required: "Add a photo of you both.",
+    invalid: "Choose a JPG, PNG or WebP photo under 10 MB.",
+    accept: ["image/jpeg", "image/png", "image/webp"],
+    maxBytes: 10 * 1024 * 1024,
+  },
+};
+
 export const storiesPage = {
   documentTitles: { feed: "Good things start here", detail: "{title}", create: "Tell your story", mine: "Your shared story" },
   back: { label: "Back", icon: "arrow-left-02", to: to("STORIES") } satisfies Action,
@@ -72,6 +95,16 @@ export const storiesPage = {
     report: "Report story",
     you: "You",
     posted: { title: "Your comment is posted", description: "You added: “{comment}”", back: { label: "Back to stories", to: to("STORIES") } satisfies Action },
+    /** Likes and the partner's consent (design-silent; for owner approval). */
+    like: "Like · {count}",
+    liked: "Liked · {count}",
+    consent: {
+      note: "{name} wants to share this story about your date. It will be reviewed before anyone sees it.",
+      approve: "Approve story",
+      decline: "Don’t share",
+      approved: "Thanks. The story is now with our team for review.",
+      declined: "The story won’t be shared.",
+    },
   },
   create: {
     title: "Tell your story",

@@ -13,6 +13,8 @@ export const portalShell = {
     { label: "Stories", icon: "material-auto-stories", to: to("STORIES") },
   ] satisfies NavItem[],
   notifications: { label: "Notifications", icon: "tabler-bell-filled", to: to("NOTIFICATIONS") } satisfies Action,
+  /** The bell's name while something is unread (design-silent). */
+  unread: "Notifications, {count} unread",
   profile: { label: "Your profile", to: to("PROFILE") } satisfies Action,
   back: { label: "Back", icon: "arrow-left-02", to: to("DISCOVER") } satisfies Action,
   /** "48Date / Web / Flow context" (Flow=Discovery). */

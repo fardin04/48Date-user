@@ -1,5 +1,6 @@
-import type { ImageAsset } from "../types";
-import type { Fact, Member, MemberId } from "./types";
+import { to } from "@/lib/routes";
+import type { Action, ImageAsset } from "../types";
+import type { Fact, Member, SampleMemberId } from "./types";
 
 const photo = (name: string, alt: string, height: number, width = 720): ImageAsset => ({ src: `/images/portal/${name}.webp`, alt, width, height });
 
@@ -47,7 +48,7 @@ const sample = {
 };
 
 /** Sample members from W04 — illustrative content, not production records. */
-export const members: Record<MemberId, Member> = {
+export const members: Record<SampleMemberId, Member> = {
   wildflower: {
     ...sample,
     id: "wildflower",
@@ -96,6 +97,50 @@ export const members: Record<MemberId, Member> = {
     gender: "man",
     photo: photo("northpeak", "NorthPeak in a black jacket", 871),
     morePhotos: [],
+  },
+};
+
+/**
+ * How members from the API are described (design-silent; for owner approval). Values that come
+ * as enums use the labels of `GET /onboarding/options`.
+ */
+export const memberCopy = {
+  /** Shown when a member has no photo the app can display. */
+  placeholder: { src: "/images/portal/member-placeholder.svg", alt: "", width: 720, height: 960 } satisfies ImageAsset,
+  photoAlt: "Photo of {name}",
+  morePhotoAlt: "Another photo of {name}",
+  distance: { one: "1 mile away", many: "{miles} miles away", hidden: "Nearby" },
+  location: { city: "{city}", unknown: "Location not shared" },
+  /** `{value}` is the score ("4.9"), `{label}` its band ("Excellent"). */
+  trust: "{value} {label}",
+  trustLine: "{trust} · {lookingFor}",
+  headline: "Getting to know {name}",
+  missing: "Not shared",
+  height: "{value} cm",
+  weight: "{value} kg",
+  kids: { yes: "Has children", no: "Doesn’t have children" },
+  facts: {
+    height: "Height",
+    weight: "Weight",
+    smoking: "Smoking",
+    alcohol: "Alcohol",
+    children: "Children",
+    religion: "Religion",
+    occupation: "Occupation",
+    education: "Education",
+    languages: "Languages",
+    lookingFor: "Looking for",
+    location: "Location",
+  },
+  /** A match without messages yet. */
+  preview: "Say hello and make a plan.",
+  /** `{count}` shared interests (shown instead of a compatibility score). */
+  shared: { none: "No shared interests yet", some: "{count} shared interests", one: "1 shared interest" },
+  /** A profile that is blocked, banned or deleted (`availability: UNAVAILABLE`). */
+  unavailable: {
+    title: "This profile isn’t available",
+    description: "They may have paused or closed their account.",
+    primary: { label: "Back to discovery", to: to("DISCOVER") } satisfies Action,
   },
 };
 
