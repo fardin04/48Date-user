@@ -7,11 +7,12 @@ import { to, toItem } from "@/lib/routes";
 import { getMembershipPage } from "@/stores/portal-store";
 import { MembershipContext } from "@/components/sections/portal/membership/membership-context";
 import { StatusScreen } from "@/components/sections/portal/shared/status-screen";
+import { screenKeys } from "@/lib/screen-keys";
 
 /** W10 / QUOTA: the free plan's new conversations are used for this period; current ones stay open. */
 export function QuotaView() {
   const page = getMembershipPage().quota;
-  const current = useLoaded(membershipService.getMembership).value?.lastConversation;
+  const current = useLoaded(screenKeys.membership, membershipService.getMembership).value?.lastConversation;
   return (
     <StatusScreen
       back={<PortalBack action={page.back} />}

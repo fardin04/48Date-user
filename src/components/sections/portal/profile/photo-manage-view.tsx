@@ -1,5 +1,6 @@
 "use client";
 
+import { liveData } from "@/lib/portal/live";
 import { useEffect, useRef, useState, type ChangeEvent } from "react";
 import { ActionRow } from "@/components/pieces/actions/action-row";
 import { FormHeader } from "@/components/pieces/forms/form-header";
@@ -18,6 +19,7 @@ import { ProfileContext } from "@/components/sections/portal/profile/profile-con
 import { ProfileSaved } from "@/components/sections/portal/profile/profile-saved";
 import { LoadFailed } from "@/components/sections/portal/shared/load-failed";
 import { Workspace } from "@/components/sections/portal/shared/workspace";
+import { screenKeys } from "@/lib/screen-keys";
 
 /**
  * W09 / PHOTO-MANAGE, then PROFILE-SAVED on the same URL. The stored photos load first; chosen
@@ -26,7 +28,7 @@ import { Workspace } from "@/components/sections/portal/shared/workspace";
  */
 export function PhotoManageView() {
   const page = getAccountPage().photos;
-  const { value: stored, error, reload } = useLoaded(accountService.getPhotos);
+  const { value: stored, error, reload } = useLoaded(screenKeys.photos, accountService.getPhotos);
   if (stored) return <PhotoForm initial={stored} />;
   return (
     <Workspace aside={<ProfileContext />}>
@@ -40,7 +42,7 @@ export function PhotoManageView() {
 function PhotoForm({ initial }: { initial: ProfilePhoto[] }) {
   const copy = getAccountPage();
   const page = copy.photos;
-  const nickname = useLoaded(accountService.getProfile).value?.nickname ?? copy.defaults.profile.nickname;
+  const nickname = useLoaded(screenKeys.profile, accountService.getProfile).value?.nickname ?? (liveData ? "" : copy.defaults.profile.nickname);
   const slots = Math.max(page.slots, initial.length);
   const [photos, setPhotos] = useState<(ProfilePhoto | null)[]>(() => [...initial, ...Array<null>(slots - initial.length).fill(null)]);
   const [target, setTarget] = useState(0);

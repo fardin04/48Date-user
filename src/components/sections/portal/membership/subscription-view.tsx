@@ -20,12 +20,13 @@ import { MembershipContext } from "@/components/sections/portal/membership/membe
 import { StatusScreen } from "@/components/sections/portal/shared/status-screen";
 import { LoadFailed } from "@/components/sections/portal/shared/load-failed";
 import { Workspace } from "@/components/sections/portal/shared/workspace";
+import { screenKeys } from "@/lib/screen-keys";
 
 /** W10 / PAY-CANCEL, then PAY-CANCELLED (also shown when renewal is already off). Free members go to MEMBERSHIP. */
 export function SubscriptionView() {
   const page = getMembershipPage().manage;
   const router = useRouter();
-  const { value: membership, error, reload } = useLoaded(membershipService.getMembership);
+  const { value: membership, error, reload } = useLoaded(screenKeys.membership, membershipService.getMembership);
   const plans = usePlans();
   const [busy, setBusy] = useState(false);
   const [failed, setFailed] = useState(false);

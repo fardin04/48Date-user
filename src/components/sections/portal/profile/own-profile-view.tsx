@@ -1,5 +1,6 @@
 "use client";
 
+import { liveData } from "@/lib/portal/live";
 import Image from "next/image";
 import { ActionButton } from "@/components/pieces/actions/action-button";
 import { ActionTarget } from "@/components/pieces/actions/action-target";
@@ -14,8 +15,9 @@ import { onboardingService } from "@/lib/onboarding/onboarding-service";
 import { accountService } from "@/lib/portal/account-service";
 import { useLoaded } from "@/hooks/use-loaded";
 import { useMemberLocation } from "@/hooks/use-member-location";
-import { getAccountPage } from "@/stores/portal-store";
+import { getMemberCopy, getAccountPage } from "@/stores/portal-store";
 import { LoadFailed } from "../shared/load-failed";
+import { screenKeys } from "@/lib/screen-keys";
 
 /**
  * W09 / PROFILE: the member's own profile as connections see it (`GET /users/me` with the API).
@@ -26,8 +28,8 @@ export function OwnProfileView() {
   const copy = getAccountPage();
   const page = copy.profile;
   const chosenArea = useMemberLocation();
-  const { value: overview, error, reload } = useLoaded(accountService.getOverview);
-  const status = useLoaded(onboardingService.getVerification).value;
+  const { value: overview, error, reload } = useLoaded(screenKeys.overview, accountService.getOverview);
+  const status = useLoaded(screenKeys.verification, onboardingService.getVerification).value;
   const verified = status === "verified";
 
   const heading = (
@@ -59,7 +61,7 @@ export function OwnProfileView() {
         <PortalCard as="section" surface="outline" padding="md" revealDelay={40} aria-labelledby="own-name" className="flex flex-col gap-4">
           <div className="relative h-90 w-full overflow-hidden rounded-12">
             <Image
-              src={overview.photoUrl ?? copy.photo.src}
+              src={overview.photoUrl ?? (liveData ? getMemberCopy().placeholder.src : copy.photo.src)}
               alt={copy.photo.alt}
               fill
               loading="eager"

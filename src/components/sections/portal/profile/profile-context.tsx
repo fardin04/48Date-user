@@ -7,9 +7,11 @@ import { PortalCard } from "@/components/pieces/layout/portal-card";
 import { Text } from "@/components/pieces/content/text";
 import { fill } from "@/lib/format";
 import { accountService } from "@/lib/portal/account-service";
+import { liveData } from "@/lib/portal/live";
 import { useLoaded } from "@/hooks/use-loaded";
 import { useMemberLocation } from "@/hooks/use-member-location";
-import { getAccountPage } from "@/stores/portal-store";
+import { getMemberCopy, getAccountPage } from "@/stores/portal-store";
+import { screenKeys } from "@/lib/screen-keys";
 
 /**
  * "Flow support / Profile": the member's own photo, name, completeness and Trust Score. It reads the
@@ -19,7 +21,9 @@ export function ProfileContext() {
   const copy = getAccountPage();
   const { context, defaults } = copy;
   const chosenArea = useMemberLocation();
-  const overview = useLoaded(accountService.getOverview).value;
+  const overview = useLoaded(screenKeys.overview, accountService.getOverview).value;
+  // Live: nothing until the member's own details are read (no sample values meanwhile).
+  if (liveData && !overview) return null;
   const name = overview?.nickname ?? defaults.profile.nickname;
   const age = overview ? overview.age : defaults.age;
   const facts = [
@@ -41,7 +45,7 @@ export function ProfileContext() {
         </Text>
       </div>
       <div className="relative h-38 w-full">
-        <Image src={overview?.photoUrl ?? copy.photo.src} alt="" fill unoptimized={Boolean(overview?.photoUrl)} sizes="96px" className="rounded-12 object-contain" />
+        <Image src={overview?.photoUrl ?? (liveData ? getMemberCopy().placeholder.src : copy.photo.src)} alt="" fill unoptimized={Boolean(overview?.photoUrl)} sizes="96px" className="rounded-12 object-contain" />
       </div>
       <FactList layout="divided" facts={facts} />
       <ActionButton action={context.preview} variant="roseOutline" size="pillCompact" width="full" />
