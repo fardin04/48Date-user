@@ -1,6 +1,7 @@
 import Image from "next/image";
 import type { ImageAsset } from "@/data/types";
 import { cn } from "@/lib/cn";
+import { isRawImage } from "@/lib/image";
 
 const sizes = {
   32: { box: "size-8", sizes: "32px" },
@@ -21,7 +22,7 @@ export function Avatar({ image, size, decorative }: AvatarProps) {
   const spec = sizes[size];
   return (
     <span className={cn("relative block shrink-0 overflow-hidden rounded-full", spec.box)}>
-      <Image src={image.src} alt={decorative ? "" : image.alt} fill sizes={spec.sizes} className="object-cover" />
+      <Image src={image.src} unoptimized={isRawImage(image.src)} alt={decorative ? "" : image.alt} fill sizes={spec.sizes} className="object-cover" />
     </span>
   );
 }

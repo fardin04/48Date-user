@@ -1,16 +1,13 @@
 import { cn } from "@/lib/cn";
 import { to } from "@/lib/routes";
 import { textTones } from "@/lib/tones";
-import { getMemberAvatar, getPortalShell } from "@/stores/portal-store";
+import { getPortalShell } from "@/stores/portal-store";
 import { ActionTarget } from "@/components/pieces/actions/action-target";
-import { Avatar } from "@/components/pieces/media/avatar";
+import { HeaderMenu } from "@/components/pieces/shells/header-menu";
 import { Icon } from "@/components/pieces/content/icon";
 import { Logo } from "@/components/pieces/brand/logo";
 import { Reveal } from "@/components/pieces/layout/reveal";
 import { Text } from "@/components/pieces/content/text";
-
-/** Header controls share a 44×44 hit area. */
-const CONTROL = "focus-ring flex size-11 items-center justify-center rounded-full";
 
 type PortalHeaderProps = {
   /** Label of the nav item for the open area ("Discover", "Matches"). */
@@ -55,14 +52,7 @@ export function PortalHeader({ active, className, revealDelay }: PortalHeaderPro
           })}
         </ul>
       </nav>
-      <div className="flex w-24 shrink-0 justify-end gap-2">
-        <ActionTarget to={shell.notifications.to} aria-label={shell.notifications.label} className={cn(CONTROL, textTones.black)}>
-          {shell.notifications.icon && <Icon name={shell.notifications.icon} size={24} />}
-        </ActionTarget>
-        <ActionTarget to={shell.profile.to} aria-label={shell.profile.label} className={CONTROL}>
-          <Avatar image={getMemberAvatar()} size={40} decorative />
-        </ActionTarget>
-      </div>
+      <HeaderMenu />
     </Reveal>
   );
 }

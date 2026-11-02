@@ -1,12 +1,9 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useEffect, useSyncExternalStore, type ReactNode } from "react";
-import { authService } from "@/lib/auth/auth-service";
+import { useEffect, type ReactNode } from "react";
+import { useSession } from "@/hooks/use-session";
 import { hrefFor, type ScreenCode } from "@/lib/routes";
-
-/** Re-checks when the session ends on its own (the API rejected a refresh). */
-const subscribe = (listener: () => void) => authService.onSessionChange(listener);
 
 type SessionGateProps = {
   /** member: signed-in pages (portal, onboarding); guest: sign-in / sign-up entry. */
@@ -22,7 +19,7 @@ type SessionGateProps = {
  */
 export function SessionGate({ allow, redirect, children }: SessionGateProps) {
   const router = useRouter();
-  const session = useSyncExternalStore(subscribe, authService.hasSession, () => null);
+  const session = useSession();
   const allowed = session === null ? null : allow === "member" ? session : !session;
 
   useEffect(() => {
