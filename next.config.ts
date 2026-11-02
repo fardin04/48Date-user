@@ -12,7 +12,7 @@ function originOf(value: string | undefined) {
 }
 const apiOrigin = originOf(process.env.NEXT_PUBLIC_API_BASE_URL);
 const socketOrigin = originOf(process.env.NEXT_PUBLIC_SOCKET_URL) ?? apiOrigin;
-const wsOrigin = socketOrigin?.replace(/^http/, "ws") ?? null;
+const wsOrigin = originOf(process.env.NEXT_PUBLIC_WS_URL) ?? socketOrigin?.replace(/^http/, "ws") ?? null;
 const google = "https://accounts.google.com";
 const secureApi = !apiOrigin || apiOrigin.startsWith("https://");
 

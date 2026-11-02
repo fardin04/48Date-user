@@ -1,10 +1,12 @@
 "use client";
 
+import { useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { onboardingService } from "@/lib/onboarding/onboarding-service";
 import { profileDraft } from "@/lib/onboarding/profile-draft";
 import { hrefFor } from "@/lib/routes";
+import { screenKeys } from "@/lib/screen-keys";
 
 /** Progress is read once per page load, not on every step. */
 let checked = false;
@@ -15,12 +17,13 @@ let checked = false;
  */
 export function OnboardingResume() {
   const router = useRouter();
+  const queryClient = useQueryClient();
 
   useEffect(() => {
     if (checked) return;
     checked = true;
     let active = true;
-    void onboardingService.getProgress().then((progress) => {
+    void queryClient.fetchQuery({ queryKey: screenKeys.onboardingProgress, queryFn: onboardingService.getProgress }).then((progress) => {
       if (!active || !progress) return;
       if (progress.completed) {
         router.replace(hrefFor("DISCOVER"));
@@ -36,7 +39,7 @@ export function OnboardingResume() {
     return () => {
       active = false;
     };
-  }, [router]);
+  }, [queryClient, router]);
 
   return null;
 }

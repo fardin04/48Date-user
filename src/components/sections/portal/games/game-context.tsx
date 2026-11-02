@@ -6,7 +6,7 @@ import { Text } from "@/components/pieces/content/text";
 import type { MemberId } from "@/data/portal/types";
 import { fill } from "@/lib/format";
 import { forMember } from "@/lib/portal/member-link";
-import { getGamePage, getMember } from "@/stores/portal-store";
+import { getGamePage, getMemberName } from "@/stores/portal-store";
 
 /** "48Date / Web / Flow context" (Flow=Game): who you're playing with, the game and the round. */
 export function GameContext({ member, round }: { member: MemberId; round: number }) {
@@ -28,7 +28,7 @@ export function GameContext({ member, round }: { member: MemberId; round: number
       <FactList
         layout="divided"
         facts={[
-          { label: context.playing, value: getMember(member).name },
+          { label: context.playing, value: getMemberName(member) },
           { label: context.game, value: copy.name },
           { label: context.round, value: fill(context.roundValue, { round, total: copy.questions.length }) },
         ]}

@@ -1,5 +1,7 @@
 "use client";
 
+import { useQueryClient } from "@tanstack/react-query";
+import { screenKeys } from "@/lib/screen-keys";
 import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
 import { SelfieFrame } from "@/components/pieces/media/selfie-frame";
@@ -26,6 +28,7 @@ const phaseFor: Record<VerificationStatus, Phase> = { none: "intro", pending: "p
  * The camera stream and the selfie stay in this tab; the selfie is released once submitted.
  */
 export function VerifyStep() {
+  const queryClient = useQueryClient();
   const copy = getVerifyStep();
   const flow = getStepFlow("verify");
   const advance = useAdvance("verify");
@@ -51,7 +54,7 @@ export function VerifyStep() {
   // Reopen on the stored review result; release the camera and the selfie when leaving.
   useEffect(() => {
     let active = true;
-    void onboardingService.getVerification().then((current) => {
+    void queryClient.fetchQuery({ queryKey: screenKeys.verification, queryFn: onboardingService.getVerification, staleTime: 0 }).then((current) => {
       if (!active) return;
       setStatus(current);
       setPhase(phaseFor[current]);
@@ -61,7 +64,7 @@ export function VerifyStep() {
       stream.current?.getTracks().forEach((track) => track.stop());
       if (selfieUrl.current) URL.revokeObjectURL(selfieUrl.current);
     };
-  }, []);
+  }, [queryClient]);
 
   // While in review, wait for the result (the service's live updates); setup can continue meanwhile (handoff).
   useEffect(() => {
@@ -69,13 +72,14 @@ export function VerifyStep() {
     const controller = new AbortController();
     onboardingService.waitForVerification(controller.signal).then(
       (current) => {
+        queryClient.setQueryData(screenKeys.verification, current);
         setStatus(current);
         setPhase(phaseFor[current]);
       },
       () => undefined,
     );
     return () => controller.abort();
-  }, [phase]);
+  }, [phase, queryClient]);
 
   // Attach the live stream once the capture frame is on screen.
   useEffect(() => {
