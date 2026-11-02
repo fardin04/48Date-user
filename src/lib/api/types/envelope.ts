@@ -16,5 +16,5 @@ export type ApiFieldDetail = { field: string; message: string } | string;
 export type ApiFailure = {
   success: false;
   message?: string;
-  error?: { code?: string; message?: string; details?: ApiFieldDetail[] };
+  error?: { code?: string; message?: string; details?: ApiFieldDetail[] | Record<string, unknown> };
 };

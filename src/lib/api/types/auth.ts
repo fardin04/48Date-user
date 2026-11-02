@@ -30,3 +30,14 @@ export const authErrors = {
   tooManyAttempts: "OTP_TOO_MANY_ATTEMPTS",
   banned: "ACCOUNT_BANNED",
 } as const;
+
+/** `GET /auth/methods`: the masked phone and the linked Google email. */
+export type SignInMethods = { phone: string | null; phoneVerified: boolean; google: { email: string } | null };
+
+/** Error codes of Google sign-in and linking. */
+export const linkErrors = {
+  googleInvalid: "GOOGLE_TOKEN_INVALID",
+  googleTaken: "GOOGLE_ACCOUNT_ALREADY_LINKED",
+  phoneTaken: "PHONE_ALREADY_LINKED",
+  lastMethod: "LAST_LOGIN_METHOD",
+} as const;
