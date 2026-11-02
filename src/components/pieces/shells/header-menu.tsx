@@ -1,5 +1,6 @@
 "use client";
 
+import { liveData } from "@/lib/portal/live";
 import { cn } from "@/lib/cn";
 import { fill } from "@/lib/format";
 import { accountService } from "@/lib/portal/account-service";
@@ -7,7 +8,7 @@ import { screenKeys } from "@/lib/screen-keys";
 import { textTones } from "@/lib/tones";
 import { useLoaded } from "@/hooks/use-loaded";
 import { useSession } from "@/hooks/use-session";
-import { getMemberAvatar, getPortalShell } from "@/stores/portal-store";
+import { getMemberAvatar, getMemberCopy, getPortalShell } from "@/stores/portal-store";
 import { ActionTarget } from "@/components/pieces/actions/action-target";
 import { Avatar } from "@/components/pieces/media/avatar";
 import { Icon } from "@/components/pieces/content/icon";
@@ -24,7 +25,7 @@ export function HeaderMenu() {
   // The header shows before the session is confirmed; its reads wait for one.
   const enabled = useSession() === true;
   const unread = useLoaded(screenKeys.unreadCount, accountService.getUnreadCount, { refetchOnWindowFocus: true, enabled }).value ?? 0;
-  const avatar = useLoaded(screenKeys.avatar, accountService.getAvatar, { enabled }).value ?? getMemberAvatar();
+  const avatar = useLoaded(screenKeys.avatar, accountService.getAvatar, { enabled }).value ?? (liveData ? getMemberCopy().placeholder : getMemberAvatar());
   return (
     <div className="flex w-24 shrink-0 justify-end gap-2">
       <ActionTarget

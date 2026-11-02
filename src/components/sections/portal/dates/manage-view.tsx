@@ -12,13 +12,15 @@ import { PortalDialog } from "@/components/pieces/overlays/portal-dialog";
 import { StatusBadge } from "@/components/pieces/feedback/status-badge";
 import { TextAreaField } from "@/components/pieces/forms/text-area-field";
 import { Button } from "@/components/ui/button";
+import { useServiceAction } from "@/hooks/use-service-action";
+import { StatusNote } from "@/components/pieces/feedback/status-note";
 import type { CancelReason } from "@/data/portal/dates";
 import type { MemberId } from "@/data/portal/types";
 import { fill } from "@/lib/format";
 import { dateService } from "@/lib/portal/date-service";
 import { useDatePlan } from "@/hooks/use-date-plan";
 import { hrefFor, toItem } from "@/lib/routes";
-import { getDatePage, getMember } from "@/stores/portal-store";
+import { getDatePage, getMemberName } from "@/stores/portal-store";
 import { DateContext } from "@/components/sections/portal/dates/date-context";
 import { DateSummary } from "@/components/sections/portal/dates/date-summary";
 import { Workspace } from "@/components/sections/portal/shared/workspace";
@@ -32,7 +34,7 @@ export function ManageView({ memberId }: { memberId: MemberId }) {
   const [reason, setReason] = useState<CancelReason>(copy.reasonDialog.reasons[0].value);
   const [picked, setPicked] = useState<CancelReason>(reason);
   const [message, setMessage] = useState("");
-  const [busy, setBusy] = useState(false);
+  const { busy, failure, run } = useServiceAction(getDatePage().failed);
   const unmanaged = plan !== null && plan.status !== "confirmed";
 
   // Only a confirmed date can be changed or cancelled; anything else shows on the plan URL.
@@ -41,14 +43,12 @@ export function ManageView({ memberId }: { memberId: MemberId }) {
   }, [unmanaged, memberId, router]);
 
   if (!plan || unmanaged) return null;
-  const name = getMember(memberId).name;
+  const name = getMemberName(memberId);
   const reasonLabel = copy.reasonDialog.reasons.find((option) => option.value === reason)?.label ?? "";
 
   const cancel = async () => {
-    if (busy) return;
-    setBusy(true);
-    await dateService.cancel(memberId, reason, message.trim());
-    router.push(hrefFor("DATE-PENDING", memberId));
+    if (await run(() => dateService.cancel(memberId, reason, message.trim()))) router.push(hrefFor("DATE-PENDING", memberId));
+    else setDialog(null);
   };
   const openReason = () => {
     setPicked(reason);
@@ -60,10 +60,11 @@ export function ManageView({ memberId }: { memberId: MemberId }) {
   };
 
   return (
-    <Workspace aside={<DateContext member={memberId} venue={plan.venue} />}>
+    <Workspace aside={<DateContext member={memberId} place={plan.place} />}>
       <PortalBack action={{ ...copy.back, to: toItem("DATE-PENDING", memberId) }} />
       <FormHeader variant="portal" title={copy.manage.title} description={fill(copy.manage.description, { name })} badge={<StatusBadge variant="success" label={copy.confirmed.badge} />} />
       <DateSummary plan={plan} status={copy.confirmed.status} />
+      {failure && <StatusNote variant="alert" message={failure} />}
       <ActionRow>
         <ActionButton action={{ label: copy.manage.suggest, to: toItem("DATE-TIME", memberId) }} variant="confirm" size="portalPill" width="actionSlot" />
         <Button type="button" variant="roseOutline" size="portalPill" width="actionSlot" onClick={() => setDialog("cancel")}>
