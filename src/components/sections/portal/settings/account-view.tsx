@@ -32,6 +32,7 @@ function AccountForm({ initial, nickname }: { initial: AccountDetails; nickname:
   const [errors, setErrors] = useState<FieldErrors<AccountDetails>>({});
   const [busy, setBusy] = useState(false);
   const [failed, setFailed] = useState(false);
+  const [notice, setNotice] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
 
   const change = (key: keyof AccountDetails, value: string) => {
@@ -51,7 +52,10 @@ function AccountForm({ initial, nickname }: { initial: AccountDetails; nickname:
     try {
       const result = await accountService.saveAccount(next);
       if (result.ok) setSaved(true);
-      else setErrors(result.errors);
+      else {
+        setErrors(result.errors);
+        setNotice(result.message ?? null);
+      }
     } catch {
       setFailed(true);
     }
@@ -81,6 +85,7 @@ function AccountForm({ initial, nickname }: { initial: AccountDetails; nickname:
           <TextField {...field("email")} type="email" inputMode="email" autoComplete="email" />
         </div>
         {failed && <StatusNote variant="alert" message={page.failed} />}
+        {notice && <StatusNote variant="notice" message={notice} />}
         <ActionRow>
           <Button type="submit" variant="confirm" size="portalPill" width="actionSlot" disabled={busy} aria-busy={busy || undefined}>
             {busy ? page.saving : page.save}
