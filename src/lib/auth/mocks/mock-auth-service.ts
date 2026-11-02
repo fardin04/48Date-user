@@ -42,6 +42,10 @@ export const mockAuthService: AuthService = {
     }
     return "verified";
   },
+  // The prototype screens walk through the Google handoff without signing in.
+  async signInWithGoogle() {
+    return { status: "failed" };
+  },
   hasSession() {
     try {
       const value: unknown = JSON.parse(sessionStorage.getItem(SESSION_KEY) ?? "null");

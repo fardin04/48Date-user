@@ -36,6 +36,15 @@ export const apiAuthService: AuthService = {
       return "failed";
     }
   },
+  async signInWithGoogle(idToken) {
+    try {
+      const { data } = await authApi.google(idToken);
+      tokenStore.set(data);
+      return { status: "verified", next: data.onboardingStatus === "COMPLETED" ? "portal" : "onboarding" };
+    } catch (error) {
+      return { status: isApiError(error) && error.code === authErrors.banned ? "banned" : "failed" };
+    }
+  },
   hasSession: tokenStore.hasSession,
   onSessionChange: tokenStore.subscribe,
   async signOut() {

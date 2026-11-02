@@ -1,4 +1,4 @@
-import { invalidate } from "@/lib/api/cache";
+import { clearCache } from "@/lib/api/cache";
 import { photoStore } from "@/lib/onboarding/photo-store";
 
 /** Every key this app writes starts with this prefix. */
@@ -13,6 +13,6 @@ export function clearMemberData() {
   } catch {
     // Nothing stored.
   }
-  invalidate();
+  clearCache();
   photoStore.clear();
 }

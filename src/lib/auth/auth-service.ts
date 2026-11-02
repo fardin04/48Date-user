@@ -9,6 +9,10 @@ export type SendCodeResult = "sent" | "limited" | "failed";
 /** `banned` and `failed` come from the API (ACCOUNT_BANNED, offline). */
 export type VerifyCodeResult = "verified" | "mismatch" | "expired" | "banned" | "failed";
 
+/** Google sign-in: where a signed-in member goes next (setup still to finish, or the portal). */
+export type GoogleResult = { status: "verified"; next: "onboarding" | "portal" } | { status: "banned" | "failed" };
+
+
 /**
  * Contract the authentication screens talk to. Expiry, resend cooldown and request limits
  * come from the service (handoff: "Expiry and limits come from the service").
@@ -18,6 +22,8 @@ export type AuthService = {
   resendCode: (phone: PhoneNumber) => Promise<SendCodeResult>;
   /** A verified code starts the member's session. */
   verifyCode: (phone: PhoneNumber, code: string) => Promise<VerifyCodeResult>;
+  /** Starts the session from a Google ID token (never stored). */
+  signInWithGoogle: (idToken: string) => Promise<GoogleResult>;
   /** Whether a member is signed in (route guards); false while prerendering. */
   hasSession: () => boolean;
   /** Notifies route guards when the session starts or ends (e.g. a refresh is rejected). */
