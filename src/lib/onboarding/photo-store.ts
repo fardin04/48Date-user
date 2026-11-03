@@ -26,6 +26,17 @@ export const photoStore = {
   add(url: string, fileId?: string) {
     emit([...photos, { id: crypto.randomUUID(), url, fileId }]);
   },
+  /** The main photo is the first one (sent as `isMain`). */
+  makeMain(id: string) {
+    const chosen = photos.find((photo) => photo.id === id);
+    if (chosen) emit([chosen, ...photos.filter((photo) => photo !== chosen)]);
+  },
+  remove(id: string) {
+    const gone = photos.find((photo) => photo.id === id);
+    if (!gone) return;
+    URL.revokeObjectURL(gone.url);
+    emit(photos.filter((photo) => photo !== gone));
+  },
   read: () => photos,
   clear() {
     photos.forEach((photo) => URL.revokeObjectURL(photo.url));

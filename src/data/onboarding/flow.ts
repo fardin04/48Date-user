@@ -17,5 +17,6 @@ export const onboardingFlow = {
   photos: { screen: "PHOTOS", number: 12, back: "communication", next: "verify" },
   verify: { screen: "VERIFY-INTRO", number: 13, back: "photos", next: "notify" },
   notify: { screen: "NOTIFY", number: 14, back: "verify", next: "ready" },
-  ready: { screen: "READY", number: 15, back: "notify", next: to("DISCOVER") },
+  // Finishing setup opens MATCHES, where the background auto-matching run's results arrive.
+  ready: { screen: "READY", number: 15, back: "notify", next: to("MATCHES") },
 } satisfies Record<OnboardingStep, StepFlow>;

@@ -99,13 +99,25 @@ export type UploadedFile = { fileId: string; url: string; purpose: FilePurpose; 
 
 export type PhotoRef = { fileId: string; isMain: boolean };
 
-export type VerificationApiStatus = "QUEUED" | "PROCESSING" | "PASSED" | "FAILED" | "MANUAL_REVIEW";
+/**
+ * The collection lists QUEUED / PROCESSING / PASSED / FAILED / MANUAL_REVIEW; an admin decision sets
+ * the attempt to APPROVED or REJECTED (Admin 10–11) and the queue shows NEEDS_REVIEW.
+ */
+export type VerificationApiStatus = "QUEUED" | "PROCESSING" | "MANUAL_REVIEW" | "NEEDS_REVIEW" | "PASSED" | "APPROVED" | "FAILED" | "REJECTED";
+/** Live snapshot (checked against the running API): the automatic check adds scores and `rejectReason`. */
 export type VerificationData = {
   id: string;
-  status: VerificationApiStatus;
+  status: VerificationApiStatus | string;
   method: string;
   confidence: number | null;
   selfieUrl: string;
   comparedUrl: string;
   createdAt: string;
+  matchScore?: number | null;
+  livenessScore?: number | null;
+  gestureDetected?: boolean | null;
+  /** A code from the automatic check ("LOW_SIMILARITY") or the reviewer's written reason. */
+  rejectReason?: string | null;
+  reasonCodes?: string[];
+  decidedAt?: string | null;
 };

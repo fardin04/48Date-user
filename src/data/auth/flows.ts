@@ -16,7 +16,11 @@ export type AuthFlow = {
     states: { code: Title; resent: Title; expired: Title; processing: Title };
     limit: { intro: Intro; primary: Action; secondary: Action };
   };
-  verified: { intro: Intro; cta: Action };
+  /**
+   * `cta` is the Figma action; `next` replaces it once the API says where this member belongs
+   * (setup still to finish, or the portal), whichever flow they came through.
+   */
+  verified: { intro: Intro; cta: Action; next: Record<"onboarding" | "portal", Action> };
   google: { intro: Intro; primary: Action; secondary: Action };
   googleError: { intro: Intro; primary: Action; secondary: Action };
   session?: { intro: Intro; primary: Action; secondary: Action };
@@ -50,6 +54,8 @@ const processing: Title = {
 };
 const codeDescription = "Enter the six-digit code sent to {phone}.";
 const changePhone = "Change phone number";
+const setUpProfile: Action = { label: "Set up my profile", to: to("LOCATION") };
+const openPortal: Action = { label: "Open my portal", to: to("DISCOVER") };
 
 export const authFlows: Record<AuthFlowName, AuthFlow> = {
   signup: {
@@ -77,7 +83,8 @@ export const authFlows: Record<AuthFlowName, AuthFlow> = {
         title: "Your number is verified.",
         description: "Your phone stays private. Now let’s create a profile that feels like you.",
       },
-      cta: { label: "Set up my profile", to: to("LOCATION") },
+      cta: setUpProfile,
+      next: { onboarding: setUpProfile, portal: openPortal },
     },
     google: {
       intro: google,
@@ -123,7 +130,9 @@ export const authFlows: Record<AuthFlowName, AuthFlow> = {
         title: "You’re signed in.",
         description: "Your matches, conversations and plans are ready when you are.",
       },
-      cta: { label: "Open my portal", to: to("DISCOVER") },
+      cta: openPortal,
+      // An account that never finished setup continues it (design-silent label, for owner approval).
+      next: { onboarding: { label: "Finish setting up my profile", to: to("LOCATION") }, portal: openPortal },
     },
     google: {
       intro: google,

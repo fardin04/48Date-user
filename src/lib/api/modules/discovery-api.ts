@@ -1,4 +1,4 @@
-import { cached, invalidate, prime } from "../cache";
+import { cached, invalidate, onCacheClear, prime } from "../cache";
 import { api, type StreamEvent } from "../client";
 import { endpoints } from "../endpoints";
 import type {
@@ -70,13 +70,30 @@ export const discoveryApi = {
   },
 };
 
+/** The one auto-matching run in progress (READY starts it, MATCHES joins it); stopped on sign-out. */
+let matching: { run: Promise<DiscoveryRun>; controller: AbortController } | null = null;
+onCacheClear(() => matching?.controller.abort());
+
+async function runMatching(signal: AbortSignal) {
+  const { data } = await api.post<StartRunData>(endpoints.matching.runs, { signal });
+  const run = await settle(data.run, endpoints.matching.events(data.run.id), async () => (await api.get<DiscoveryRun>(endpoints.matching.run(data.run.id), { signal })).data, signal);
+  // New matches show on MATCHES and as MATCH-NEW on the deck.
+  invalidate(cacheKeys.matches, cacheKeys.conversations, cacheKeys.discoveryRun);
+  return run;
+}
+
 /** User / 03 - Auto-Matching: up to five matches made in the background after onboarding. */
 export const matchingApi = {
-  async start(signal: AbortSignal) {
-    const { data } = await api.post<StartRunData>(endpoints.matching.runs, { signal });
-    const run = await settle(data.run, endpoints.matching.events(data.run.id), async () => (await api.get<DiscoveryRun>(endpoints.matching.run(data.run.id), { signal })).data, signal);
-    // New matches show on MATCHES and as MATCH-NEW on the deck.
-    invalidate(cacheKeys.matches, cacheKeys.conversations, cacheKeys.discoveryRun);
-    return run;
+  /** Starts a run, or joins the one already running; resolves when it ends. */
+  start() {
+    if (matching) return matching.run;
+    const controller = new AbortController();
+    const current = { controller, run: runMatching(controller.signal) };
+    matching = current;
+    void current.run.catch(() => undefined).finally(() => {
+      if (matching === current) matching = null;
+    });
+    return current.run;
   },
+  isRunning: () => matching !== null,
 };

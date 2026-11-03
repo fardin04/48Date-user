@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { PortalHeader } from "@/components/pieces/shells/portal-header";
 import { SessionGate } from "@/components/pieces/shells/session-gate";
+import { SetupGate } from "@/components/pieces/shells/setup-gate";
 
 type PortalShellProps = {
   /** Nav label of the open area. */
@@ -18,7 +19,7 @@ export function PortalShell({ active, children }: PortalShellProps) {
       <PortalHeader active={active} />
       <main className="mx-auto flex w-full max-w-360 flex-col gap-6 p-4 sm:p-6 xl:px-20 xl:py-8">
         <SessionGate allow="member" redirect="SIGNIN">
-          {children}
+          <SetupGate>{children}</SetupGate>
         </SessionGate>
       </main>
     </div>

@@ -1,5 +1,6 @@
 import { apiEnabled } from "@/lib/api/config";
 import { apiAuthService } from "@/lib/auth/api-auth-service";
+import type { SetupState } from "@/lib/auth/setup-status";
 import { mockAuthService } from "@/lib/auth/mocks/mock-auth-service";
 
 export type PhoneNumber = { dial: string; national: string };
@@ -24,6 +25,8 @@ export type AuthService = {
   verifyCode: (phone: PhoneNumber, code: string) => Promise<VerifyCodeResult>;
   /** Starts the session from a Google ID token (never stored). */
   signInWithGoogle: (idToken: string) => Promise<GoogleResult>;
+  /** Whether the signed-in member still has setup to finish (from the API), or null when unknown (the mock). */
+  setupState: () => SetupState | null;
   /** Whether a member is signed in (route guards); false while prerendering. */
   hasSession: () => boolean;
   /** Notifies route guards when the session starts or ends (e.g. a refresh is rejected). */

@@ -149,4 +149,6 @@ export const mockPortalService: PortalService = {
   },
   async markMatchSeen() {},
   async findMatches() {},
+  // The sample matches are already there.
+  isFindingMatches: () => false,
 };

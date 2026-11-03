@@ -13,6 +13,9 @@ export type UploadResult = { status: "uploaded"; fileId?: string } | { status: "
 /** Selfie verification: separate from phone ownership; the badge shows only once verified. */
 export type VerificationStatus = "none" | "pending" | "retry" | "verified";
 
+/** The review result as the backend reports it; `reason` is its code or the reviewer's note when sent back. */
+export type Verification = { status: VerificationStatus; reason?: string };
+
 /** A position for the location step: the browser's (rounded) or a chosen area's centre. */
 export type LocationInput = { latitude: number; longitude: number; city?: string; region?: string; countryCode?: string; permission: boolean };
 
@@ -27,8 +30,11 @@ export type InterestOption = { id: string; key: string; label: string };
 /** Option lists from the service; a missing list falls back to the starter list in data. */
 export type StepOptions = { fields: Partial<Record<DraftField, SelectOption[]>>; interests: InterestOption[] };
 
-/** Answers saved earlier (another device, a previous visit). */
-export type SavedProgress = { completed: boolean; draft: Partial<ProfileDraft> };
+/**
+ * Answers saved earlier (another device, a previous visit). `resumeAt` is the first screen with a
+ * required step the API still lists as pending (none once every required step is saved).
+ */
+export type SavedProgress = { completed: boolean; draft: Partial<ProfileDraft>; resumeAt?: OnboardingStep };
 
 /**
  * Contract the onboarding screens talk to (handoff: "Any prototype timeout illustrates a
@@ -49,15 +55,16 @@ export type OnboardingService = {
   /** Reports progress from 0 to 100; resolves once the upload settles. */
   uploadPhoto: (file: File, onProgress: (percent: number) => void, signal: AbortSignal) => Promise<UploadResult>;
   /** Sends the selfie for private review; the review result arrives later through `getVerification`. */
-  submitSelfie: (selfie: Blob) => Promise<VerificationStatus>;
-  getVerification: () => Promise<VerificationStatus>;
+  submitSelfie: (selfie: Blob) => Promise<Verification>;
+  /** Always read fresh: a reviewer can decide while the member has the app open. */
+  getVerification: () => Promise<Verification>;
   /**
-   * READY "Start discovering": the service starts looking for matches in the background (they
-   * appear on DISCOVER as MATCH-NEW). Never blocks the screen.
+   * READY: the service starts looking for matches in the background (MATCHES waits for them; they
+   * also appear on DISCOVER as MATCH-NEW). Never blocks the screen.
    */
   startMatching: () => void;
   /** Resolves once a selfie in review has a result (verified or retry); aborting stops waiting. */
-  waitForVerification: (signal: AbortSignal) => Promise<VerificationStatus>;
+  waitForVerification: (signal: AbortSignal) => Promise<Verification>;
 };
 
 /** The API (`NEXT_PUBLIC_API_BASE_URL` set) or the marked mock. */

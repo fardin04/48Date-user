@@ -22,10 +22,9 @@ import { screenKeys } from "@/lib/screen-keys";
 export function TrustView() {
   const page = getAccountPage().trust;
   const { value: trust, error, reload } = useLoaded(screenKeys.trust, accountService.getTrust);
-  const status = useLoaded(screenKeys.verification, onboardingService.getVerification).value;
-  const reviewed = status === "verified" ? page.verification.verified : status === "pending" ? page.verification.pending : page.verification.none;
-  // The score's own flag when the service has one; the selfie review otherwise.
-  const verification = trust?.verification ?? (status === undefined ? "" : reviewed);
+  const status = useLoaded(screenKeys.verification, onboardingService.getVerification, { refetchOnWindowFocus: true }).value?.status;
+  // The selfie review's own status (the score's flag only says verified or not); the flag until it loads.
+  const verification = status === undefined ? (trust?.verification ?? "") : page.verification[status];
   const rows = [
     { label: page.rows.verification, value: verification },
     { label: page.rows.dates, value: trust?.dates ?? "" },

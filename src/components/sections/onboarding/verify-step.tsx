@@ -3,29 +3,48 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { screenKeys } from "@/lib/screen-keys";
 import Image from "next/image";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useEffectEvent, useRef, useState } from "react";
 import { SelfieFrame } from "@/components/pieces/media/selfie-frame";
 import { SetupStep } from "@/components/pieces/shells/setup-step";
 import { StatusBadge } from "@/components/pieces/feedback/status-badge";
+import { StatusNote } from "@/components/pieces/feedback/status-note";
 import { SummaryRow } from "@/components/pieces/cards/summary-row";
 import { TrustPanel } from "@/components/pieces/cards/trust-panel";
-import { onboardingService, type VerificationStatus } from "@/lib/onboarding/onboarding-service";
+import { onboardingService, type Verification, type VerificationStatus } from "@/lib/onboarding/onboarding-service";
+import { createSelfieCheck, type SelfieCheck } from "@/lib/onboarding/selfie-check";
 import { getStepFlow, getVerifyStep } from "@/stores/onboarding-store";
 import { SetupBack, SetupPrimary, SetupTextAction, useAdvance } from "./step-actions";
 
 type Phase = "intro" | "camera" | "denied" | "capture" | "review" | "pending" | "retry" | "done" | "status";
 type Selfie = { blob: Blob; url: string };
+/** VERIFY-CAPTURE guidance from the on-device check; `manual` when it can't run here. */
+type Guide = "loading" | "face" | "gesture" | "hold" | "manual";
 
-/** Review polling (`GET /verification/:id`, the documented fallback to its SSE stream). */
 const SELFIE_QUALITY = 0.9;
+/** The check reads about eight frames a second and captures once face and V sign hold this long. */
+const READ_EVERY_MS = 120;
+const HOLD_MS = 700;
+const GRACE_MS = 400;
 
 /** Screen that a stored review result reopens on. */
 const phaseFor: Record<VerificationStatus, Phase> = { none: "intro", pending: "pending", retry: "retry", verified: "done" };
 
+/** The retry note: the reviewer's own words, or the copy for the backend's reason code. */
+function retryReason(reason: string | undefined) {
+  const copy = getVerifyStep().retry;
+  if (!reason) return copy.fallback;
+  const known = copy.reasons[reason.toUpperCase()];
+  if (known) return known;
+  // A written note has spaces or lower case; an unknown CODE_NAME gets the general line.
+  return /^[A-Z0-9_]+$/.test(reason) ? copy.fallback : copy.note.replace("{reason}", reason);
+}
+
 /**
  * W03 / Identity Verification on one URL (rule 32): intro → camera permission → live capture →
  * review → private service review (pending → done / retry), plus the status summary.
- * The camera stream and the selfie stay in this tab; the selfie is released once submitted.
+ * The capture is automatic: an on-device check takes the selfie once one face and a V sign stay in
+ * view (by hand where the check can't run). The camera stream and the selfie stay in this tab; the
+ * selfie is released once submitted.
  */
 export function VerifyStep() {
   const queryClient = useQueryClient();
@@ -34,6 +53,8 @@ export function VerifyStep() {
   const advance = useAdvance("verify");
   const [phase, setPhase] = useState<Phase>("intro");
   const [status, setStatus] = useState<VerificationStatus>("none");
+  const [reason, setReason] = useState<string | undefined>();
+  const [guide, setGuide] = useState<Guide>("loading");
   const [busy, setBusy] = useState(false);
   const [selfie, setSelfie] = useState<Selfie | null>(null);
   const video = useRef<HTMLVideoElement>(null);
@@ -51,13 +72,20 @@ export function VerifyStep() {
     setSelfie(null);
   };
 
+  const show = (result: Verification) => {
+    setStatus(result.status);
+    setReason(result.reason);
+    setPhase(phaseFor[result.status]);
+  };
+
   // Reopen on the stored review result; release the camera and the selfie when leaving.
   useEffect(() => {
     let active = true;
     void queryClient.fetchQuery({ queryKey: screenKeys.verification, queryFn: onboardingService.getVerification, staleTime: 0 }).then((current) => {
       if (!active) return;
-      setStatus(current);
-      setPhase(phaseFor[current]);
+      setStatus(current.status);
+      setReason(current.reason);
+      setPhase(phaseFor[current.status]);
     }).catch(() => undefined);
     return () => {
       active = false;
@@ -73,8 +101,9 @@ export function VerifyStep() {
     onboardingService.waitForVerification(controller.signal).then(
       (current) => {
         queryClient.setQueryData(screenKeys.verification, current);
-        setStatus(current);
-        setPhase(phaseFor[current]);
+        setStatus(current.status);
+        setReason(current.reason);
+        setPhase(phaseFor[current.status]);
       },
       () => undefined,
     );
@@ -86,6 +115,56 @@ export function VerifyStep() {
     if (phase === "capture" && video.current && stream.current) video.current.srcObject = stream.current;
   }, [phase]);
 
+  const captureNow = useEffectEvent(() => takeSelfie());
+
+  // While capturing, watch the preview for one face and a V sign, then take the selfie by itself.
+  useEffect(() => {
+    if (phase !== "capture") return;
+    let active = true;
+    let check: SelfieCheck | null = null;
+    let frame = 0;
+    let lastRead = 0;
+    let heldSince = 0;
+    let lastSeen = 0;
+
+    const tick = (now: number) => {
+      const preview = video.current;
+      if (!active || !check) return;
+      if (preview && preview.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA && now - lastRead >= READ_EVERY_MS) {
+        lastRead = now;
+        const seen = check.read(preview, now);
+        const both = seen.face && seen.victory;
+        if (both) lastSeen = now;
+        // Hand tracking flickers frame to frame: a short miss keeps the hold going.
+        const holding = both || (heldSince > 0 && now - lastSeen <= GRACE_MS);
+        heldSince = holding ? heldSince || now : 0;
+        setGuide(holding ? "hold" : !seen.face ? "face" : "gesture");
+        if (both && heldSince && now - heldSince >= HOLD_MS) {
+          captureNow();
+          return;
+        }
+      }
+      frame = requestAnimationFrame(tick);
+    };
+
+    createSelfieCheck().then(
+      (loaded) => {
+        if (!active) return loaded.close();
+        check = loaded;
+        setGuide("face");
+        frame = requestAnimationFrame(tick);
+      },
+      () => {
+        if (active) setGuide("manual");
+      },
+    );
+    return () => {
+      active = false;
+      cancelAnimationFrame(frame);
+      check?.close();
+    };
+  }, [phase]);
+
   async function startCamera() {
     dropSelfie();
     if (!navigator.mediaDevices?.getUserMedia) {
@@ -95,6 +174,7 @@ export function VerifyStep() {
     setBusy(true);
     try {
       stream.current = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" }, audio: false });
+      setGuide("loading");
       setPhase("capture");
     } catch {
       // Refused, blocked or no camera: all recover through the same screen.
@@ -137,8 +217,7 @@ export function VerifyStep() {
     setBusy(false);
     // The private selfie is no longer needed in the page once the service has it.
     dropSelfie();
-    setStatus(result);
-    setPhase(phaseFor[result]);
+    show(result);
   }
 
   const leaveCapture = (next: Phase) => {
@@ -175,12 +254,15 @@ export function VerifyStep() {
         <SetupStep
           intro={copy.capture.intro}
           back={<SetupBack onClick={() => leaveCapture("camera")} />}
-          primary={<SetupPrimary label={copy.capture.primary} onClick={takeSelfie} />}
+          primary={
+            guide === "manual" ? <SetupPrimary label={copy.capture.primary} onClick={takeSelfie} /> : <SetupPrimary label={copy.capture.auto} busy />
+          }
           secondary={<SetupTextAction label={copy.capture.secondary} onClick={() => leaveCapture("intro")} />}
         >
           <SelfieFrame>
             <video ref={video} autoPlay muted playsInline aria-label={copy.capture.videoLabel} className="size-full -scale-x-100 object-cover" />
           </SelfieFrame>
+          <StatusNote variant={guide === "hold" ? "reassure" : "pending"} message={guide === "manual" ? copy.capture.manual : copy.capture.guide[guide]} />
         </SetupStep>
       );
     case "review":
@@ -227,6 +309,7 @@ export function VerifyStep() {
           primary={<SetupPrimary label={copy.retry.primary} onClick={() => setPhase("camera")} />}
           secondary={<SetupTextAction label={copy.retry.secondary} onClick={() => setPhase("intro")} />}
         >
+          <StatusNote variant="error" message={retryReason(reason)} />
           <TrustPanel trust={copy.retry.trust} />
         </SetupStep>
       );

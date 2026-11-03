@@ -29,7 +29,7 @@ export function OwnProfileView() {
   const page = copy.profile;
   const chosenArea = useMemberLocation();
   const { value: overview, error, reload } = useLoaded(screenKeys.overview, accountService.getOverview);
-  const status = useLoaded(screenKeys.verification, onboardingService.getVerification).value;
+  const status = useLoaded(screenKeys.verification, onboardingService.getVerification, { refetchOnWindowFocus: true }).value?.status;
   const verified = status === "verified";
 
   const heading = (

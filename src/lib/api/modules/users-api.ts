@@ -22,6 +22,8 @@ const MINUTE = 60_000;
 export const usersApi = {
   /** Own profile; shared by every screen that shows it (profile card, profile page, edit form). */
   me: () => cached(cacheKeys.me, MINUTE, () => api.get<MeData>(endpoints.users.me)),
+  /** The same read, never from cache (verification and onboarding status can change on the server at any time). */
+  freshMe: () => cached(cacheKeys.me, 0, () => api.get<MeData>(endpoints.users.me)),
   async updateProfile(body: UpdateProfileBody) {
     const result = await api.patch<UpdateProfileData>(endpoints.users.profile, { body });
     invalidate(cacheKeys.me);

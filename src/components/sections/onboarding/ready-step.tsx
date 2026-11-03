@@ -19,7 +19,7 @@ export function ReadyStep() {
   const [mainPhoto] = usePhotos();
   const router = useRouter();
   const next = stepDestination(flow.next);
-  // Finishing setup starts matching in the background, then opens the portal.
+  // Finishing setup starts matching in the background, then opens MATCHES, which waits for it.
   const start = () => {
     onboardingService.startMatching();
     if ("screen" in next) router.push(hrefFor(next.screen, next.section ?? next.param));

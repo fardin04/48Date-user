@@ -24,6 +24,8 @@ const taken: Record<string, Extract<NicknameCheck, { available: false }>> = {
 const CHECK_MS = 1000;
 const REVIEW_MS = 6000;
 /** Average luma (0–255) under which the mock asks for another selfie. */
+/** The reason code the mock sends a dark selfie back with (shown like the API's `rejectReason`). */
+const TOO_DARK = "LOW_QUALITY";
 const MIN_BRIGHTNESS = 50;
 const REVIEW_KEY = "48date.mock.verification";
 
@@ -94,19 +96,20 @@ export const mockOnboardingService: OnboardingService = {
     } catch {
       // Blocked storage: the review simply never completes in this mock.
     }
-    return "pending";
+    return { status: "pending" };
   },
   async getVerification() {
     const review = readReview();
-    if (!review) return "none";
-    return Date.now() - review.submittedAt < REVIEW_MS ? "pending" : review.outcome;
+    if (!review) return { status: "none" };
+    if (Date.now() - review.submittedAt < REVIEW_MS) return { status: "pending" };
+    return review.outcome === "retry" ? { status: "retry", reason: TOO_DARK } : { status: review.outcome };
   },
   // The mock's sample matches are already there.
   startMatching() {},
   async waitForVerification(signal) {
     for (;;) {
       const current = await mockOnboardingService.getVerification();
-      if (current !== "pending") return current;
+      if (current.status !== "pending") return current;
       await pause(CHECK_MS, signal);
     }
   },

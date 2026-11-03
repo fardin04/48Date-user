@@ -252,7 +252,7 @@ export const accountPage = {
       reversed: "Reversed",
     },
     /** Profile verification value by review status. */
-    verification: { verified: "Verified", pending: "In review", none: "Not verified" },
+    verification: { verified: "Verified", pending: "In review", retry: "Not approved", none: "Not verified" },
     primary: { label: "View trust activity", to: to("TRUST-HISTORY") } satisfies Action,
   },
   trustHistory: {

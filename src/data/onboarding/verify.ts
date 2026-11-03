@@ -18,7 +18,7 @@ const backToVerification = "Back to verification";
  */
 export const verifyStep = {
   intro: {
-    intro: { title: "Verify your profile", description: "A quick selfie helps us check that your profile photos are really you." },
+    intro: { title: "Verify your profile", description: "A quick selfie with a V sign helps us check that your profile photos are really you." },
     trust,
     primary: "Start verification",
     secondary: "Skip for now",
@@ -37,8 +37,19 @@ export const verifyStep = {
     secondary: backToVerification,
   },
   capture: {
-    intro: { title: "Center your face", description: "Look at the camera in good light. Keep your full face inside the frame." },
+    intro: { title: "Show your face and a V sign", description: "Look at the camera in good light and hold up two fingers ✌. The selfie is taken automatically." },
     videoLabel: "Camera preview",
+    /** Shown while the automatic capture is waiting (design-silent, for owner approval). */
+    auto: "Capturing automatically",
+    /** Live guidance from the on-device face and hand check; nothing leaves the device until you submit. */
+    guide: {
+      loading: "Getting the camera check ready…",
+      face: "Center your face inside the frame.",
+      gesture: "Now hold up a V sign ✌ next to your face.",
+      hold: "Hold still…",
+    },
+    /** When the on-device check can't run (old browser, no WebAssembly): capture by hand. */
+    manual: "Automatic capture isn’t available here. Show a V sign and take the selfie yourself.",
     primary: "Take selfie",
     secondary: "Cancel",
   },
@@ -63,6 +74,25 @@ export const verifyStep = {
   retry: {
     intro: { title: "Let’s try another selfie", description: "We couldn’t confirm your profile from this photo. Make sure your whole face is visible." },
     trust,
+    /**
+     * The backend's `rejectReason` codes (design-silent copy, for owner approval). A reviewer's written
+     * note is shown as `note`; an unknown code shows `fallback`.
+     */
+    reasons: {
+      LOW_SIMILARITY: "Your selfie didn’t match your profile photos closely enough. Use a clear, front-facing selfie that looks like your main photo.",
+      FACE_MISMATCH: "Your selfie didn’t match your profile photos closely enough. Use a clear, front-facing selfie that looks like your main photo.",
+      NO_FACE: "We couldn’t see a face in your selfie. Keep your whole face inside the frame.",
+      NO_FACE_DETECTED: "We couldn’t see a face in your selfie. Keep your whole face inside the frame.",
+      MULTIPLE_FACES: "More than one face was in the photo. Take the selfie on your own.",
+      GESTURE_NOT_DETECTED: "We couldn’t see the V sign. Hold up two fingers next to your face.",
+      NO_GESTURE: "We couldn’t see the V sign. Hold up two fingers next to your face.",
+      LOW_LIVENESS: "We couldn’t confirm this was a live photo. Take a new selfie with the camera, not a photo of a photo.",
+      LIVENESS_FAILED: "We couldn’t confirm this was a live photo. Take a new selfie with the camera, not a photo of a photo.",
+      LOW_QUALITY: "The photo was too dark or blurry. Find better light and hold still.",
+      POOR_QUALITY: "The photo was too dark or blurry. Find better light and hold still.",
+    } as Record<string, string>,
+    note: "Reviewer’s note: {reason}",
+    fallback: "Your selfie wasn’t approved. Take a new one with your face clearly visible and a V sign.",
     primary: "Try again",
     secondary: backToVerification,
   },
@@ -82,7 +112,7 @@ export const verifyStep = {
     phone: { label: "Phone number", value: "Verified" },
     selfie: {
       label: "Profile selfie",
-      values: { none: "Not verified", pending: "In review", retry: "Not verified", verified: "Verified" },
+      values: { none: "Not verified", pending: "In review", retry: "Not approved", verified: "Verified" },
     },
     primary: "Verify my profile",
   },

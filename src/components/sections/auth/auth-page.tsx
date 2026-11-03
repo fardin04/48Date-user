@@ -12,6 +12,7 @@ import { GoogleStep } from "./google-step";
 import { MessageStep } from "./message-step";
 import { PhoneStep } from "./phone-step";
 import { SignOut } from "./sign-out";
+import { VerifiedStep } from "./verified-step";
 import { VerifyStep } from "./verify-step";
 
 /** Title of a step, for the route's metadata. */
@@ -68,7 +69,7 @@ export function AuthPage({ flowName, step }: { flowName: AuthFlowName; step: Aut
       case "verify":
         return <VerifyStep copy={flow.verify} code={shared.code} entry={flow.routes.entry} verified={flow.routes.verified} />;
       case "verified":
-        return <MessageStep intro={flow.verified.intro} visual={{ kind: "success", image: shared.successMark }} primary={flow.verified.cta} />;
+        return <VerifiedStep copy={flow.verified} image={shared.successMark} />;
       case "google":
         if (googleMode === "live")
           return <GoogleStep intro={flow.google.intro} waitingLabel={shared.waitingLabel} primary={flow.google.primary} failed={flow.routes.googleError} />;

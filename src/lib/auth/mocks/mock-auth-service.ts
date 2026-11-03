@@ -46,6 +46,8 @@ export const mockAuthService: AuthService = {
   async signInWithGoogle() {
     return { status: "failed" };
   },
+  // The mock doesn't know: each flow keeps its own Figma destination.
+  setupState: () => null,
   hasSession() {
     try {
       const value: unknown = JSON.parse(sessionStorage.getItem(SESSION_KEY) ?? "null");

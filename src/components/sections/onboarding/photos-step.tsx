@@ -9,6 +9,8 @@ import { SetupStep } from "@/components/pieces/shells/setup-step";
 import { StatusNote } from "@/components/pieces/feedback/status-note";
 import { Text } from "@/components/pieces/content/text";
 import { UploadStatus } from "@/components/pieces/feedback/upload-status";
+import { Button } from "@/components/ui/button";
+import { fill } from "@/lib/format";
 import { onboardingService } from "@/lib/onboarding/onboarding-service";
 import { photoStore, usePhotos } from "@/lib/onboarding/photo-store";
 import { getOnboardingShared, getPhotosStep, getStepFlow } from "@/stores/onboarding-store";
@@ -19,7 +21,8 @@ type Pending = { file: File; url: string };
 
 /**
  * PHOTOS → PHOTO-SOURCE → PHOTO-PREVIEW → PHOTO-UPLOAD → PHOTO-ERROR / PHOTO-READY.
- * Two valid uploads are required; the chosen file is checked before upload.
+ * Two valid uploads are required (up to `max`); the chosen file is checked before upload. Every
+ * added photo shows in one grid where the member picks the main photo (sent first) or removes one.
  */
 export function PhotosStep() {
   const copy = getPhotosStep();
@@ -173,54 +176,53 @@ export function PhotosStep() {
   }
 
   const missing = copy.required - photos.length;
-  if (missing <= 0) {
-    return (
-      <SetupStep
-        intro={copy.ready.intro}
-        back={<SetupBack link={flow.back} />}
-        primary={<SetupPrimary label={getOnboardingShared().continueLabel} busy={saving} onClick={() => void save({ photos })} />}
-        busy={saving}
-        revealDelay={0}
-      >
-        <div className="grid gap-4 sm:grid-cols-2">
-          <PhotoTile src={photos[0].url} alt={copy.photoAlt[0]} />
-          <div className="flex flex-col justify-center gap-4 sm:h-58">
-            <Text variant="text18SemiboldTight" tone="gray900">
-              {copy.ready.title}
-            </Text>
-            <ul>
-              {copy.ready.lines.map((line) => (
-                <Text as="li" key={line} variant="text14Relaxed" tone="muted">
-                  {line}
-                </Text>
-              ))}
-            </ul>
-            <Text variant="text12Relaxed" tone="muted">
-              {copy.ready.note}
-            </Text>
-          </div>
-        </div>
-        <SetupError message={error} />
-      </SetupStep>
-    );
-  }
+  const ready = missing <= 0;
+  const intro = ready ? { ...copy.ready.intro, description: fill(copy.ready.intro.description, { count: photos.length }) } : copy.intro;
 
   return (
     <SetupStep
-      intro={copy.intro}
+      intro={intro}
       back={<SetupBack link={flow.back} />}
-      primary={<SetupPrimary label={missing === 1 ? copy.missing.one : copy.missing.other.replace("{count}", String(missing))} disabled />}
+      primary={
+        ready ? (
+          <SetupPrimary label={getOnboardingShared().continueLabel} busy={saving} onClick={() => void save({ photos })} />
+        ) : (
+          <SetupPrimary label={missing === 1 ? copy.missing.one : copy.missing.other.replace("{count}", String(missing))} disabled />
+        )
+      }
+      busy={saving}
       revealDelay={0}
     >
-      <div className="grid gap-4 sm:grid-cols-2">
+      <ul aria-label={copy.grid.label} className="grid gap-4 sm:grid-cols-2">
         {photos.map((photo, index) => (
-          <PhotoTile key={photo.id} src={photo.url} alt={copy.photoAlt[index]} />
+          <li key={photo.id} className="flex min-w-0 flex-col gap-2">
+            <PhotoTile src={photo.url} alt={index === 0 ? copy.photoAlt.main : fill(copy.photoAlt.other, { number: index + 1 })} />
+            <div className="flex flex-wrap items-center gap-2">
+              {index === 0 ? (
+                <Text as="span" variant="text14Medium" tone="rose">
+                  {copy.grid.main}
+                </Text>
+              ) : (
+                <Button type="button" variant="neutral" size="compact" disabled={saving} onClick={() => photoStore.makeMain(photo.id)}>
+                  {copy.grid.makeMain}
+                </Button>
+              )}
+              <Button type="button" variant="neutral" size="compact" disabled={saving} onClick={() => photoStore.remove(photo.id)}>
+                {copy.grid.remove}
+              </Button>
+            </div>
+          </li>
         ))}
-        <AddPhotoTile title={copy.addTile.title} description={copy.addTile.description} onClick={() => setPhase("source")} />
-      </div>
+        {photos.length < copy.max && (
+          <li className="flex">
+            <AddPhotoTile title={copy.addTile.title} description={copy.addTile.description} onClick={() => setPhase("source")} className="w-full" />
+          </li>
+        )}
+      </ul>
       <Text variant="text12Relaxed" tone="gray900">
-        {copy.note}
+        {ready ? copy.ready.note : copy.note}
       </Text>
+      <SetupError message={error} />
     </SetupStep>
   );
 }

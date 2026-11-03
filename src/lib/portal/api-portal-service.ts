@@ -240,7 +240,8 @@ export const apiPortalService: PortalService = {
     unseenIds.delete(member);
     if (id) await matchesApi.markSeen(id).catch(() => undefined);
   },
-  async findMatches(signal) {
-    await matchingApi.start(signal ?? new AbortController().signal);
+  async findMatches() {
+    await matchingApi.start();
   },
+  isFindingMatches: matchingApi.isRunning,
 };

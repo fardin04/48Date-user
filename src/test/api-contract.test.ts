@@ -240,6 +240,62 @@ describe("live API shapes", () => {
     expect(set).toMatchObject({ member: "mia_khan", confirmed: true, expiresAt: null });
   });
 
+  describe("selfie verification", () => {
+    const ATTEMPT = "be1ab78f-2e57-4cd5-bf51-a3e1e8cd109d";
+    const me = (verificationStatus: string) => ok({ nickname: "liam_chen", verificationStatus, onboardingStatus: "COMPLETED" });
+    const attempt = (status: string, rejectReason: string | null = null) =>
+      ok({ id: ATTEMPT, status, method: "AUTO_MODEL", confidence: 0, matchScore: 0, livenessScore: 0.53, gestureDetected: false, rejectReason, reasonCodes: [], createdAt: "2026-11-03T04:56:23.152Z", decidedAt: null });
+    const withAttempt = () => {
+      const store = new Map([["48date.member.verification", ATTEMPT]]);
+      vi.stubGlobal("localStorage", { getItem: (k: string) => store.get(k) ?? null, setItem: (k: string, v: string) => store.set(k, v), removeItem: (k: string) => store.delete(k) });
+    };
+
+    it("shows an admin rejection (REJECTED) with the reviewer's reason, not 'pending'", async () => {
+      const { onboarding } = await load({ "GET /users/me": me("UNVERIFIED"), [`GET /verification/${ATTEMPT}`]: attempt("REJECTED", "Face not clearly visible") });
+      withAttempt();
+      expect(await onboarding.getVerification()).toEqual({ status: "retry", reason: "Face not clearly visible" });
+    });
+
+    it("reads the automatic check's FAILED result and reason code", async () => {
+      const { onboarding } = await load({ "GET /users/me": me("UNVERIFIED"), [`GET /verification/${ATTEMPT}`]: attempt("FAILED", "LOW_SIMILARITY") });
+      withAttempt();
+      expect(await onboarding.getVerification()).toEqual({ status: "retry", reason: "LOW_SIMILARITY" });
+    });
+
+    it("treats an attempt still 'in review' as decided once the profile is no longer PENDING", async () => {
+      const { onboarding } = await load({ "GET /users/me": me("UNVERIFIED"), [`GET /verification/${ATTEMPT}`]: attempt("MANUAL_REVIEW") });
+      withAttempt();
+      expect((await onboarding.getVerification()).status).toBe("retry");
+    });
+
+    it("keeps a review pending while the profile says PENDING, and trusts VERIFIED", async () => {
+      let services = await load({ "GET /users/me": me("PENDING"), [`GET /verification/${ATTEMPT}`]: attempt("NEEDS_REVIEW") });
+      withAttempt();
+      expect(await services.onboarding.getVerification()).toEqual({ status: "pending" });
+      services = await load({ "GET /users/me": me("VERIFIED"), [`GET /verification/${ATTEMPT}`]: attempt("MANUAL_REVIEW") });
+      withAttempt();
+      expect(await services.onboarding.getVerification()).toEqual({ status: "verified" });
+    });
+  });
+
+  it("sends a new account to setup and resumes at its first required step", async () => {
+    const steps = ["location", "nickname", "real_name", "birthday", "photos", "selfie", "notifications"].map((step) => ({
+      step,
+      name: step,
+      required: !["location", "selfie", "notifications"].includes(step),
+      state: step === "location" ? "DONE" : "PENDING",
+    }));
+    const { auth, onboarding } = await load({
+      "POST /auth/phone/verify": ok({ accessToken: "a", refreshToken: "r", isNewUser: true, onboardingStatus: "NOT_STARTED" }),
+      "GET /onboarding": ok({ onboardingStatus: "IN_PROGRESS", nextStep: "nickname", progressPercent: 5, steps, savedValues: {} }),
+    });
+    const store = new Map<string, string>();
+    vi.stubGlobal("localStorage", { getItem: (k: string) => store.get(k) ?? null, setItem: (k: string, v: string) => store.set(k, v), removeItem: (k: string) => store.delete(k), key: () => null, length: 0 });
+    expect(await auth.verifyCode({ dial: "+880", national: "1811000077" }, "123456")).toBe("verified");
+    expect(auth.setupState()).toBe("onboarding");
+    expect(await onboarding.getProgress()).toMatchObject({ completed: false, resumeAt: "nickname" });
+  });
+
   it("reads the date partner's live fields (mainPhotoUrl, isVerified)", async () => {
     const { dates } = await load({
       "GET /dates": ok(

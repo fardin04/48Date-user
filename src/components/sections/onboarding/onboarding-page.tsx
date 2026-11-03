@@ -82,7 +82,7 @@ export function OnboardingPage({ step }: { step: OnboardingStep }) {
 
   return (
     <SetupShell step={getStepFlow(step).number}>
-      <OnboardingResume />
+      <OnboardingResume step={step} />
       {body}
     </SetupShell>
   );

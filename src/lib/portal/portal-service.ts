@@ -61,8 +61,10 @@ export type PortalService = {
   getUnseenMatch: () => Promise<MemberId | null>;
   /** The MATCH-NEW screen for this member has been shown. */
   markMatchSeen: (member: MemberId) => Promise<void>;
-  /** Asks the service to look for matches in the background (after onboarding, from MATCHES-EMPTY). */
-  findMatches: (signal?: AbortSignal) => Promise<void>;
+  /** Asks the service to look for matches (from MATCHES-EMPTY), or waits for the run READY started. */
+  findMatches: () => Promise<void>;
+  /** Whether a search for matches is still running (MATCHES waits for it instead of showing MATCHES-EMPTY). */
+  isFindingMatches: () => boolean;
 };
 
 /** The API (`NEXT_PUBLIC_API_BASE_URL` set) or the marked mock. */

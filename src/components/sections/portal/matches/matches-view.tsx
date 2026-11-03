@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useEffectEvent } from "react";
 import { ActionButton } from "@/components/pieces/actions/action-button";
 import { FormHeader } from "@/components/pieces/forms/form-header";
 import { MatchCard } from "@/components/pieces/cards/match-card";
@@ -46,6 +47,12 @@ export function MatchesView({ tab }: { tab: MatchTab }) {
   }).value;
   const now = useNow();
   const finding = useServiceAction(getAccountPage().profile.loadFailed);
+  const find = () => void finding.run(() => portalService.findMatches()).then(() => reload());
+  const joinSearch = useEffectEvent(find);
+  // Arriving from READY: the auto-matching run is still going, so wait for it instead of showing "no matches".
+  useEffect(() => {
+    if (portalService.isFindingMatches()) joinSearch();
+  }, []);
   if (error && !loaded) return <LoadFailed onRetry={() => void reload()} error={error} />;
   if (!loaded || now === null) return null;
 
@@ -61,7 +68,7 @@ export function MatchesView({ tab }: { tab: MatchTab }) {
         secondary={{
           label: finding.busy ? copy.empty.finding : copy.empty.find,
           busy: finding.busy,
-          onClick: () => void finding.run(() => portalService.findMatches()).then(() => reload()),
+          onClick: find,
         }}
       />
     );

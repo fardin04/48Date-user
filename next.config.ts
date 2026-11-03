@@ -19,11 +19,12 @@ const secureApi = !apiOrigin || apiOrigin.startsWith("https://");
 /**
  * Content Security Policy without nonces (nonces don't work with partial prerendering): scripts
  * only from this site and Google sign-in, requests only to the API and Google, member photos and
- * voice notes from https storage. `'unsafe-eval'` is for React's dev tooling only.
+ * voice notes from https storage. `'unsafe-eval'` is for React's dev tooling only; `'wasm-unsafe-eval'`
+ * lets the selfie check compile its self-hosted WebAssembly (it does not allow JS eval).
  */
 const csp = [
   "default-src 'self'",
-  `script-src 'self' 'unsafe-inline'${isDev ? " 'unsafe-eval'" : ""} ${google}/gsi/client`,
+  `script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval'${isDev ? " 'unsafe-eval'" : ""} ${google}/gsi/client`,
   `style-src 'self' 'unsafe-inline' ${google}/gsi/style`,
   "img-src 'self' blob: data: https:",
   "media-src 'self' blob: https:",
