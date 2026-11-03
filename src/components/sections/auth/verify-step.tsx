@@ -9,6 +9,7 @@ import { CODE_LENGTH, OtpField } from "@/components/pieces/forms/otp-field";
 import { StatusNote } from "@/components/pieces/feedback/status-note";
 import { TypingDots } from "@/components/pieces/content/typing-dots";
 import { Button } from "@/components/ui/button";
+import { DevOtpHint } from "@/components/sections/auth/dev-otp-hint"; // TESTING ONLY
 import type { AuthFlow } from "@/data/auth/flows";
 import type { authShared } from "@/data/auth/shared";
 import { authService } from "@/lib/auth/auth-service";
@@ -105,6 +106,7 @@ export function VerifyStep({ copy, code: text, entry, verified }: VerifyStepProp
         revealDelay={60}
       />
       {note && <StatusNote variant={note.variant} id={noteId} message={note.message} />}
+      {status !== "expired" && <DevOtpHint />}
       {status === "expired" ? (
         <Button type="button" variant="solid" size="pill" width="full" onClick={resend}>
           {text.sendNew}

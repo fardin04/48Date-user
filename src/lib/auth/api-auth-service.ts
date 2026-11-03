@@ -4,6 +4,7 @@ import { tokenStore } from "@/lib/api/tokens";
 import { authErrors } from "@/lib/api/types/auth";
 import type { AuthService, PhoneNumber, SendCodeResult, VerifyCodeResult } from "@/lib/auth/auth-service";
 import { clearMemberData } from "@/lib/auth/member-data";
+import { rememberDevOtp } from "@/components/sections/auth/dev-otp-hint"; // TESTING ONLY
 
 /** E.164: "+880" + "1811000001" (Postman `01 Request Phone OTP`). */
 const e164 = (phone: PhoneNumber) => `${phone.dial}${phone.national}`.replace(/[^\d+]/g, "");
@@ -12,7 +13,8 @@ const limitCodes: string[] = [authErrors.cooldown, authErrors.hourlyLimit, authE
 
 async function requestCode(phone: PhoneNumber): Promise<SendCodeResult> {
   try {
-    await authApi.requestOtp(e164(phone));
+    const { data } = await authApi.requestOtp(e164(phone));
+    rememberDevOtp(data.devOtp); // TESTING ONLY — see dev-otp-hint.tsx
     return "sent";
   } catch (error) {
     return isApiError(error) && limitCodes.includes(error.code) ? "limited" : "failed";
