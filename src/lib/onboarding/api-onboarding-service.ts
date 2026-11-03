@@ -1,3 +1,7 @@
+import { invalidate, onCacheClear } from "@/lib/api/cache";
+import { matchingApi } from "@/lib/api/modules/discovery-api";
+import { cacheKeys } from "@/lib/api/modules/cache-keys";
+import { pause } from "@/lib/format";
 import { isAborted, isApiError } from "@/lib/api/errors";
 import { onboardingApi } from "@/lib/api/modules/onboarding-api";
 import { usersApi } from "@/lib/api/modules/users-api";
@@ -20,6 +24,13 @@ const fromAttempt: Record<VerificationApiStatus, VerificationStatus> = {
   PASSED: "verified",
   FAILED: "retry",
 };
+
+/** The background auto-matching run started from READY; stopped on sign-out. */
+let matching: AbortController | null = null;
+onCacheClear(() => matching?.abort());
+
+/** A review can take a while (manual review): after the stream closes, look again this much later. */
+const REVIEW_RETRY_MS = 15_000;
 
 const fromProfile = (status: string): VerificationStatus =>
   status === "VERIFIED" ? "verified" : status === "PENDING" ? "pending" : status === "REJECTED" || status === "FAILED" ? "retry" : "none";
@@ -145,6 +156,46 @@ export const apiOnboardingService: OnboardingService = {
       return fromProfile(String((await usersApi.me()).data.verificationStatus));
     } catch {
       return "none";
+    }
+  },
+  startMatching() {
+    if (matching) return;
+    const controller = new AbortController();
+    matching = controller;
+    void matchingApi
+      .start(controller.signal)
+      .catch(() => undefined)
+      .finally(() => {
+        if (matching === controller) matching = null;
+      });
+  },
+  /** Follows the attempt's event stream (Users `27`) instead of polling; reads it again only after the stream ends. */
+  async waitForVerification(signal) {
+    for (;;) {
+      const attempt = storedAttempt();
+      if (attempt) {
+        let latest: VerificationStatus = "pending";
+        try {
+          await onboardingApi.verificationEvents(
+            attempt,
+            ({ data }) => {
+              const status = typeof data === "object" && data !== null ? (data as { status?: VerificationApiStatus }).status : undefined;
+              if (status) latest = fromAttempt[status] ?? "pending";
+              return latest !== "pending";
+            },
+            signal,
+          );
+        } catch (error) {
+          if (signal.aborted) throw error;
+        }
+        if (latest !== "pending") {
+          invalidate(cacheKeys.me, cacheKeys.verification);
+          return latest;
+        }
+      }
+      const current = await apiOnboardingService.getVerification();
+      if (current !== "pending") return current;
+      await pause(REVIEW_RETRY_MS, signal);
     }
   },
 };

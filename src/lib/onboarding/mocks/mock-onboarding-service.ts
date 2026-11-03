@@ -1,3 +1,4 @@
+import { pause } from "@/lib/format";
 import { searchAreaList } from "@/lib/onboarding/area-search";
 import type { NicknameCheck, OnboardingService, VerificationStatus } from "@/lib/onboarding/onboarding-service";
 
@@ -19,6 +20,8 @@ const taken: Record<string, Extract<NicknameCheck, { available: false }>> = {
   goldenhour: { available: false, suggestions: ["GoldenHour_28", "CityGolden", "CityLights"], recommended: "CityLights" },
 };
 
+/** How often a review in progress is checked (the mock decides after ~6s). */
+const CHECK_MS = 1000;
 const REVIEW_MS = 6000;
 /** Average luma (0–255) under which the mock asks for another selfie. */
 const MIN_BRIGHTNESS = 50;
@@ -97,5 +100,14 @@ export const mockOnboardingService: OnboardingService = {
     const review = readReview();
     if (!review) return "none";
     return Date.now() - review.submittedAt < REVIEW_MS ? "pending" : review.outcome;
+  },
+  // The mock's sample matches are already there.
+  startMatching() {},
+  async waitForVerification(signal) {
+    for (;;) {
+      const current = await mockOnboardingService.getVerification();
+      if (current !== "pending") return current;
+      await pause(CHECK_MS, signal);
+    }
   },
 };

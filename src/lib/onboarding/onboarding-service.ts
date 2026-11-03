@@ -51,6 +51,13 @@ export type OnboardingService = {
   /** Sends the selfie for private review; the review result arrives later through `getVerification`. */
   submitSelfie: (selfie: Blob) => Promise<VerificationStatus>;
   getVerification: () => Promise<VerificationStatus>;
+  /**
+   * READY "Start discovering": the service starts looking for matches in the background (they
+   * appear on DISCOVER as MATCH-NEW). Never blocks the screen.
+   */
+  startMatching: () => void;
+  /** Resolves once a selfie in review has a result (verified or retry); aborting stops waiting. */
+  waitForVerification: (signal: AbortSignal) => Promise<VerificationStatus>;
 };
 
 /** The API (`NEXT_PUBLIC_API_BASE_URL` set) or the marked mock. */
