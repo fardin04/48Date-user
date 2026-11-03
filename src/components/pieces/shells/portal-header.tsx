@@ -18,16 +18,16 @@ type PortalHeaderProps = {
 };
 
 /**
- * "48Date / Web Header": logo, the four member areas (labels hide below 640px, names stay
- * readable to assistive tech) and the notifications / profile menu.
+ * "48Date / Web Header": logo, the four member areas (icon tiles from 640 to 1023px; phones
+ * move them to `PortalTabBar`) and the notifications / profile menu.
  */
 export function PortalHeader({ active, className, revealDelay }: PortalHeaderProps) {
   const shell = getPortalShell();
   return (
     <Reveal as="header" delay={revealDelay} className={cn("flex h-22 items-center justify-between gap-4 bg-white px-6 max-sm:px-4", className)}>
       <Logo size="header" to={to("DISCOVER")} label={shell.homeLabel} />
-      <nav aria-label={shell.navLabel} className="bg-gray-25">
-        <ul className="flex gap-6 max-sm:gap-4">
+      <nav aria-label={shell.navLabel} className="bg-gray-25 max-sm:hidden">
+        <ul className="flex gap-6">
           {shell.nav.map((item) => {
             const current = item.label === active;
             return (
@@ -37,7 +37,7 @@ export function PortalHeader({ active, className, revealDelay }: PortalHeaderPro
                   aria-current={current ? "page" : undefined}
                   className={cn(
                     "focus-ring flex h-14 items-center gap-2 rounded-9 transition-opacity hover:opacity-75",
-                    // 640–1023 ("Web Header / Portrait"): each destination is a 56px grey icon tile; phones keep bare icons.
+                    // 640–1023 ("Web Header / Portrait"): each destination is a 56px grey icon tile.
                     "max-lg:justify-center sm:max-lg:w-14 sm:max-lg:rounded-10 sm:max-lg:bg-row-pill",
                     current ? textTones.rose : textTones.navInk,
                   )}

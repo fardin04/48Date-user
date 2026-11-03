@@ -31,10 +31,10 @@ export type InterestOption = { id: string; key: string; label: string };
 export type StepOptions = { fields: Partial<Record<DraftField, SelectOption[]>>; interests: InterestOption[] };
 
 /**
- * Answers saved earlier (another device, a previous visit). `resumeAt` is the first screen with a
- * required step the API still lists as pending (none once every required step is saved).
+ * Answers saved earlier (another device, a previous visit). `pending` lists, in setup order, the
+ * screens with a required step the API still lists as pending (none once every required step is saved).
  */
-export type SavedProgress = { completed: boolean; draft: Partial<ProfileDraft>; resumeAt?: OnboardingStep };
+export type SavedProgress = { completed: boolean; draft: Partial<ProfileDraft>; pending?: OnboardingStep[] };
 
 /**
  * Contract the onboarding screens talk to (handoff: "Any prototype timeout illustrates a

@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { PortalHeader } from "@/components/pieces/shells/portal-header";
+import { PortalTabBar } from "@/components/pieces/shells/portal-tab-bar";
 import { SessionGate } from "@/components/pieces/shells/session-gate";
 import { SetupGate } from "@/components/pieces/shells/setup-gate";
 
@@ -11,17 +12,19 @@ type PortalShellProps = {
 
 /**
  * Member portal frame (W04, 1440 frames): web header over the grey workspace. The 1280px
- * column keeps 80px gutters at 1440 and narrows to 48 / 32 / 16px.
+ * column keeps 80px gutters at 1440 and narrows to 48 / 32 / 16px. Phones navigate from the
+ * bottom tab bar, so the workspace leaves room for it.
  */
 export function PortalShell({ active, children }: PortalShellProps) {
   return (
     <div className="min-h-svh bg-gray-50">
       <PortalHeader active={active} />
-      <main className="mx-auto flex w-full max-w-360 flex-col gap-6 p-4 sm:p-6 xl:px-20 xl:py-8">
+      <main className="mx-auto flex w-full max-w-360 flex-col gap-6 p-4 max-sm:pb-24 sm:p-6 xl:px-20 xl:py-8">
         <SessionGate allow="member" redirect="SIGNIN">
           <SetupGate>{children}</SetupGate>
         </SessionGate>
       </main>
+      <PortalTabBar active={active} />
     </div>
   );
 }

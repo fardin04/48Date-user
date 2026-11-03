@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { replayFetch, type Call } from "./postman-replay";
+import type { StepInput } from "@/lib/onboarding/onboarding-service";
 
 /**
  * Contract tests: the real API services (TanStack cache, client, rate limits, SSE parsing) run
@@ -293,7 +294,26 @@ describe("live API shapes", () => {
     vi.stubGlobal("localStorage", { getItem: (k: string) => store.get(k) ?? null, setItem: (k: string, v: string) => store.set(k, v), removeItem: (k: string) => store.delete(k), key: () => null, length: 0 });
     expect(await auth.verifyCode({ dial: "+880", national: "1811000077" }, "123456")).toBe("verified");
     expect(auth.setupState()).toBe("onboarding");
-    expect(await onboarding.getProgress()).toMatchObject({ completed: false, resumeAt: "nickname" });
+    expect(await onboarding.getProgress()).toMatchObject({ completed: false, pending: ["nickname", "privateName", "birthday", "photos"] });
+  });
+
+  it("sends interleaved steps in the API's order, holding answers back until the API can take them", async () => {
+    const order = ["birthday", "smoking", "drinking", "gender", "kids", "interested_in", "interests", "height"];
+    const steps = order.map((step) => ({ step, name: step, required: true, state: step === "birthday" ? "DONE" : "PENDING" }));
+    const { onboarding } = await load({
+      "GET /onboarding": ok({ onboardingStatus: "IN_PROGRESS", nextStep: "smoking", progressPercent: 20, steps, savedValues: {} }),
+    });
+    const fields = { identity: "WOMAN", meet: "EVERYONE", smoking: "NEVER", alcohol: "SOCIALLY", children: "false", familyPlans: "true" };
+    const draft = { fields, interests: [] } as unknown as StepInput["draft"];
+    const puts = () => calls.filter((call) => call.method === "PUT").map((call) => call.path.split("/").pop());
+    // LIFESTYLE first: kids waits for gender (IDENTITY, the next screen).
+    expect(await onboarding.saveStep("lifestyle", { draft })).toEqual({ ok: true });
+    expect(puts()).toEqual(["smoking", "drinking"]);
+    // As the API now reports (the fake serves this array on every read).
+    for (const entry of steps) if (entry.step === "smoking" || entry.step === "drinking") entry.state = "DONE";
+    // IDENTITY then sends gender, the waiting kids answer and interested_in, in the API's order.
+    expect(await onboarding.saveStep("identity", { draft })).toEqual({ ok: true });
+    expect(puts().slice(2)).toEqual(["gender", "kids", "interested_in"]);
   });
 
   it("reads the date partner's live fields (mainPhotoUrl, isVerified)", async () => {

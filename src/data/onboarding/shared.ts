@@ -12,7 +12,7 @@ export const onboardingShared = {
     navLabel: "Profile setup progress",
     stages: [
       { key: "about", title: "About you", description: "Your name, age and area", icon: "user-circle", lastStep: 4 },
-      { key: "lifestyle", title: "Your lifestyle", description: "The details that make you, you", icon: "coffee-01", lastStep: 7 },
+      { key: "lifestyle", title: "Your lifestyle", description: "The details that make you, you", icon: "coffee-01", lastStep: 8 },
       { key: "connection", title: "Your connection", description: "Interests and honest intentions", icon: "favourite", lastStep: 11 },
       { key: "photos", title: "Photos & trust", description: "Show up as your real self", icon: "camera-01", lastStep: 13 },
       { key: "final", title: "Final touches", description: "Make room for a real connection", icon: "checkmark-circle-02", lastStep: 15 },

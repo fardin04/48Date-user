@@ -6,6 +6,7 @@ import { useEffect } from "react";
 import type { OnboardingStep } from "@/data/onboarding/types";
 import { onboardingService } from "@/lib/onboarding/onboarding-service";
 import { profileDraft } from "@/lib/onboarding/profile-draft";
+import { screenAnswered } from "@/lib/onboarding/step-payloads";
 import { stepDestination, stepHref } from "@/lib/onboarding/steps";
 import { hrefFor } from "@/lib/routes";
 import { screenKeys } from "@/lib/screen-keys";
@@ -13,12 +14,6 @@ import { getOnboardingFlow } from "@/stores/onboarding-store";
 
 /** Progress is read once per page load, not on every step. */
 let checked = false;
-
-/** Steps with no API step of their own; asked again when the draft (this tab) doesn't have them. */
-const LOCAL_STEPS: { step: OnboardingStep; field: "personality" | "communication" }[] = [
-  { step: "personality", field: "personality" },
-  { step: "communication", field: "communication" },
-];
 
 /**
  * Restores answers saved earlier (another device, a previous visit) into the draft without
@@ -52,11 +47,9 @@ export function OnboardingResume({ step }: { step: OnboardingStep }) {
         area: current.area ?? saved.area,
       }));
       const draft = profileDraft.read();
-      let resume = progress.resumeAt;
-      // The local-only steps sit just before photos: ask them first if this tab never answered them.
-      if (resume && flow[resume].number >= flow.photos.number) {
-        resume = LOCAL_STEPS.find(({ field }) => !draft.fields[field])?.step ?? resume;
-      }
+      // Answers waiting in this tab for the API's order (see `saveStep`) don't need asking again.
+      // PERSONALITY and COMMUNICATION have no API step, so they never hold a member back.
+      const resume = progress.pending?.find((screen) => !screenAnswered(screen, draft));
       if (!resume || resume === step) return;
       if (step === "location" || flow[step].number > flow[resume].number) router.replace(stepHref(resume));
     }).catch(() => undefined);

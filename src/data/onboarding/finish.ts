@@ -22,8 +22,18 @@ export const photosStep = {
       { value: "camera", icon: "camera-01", title: "Take a photo", description: "Use your device camera" },
     ] satisfies Choice[],
     primary: "Choose photos",
+    /** Primary while "Take a photo" is selected (design-silent). */
+    cameraPrimary: "Open camera",
     /** Figma has no state for this; shown when a file fails the checks below. */
     invalid: "Choose a JPG, PNG or WebP photo under 10 MB.",
+  },
+  /** The camera view behind "Take a photo" (design-silent copy, for owner approval). */
+  camera: {
+    intro: { title: "Take a photo", description: "Face the camera in good light, then take your photo." },
+    videoLabel: "Camera preview",
+    primary: "Take photo",
+    fileName: "photo.jpg",
+    failed: "We couldn’t open your camera. Allow camera access in your browser, or choose from your photos.",
   },
   preview: {
     intro: { title: "Looking good", description: "Check the crop before adding this photo to your profile." },

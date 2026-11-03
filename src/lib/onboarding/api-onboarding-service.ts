@@ -11,10 +11,10 @@ import { getOnboardingFlow } from "@/stores/onboarding-store";
 import { MEMBER_PREFIX } from "@/lib/auth/member-data";
 import { setupStatus } from "@/lib/auth/setup-status";
 import { searchAreaList } from "@/lib/onboarding/area-search";
-import type { OnboardingService, SaveResult, SavedProgress, Verification, VerificationStatus } from "@/lib/onboarding/onboarding-service";
+import type { OnboardingService, SaveResult, SavedProgress, StepInput, Verification, VerificationStatus } from "@/lib/onboarding/onboarding-service";
 import { toStepOptions } from "@/lib/onboarding/options";
 import type { ProfileDraft } from "@/lib/onboarding/profile-draft";
-import { stepCalls } from "@/lib/onboarding/step-payloads";
+import { isAnswered, stepCalls, type StepCall } from "@/lib/onboarding/step-payloads";
 
 /**
  * The latest verification attempt, so a reload or another tab can read its result (localStorage,
@@ -24,6 +24,7 @@ import { stepCalls } from "@/lib/onboarding/step-payloads";
 const VERIFICATION_KEY = `${MEMBER_PREFIX}verification`;
 
 const fallbackMessage = "We couldn’t save this step. Check your connection and try again.";
+const missingStep = "Please go back and answer “{step}” first.";
 
 const fromAttempt: Record<string, VerificationStatus> = {
   QUEUED: "pending",
@@ -100,14 +101,44 @@ const screenOf: Partial<Record<ApiStepKey, OnboardingStep>> = {
   notifications: "notify",
 };
 
-/** The earliest screen (in setup order) that still has a required step to save. */
-function resumeAt(state: OnboardingStateData): OnboardingStep | undefined {
+/** The screens (in setup order) that still have a required step to save. */
+function pendingScreens(state: OnboardingStateData): OnboardingStep[] {
   const flow = getOnboardingFlow();
-  return state.steps
+  const screens = state.steps
     .filter((step) => step.required && step.state === "PENDING")
     .map((step) => screenOf[step.step])
-    .filter((screen): screen is OnboardingStep => screen !== undefined)
-    .sort((a, b) => flow[a].number - flow[b].number)[0];
+    .filter((screen): screen is OnboardingStep => screen !== undefined);
+  return [...new Set(screens)].sort((a, b) => flow[a].number - flow[b].number);
+}
+
+/**
+ * The API takes each step only once every required step before it is saved, in its own order
+ * (smoking, drinking, gender, kids, interested_in, interests, height…), which interleaves the
+ * screens. A screen's answers go out, with the answered ones of earlier screens still waiting,
+ * as far as the API order allows; the rest wait in the draft for the screen that unblocks them.
+ */
+async function sendInOrder(step: OnboardingStep, input: StepInput) {
+  const flow = getOnboardingFlow();
+  const calls = new Map<ApiStepKey, StepCall>();
+  for (const earlier of Object.keys(flow) as OnboardingStep[]) {
+    if (flow[earlier].number >= flow[step].number) continue;
+    for (const call of stepCalls(earlier, { draft: input.draft })) if (isAnswered(call)) calls.set(call.step, call);
+  }
+  const own = stepCalls(step, input);
+  for (const call of own) calls.set(call.step, call);
+  const { data } = await onboardingApi.state();
+  for (const { step: key, name, required, state } of data.steps) {
+    const call = calls.get(key);
+    if (call && (state === "PENDING" || own.includes(call))) {
+      setupStatus.fromApi((await onboardingApi.saveStep(call.step, call.body)).data.onboardingStatus);
+    } else if (!call && required && state === "PENDING") {
+      // Waiting for a later screen is fine; a missing earlier answer is not.
+      const owner = screenOf[key];
+      if (owner && flow[owner].number > flow[step].number) return { ok: true } as const;
+      return { ok: false, message: missingStep.replace("{step}", name) } as const;
+    }
+  }
+  return { ok: true } as const;
 }
 
 /** `GET /onboarding` saved values → the draft fields of each screen (the real name is never returned). */
@@ -134,10 +165,9 @@ function toProgress(state: OnboardingStateData): SavedProgress {
   const interests = Array.isArray(saved.interests?.interestIds) ? (saved.interests.interestIds as string[]) : undefined;
   const city = value("location", "city");
   const completed = state.onboardingStatus === "COMPLETED";
-  const resume = completed ? undefined : resumeAt(state);
   return {
     completed,
-    ...(resume ? { resumeAt: resume } : {}),
+    ...(completed ? {} : { pending: pendingScreens(state) }),
     draft: {
       fields: Object.fromEntries(Object.entries(fields).filter(([, entry]) => entry !== undefined)),
       ...(interests ? { interests } : {}),
@@ -187,9 +217,7 @@ export const apiOnboardingService: OnboardingService = {
   },
   async saveStep(step, input) {
     try {
-      // In order: the API advances `nextStep` one step at a time.
-      for (const { step: key, body } of stepCalls(step, input)) setupStatus.fromApi((await onboardingApi.saveStep(key, body)).data.onboardingStatus);
-      return { ok: true };
+      return await sendInOrder(step, input);
     } catch (error) {
       return failure(error);
     }

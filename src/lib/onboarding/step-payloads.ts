@@ -66,3 +66,15 @@ export function stepCalls(step: OnboardingStep, { draft, photos, location }: Ste
       return [];
   }
 }
+
+const filled = (value: unknown) =>
+  typeof value === "string" ? value !== "" : typeof value === "number" ? Number.isFinite(value) && value > 0 : Array.isArray(value) ? value.length > 0 : true;
+
+/** Whether the draft holds every value this call sends. */
+export const isAnswered = ({ body }: StepCall) => Object.values(body).every(filled);
+
+/** Whether a screen with API steps has all its answers in the draft (photos are never in the draft). */
+export function screenAnswered(step: OnboardingStep, draft: StepInput["draft"]) {
+  const calls = stepCalls(step, { draft });
+  return calls.length > 0 && calls.every(isAnswered);
+}
