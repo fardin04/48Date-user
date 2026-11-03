@@ -33,3 +33,33 @@ export function hasPassed(iso: string, minutes: number, now = new Date()) {
   const [year, month, day] = iso.split("-").map(Number);
   return new Date(year, month - 1, day, Math.floor(minutes / 60), minutes % 60) <= now;
 }
+
+/** Minutes the zone is ahead of UTC at `utcMs` (an unknown zone is read as UTC). */
+function zoneOffset(utcMs: number, timeZone: string) {
+  let parts: Intl.DateTimeFormatPart[];
+  try {
+    parts = new Intl.DateTimeFormat("en-US", { timeZone, hourCycle: "h23", year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" }).formatToParts(utcMs);
+  } catch {
+    return 0;
+  }
+  const part = (type: Intl.DateTimeFormatPartTypes) => Number(parts.find((item) => item.type === type)?.value ?? 0);
+  const wall = Date.UTC(part("year"), part("month") - 1, part("day"), part("hour") % 24, part("minute"));
+  return Math.round((wall - Math.floor(utcMs / 60_000) * 60_000) / 60_000);
+}
+
+/** A day and time as read on the wall clock in `timeZone` → the instant, as ISO 8601 (the API's `scheduledAt`). */
+export function zonedToIso(day: string, minutes: number, timeZone: string) {
+  const [year, month, date] = day.split("-").map(Number);
+  const wall = Date.UTC(year, month - 1, date, Math.floor(minutes / 60), minutes % 60);
+  let utc = wall - zoneOffset(wall, timeZone) * 60_000;
+  // Across a daylight-saving change the first guess can be an hour out.
+  utc = wall - zoneOffset(utc, timeZone) * 60_000;
+  return new Date(utc).toISOString();
+}
+
+/** An instant → its day (`YYYY-MM-DD`) and minutes after midnight on the wall clock in `timeZone`. */
+export function isoToZoned(iso: string, timeZone: string) {
+  const utc = Date.parse(iso);
+  const wall = new Date(utc + zoneOffset(utc, timeZone) * 60_000);
+  return { day: wall.toISOString().slice(0, 10), minutes: wall.getUTCHours() * 60 + wall.getUTCMinutes() };
+}
