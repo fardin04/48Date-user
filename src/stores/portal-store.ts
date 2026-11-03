@@ -1,0 +1,42 @@
+import { accountPage, signInMethodsCopy, warningCopy } from "@/data/portal/account";
+import { chatPage, inboxPage } from "@/data/portal/chats";
+import { datePage, liveVenueCopy, venues, type VenueId } from "@/data/portal/dates";
+import { gamePage } from "@/data/portal/games";
+import { liveStoryCopy, stories, storiesPage } from "@/data/portal/stories";
+import { compatPage, discoverPage, filtersPage, profilePage } from "@/data/portal/discover";
+import { matchDetailPage, matchesPage } from "@/data/portal/matches";
+import { membershipPage, plans, type PlanId } from "@/data/portal/membership";
+import { memberAvatar, memberCopy, members } from "@/data/portal/members";
+import { portalShell } from "@/data/portal/shell";
+import { isSampleMember, type MemberId } from "@/data/portal/types";
+
+export const getPortalShell = () => portalShell;
+export const getMemberAvatar = () => memberAvatar;
+/** A sample member (mocks and prerendered pages); undefined for any other id. */
+export const getMember = (id: MemberId) => (isSampleMember(id) ? members[id] : undefined);
+/** The name a member goes by: the sample's name, or the id itself (the API's nickname). */
+export const getMemberName = (id: MemberId) => getMember(id)?.name ?? id;
+export const getMemberCopy = () => memberCopy;
+export const getMembers = () => members;
+export const getDiscoverPage = () => discoverPage;
+export const getFiltersPage = () => filtersPage;
+export const getProfilePage = () => profilePage;
+export const getCompatPage = () => compatPage;
+export const getMatchesPage = () => matchesPage;
+export const getMatchDetailPage = () => matchDetailPage;
+export const getInboxPage = () => inboxPage;
+export const getChatPage = () => chatPage;
+export const getDatePage = () => datePage;
+export const getVenues = () => venues;
+export const getLiveVenueCopy = () => liveVenueCopy;
+export const getVenue = (id: VenueId) => venues.find((venue) => venue.id === id) ?? venues[0];
+export const getGamePage = () => gamePage;
+export const getStoriesPage = () => storiesPage;
+export const getStories = () => stories;
+export const getLiveStoryCopy = () => liveStoryCopy;
+export const getAccountPage = () => accountPage;
+export const getWarningCopy = () => warningCopy;
+export const getSignInMethodsCopy = () => signInMethodsCopy;
+export const getMembershipPage = () => membershipPage;
+export const getPlans = () => plans;
+export const getPlan = (id: PlanId) => plans.find((plan) => plan.id === id) ?? plans[0];
