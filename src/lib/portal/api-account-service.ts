@@ -12,10 +12,12 @@ import { trustApi } from "@/lib/api/modules/trust-api";
 import { usersApi } from "@/lib/api/modules/users-api";
 import type { ReportReasonGroup } from "@/lib/api/types/trust";
 import type { LookingFor } from "@/lib/api/types/onboarding";
-import type { MeData } from "@/lib/api/types/users";
+import type { MeData, UpdateLocationBody } from "@/lib/api/types/users";
 import { fill } from "@/lib/format";
+import { nearestArea, searchAreaList } from "@/lib/onboarding/area-search";
 import { toStepOptions } from "@/lib/onboarding/options";
-import type { AccountService, FieldErrors } from "@/lib/portal/account-service";
+import { approximate } from "@/lib/onboarding/step-payloads";
+import type { AccountService, FieldErrors, LocationChoice } from "@/lib/portal/account-service";
 import { formatDayMonth } from "@/lib/portal/date-format";
 import { mediaUrl } from "@/lib/portal/api-members";
 import { mockAccountService } from "@/lib/portal/mocks/mock-account-service";
@@ -73,6 +75,32 @@ function catalogueEntry(groups: ReportReasonGroup[], reason: ReportReason) {
   );
 }
 
+/** The area a saved location is shown as: its city, or "near you" for a position with no name. */
+const areaOf = (location: Pick<NonNullable<MeData["location"]>, "city"> | null | undefined) =>
+  location ? location.city || getAccountPage().location.nearYou : null;
+
+/**
+ * `PATCH /users/me/location` merges what it is sent, so every change sends all three names (null
+ * clears them) and a new position never keeps the previous city. The API doesn't geocode: a
+ * device position is named after the starter area it falls in, when there is one.
+ */
+function locationBody(choice: LocationChoice): UpdateLocationBody {
+  if (choice.kind === "area") {
+    const [latitude, longitude] = choice.area.center;
+    return { latitude, longitude, city: choice.area.name, region: null, countryCode: choice.area.countryCode, source: "MANUAL" };
+  }
+  const near = nearestArea(choice.latitude, choice.longitude);
+  return {
+    latitude: approximate(choice.latitude),
+    longitude: approximate(choice.longitude),
+    city: near?.name ?? null,
+    region: null,
+    countryCode: near?.countryCode ?? null,
+    permission: "WHILE_IN_USE",
+    source: "GPS",
+  };
+}
+
 const failureMessage = (error: unknown) => (isApiError(error) ? error.message : getAccountPage().account.failed);
 
 function toPublicProfile(me: MeData): PublicProfile {
@@ -103,7 +131,7 @@ export const apiAccountService: AccountService = {
     return {
       nickname: me.nickname,
       age: me.age,
-      area: me.location?.city ?? null,
+      area: areaOf(me.location),
       bio: me.bio ?? "",
       interests: me.interests.map((interest) => interest.label),
       facts: [
@@ -150,6 +178,21 @@ export const apiAccountService: AccountService = {
   },
   async saveAccount() {
     return { ok: false, errors: {}, message: getAccountPage().account.unavailable };
+  },
+  async getLocation() {
+    const { data: me } = await usersApi.me();
+    return areaOf(me.location);
+  },
+  async saveLocation(choice) {
+    try {
+      const { data } = await usersApi.updateLocation(locationBody(choice));
+      return areaOf(data) ?? getAccountPage().location.nearYou;
+    } catch (error) {
+      throw new Error(isApiError(error) ? error.message : getAccountPage().location.failed);
+    }
+  },
+  async searchAreas(query) {
+    return searchAreaList(query);
   },
   async getPhotos() {
     const { data: me } = await usersApi.me();

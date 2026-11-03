@@ -8,7 +8,7 @@ export type StepCall = { [S in keyof StepBodies]: { step: S; body: StepBodies[S]
 const call = <S extends keyof StepBodies>(step: S, body: StepBodies[S]): StepCall => ({ step, body }) as StepCall;
 
 /** Keeps about 1 km of precision: the API needs a position, the member's exact one is never sent. */
-const approximate = (degrees: number) => Math.round(degrees * 100) / 100;
+export const approximate = (degrees: number) => Math.round(degrees * 100) / 100;
 
 /**
  * A screen's answers → the API steps it covers (Postman 06–24). Several screens cover more than one

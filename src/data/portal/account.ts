@@ -100,6 +100,7 @@ export const accountPage = {
     trustHelp: "Request a trust review",
     settings: "Your settings",
     account: "Account information",
+    location: "Your location",
     notifyPrefs: "Stay in the loop",
     privacy: "Privacy & safety",
     blocked: "Blocked members",
@@ -133,6 +134,8 @@ export const accountPage = {
     pending: "Verification pending",
     trust: { label: "Trust Score", value: "4.9 Excellent", to: to("TRUST") },
     managePhotos: { label: "Manage photos", to: to("PHOTO-MANAGE") } satisfies Action,
+    /** Under the area (design-silent). */
+    changeLocation: { label: "Change location", to: to("SETTINGS-LOCATION") } satisfies Action,
     completeVerification: { label: "Complete verification", to: to("VERIFY-INTRO") } satisfies Action,
     bioTitle: "My bio",
     interestsLabel: "Interests",
@@ -296,6 +299,7 @@ export const accountPage = {
     open: "Open",
     links: [
       { label: "Account information", to: to("ACCOUNT") },
+      { label: "Location", to: to("SETTINGS-LOCATION") },
       { label: "Your verification", to: to("VERIFY-INTRO") },
       { label: "Matching preferences", to: to("FILTERS") },
       { label: "Notifications", to: to("NOTIFY-PREFS") },
@@ -314,6 +318,30 @@ export const accountPage = {
       keep: "Stay signed in",
       close: "Close",
     },
+  },
+  /** SETTINGS-LOCATION: change the approximate area used for matching (design-silent, for owner approval). */
+  location: {
+    back: back("SETTINGS"),
+    title: "Your location",
+    description: "Used to find people and public meeting places near you. Only your approximate area is shown on your profile.",
+    currentLabel: "Current area",
+    none: "Not set",
+    /** Shown for a shared position that isn't near a listed area. */
+    nearYou: "Near your current location",
+    device: "Use my current location",
+    locating: "Finding your area…",
+    or: "or",
+    field: { label: "Choose an area", placeholder: "Search a city" },
+    resultsLabel: "Matching areas",
+    noResult: "No matching area. Try a nearby city.",
+    /** `{area}` is the chosen area's short name. */
+    save: "Use {area}",
+    saving: "Saving…",
+    /** `{area}` is the saved area. */
+    saved: "Your location is now {area}.",
+    denied: "Location access is off. Allow it in your browser settings, or choose an area below.",
+    unavailable: "We couldn’t find your position. Choose an area below.",
+    failed: "We couldn’t save your location. Check your connection and try again.",
   },
   account: {
     back: back("SETTINGS"),

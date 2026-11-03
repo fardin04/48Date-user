@@ -2,12 +2,13 @@ import { notificationKeys, type AccountDetails, type NotificationPrefs, type Pub
 import { getAccountPage, getMemberAvatar } from "@/stores/portal-store";
 import type { AccountService } from "@/lib/portal/account-service";
 import { checkAccount, checkProfile } from "@/lib/portal/account-rules";
+import { nearestArea, searchAreaList } from "@/lib/onboarding/area-search";
 
 /**
  * MOCK — stands in for the profile API so every W09 state can be reviewed.
  * Not for production: replace `accountService` in ./account-service.ts.
  *
- * - Profile, account details and notification choices live in sessionStorage for this tab,
+ * - Profile, account details, the area and notification choices live in sessionStorage for this tab,
  *   validated on read; photos, reports, trust reviews and deletion requests are not kept.
  * - Every write fails while the browser is offline (the forms keep their values).
  * - Saves run the same rules the forms check first (./account-rules.ts), as the server would.
@@ -15,7 +16,9 @@ import { checkAccount, checkProfile } from "@/lib/portal/account-rules";
 const STORAGE_KEY = "48date.mock.account";
 const LATENCY_MS = 700;
 
-type Stored = { profile: PublicProfile; account: AccountDetails; notifications: NotificationPrefs };
+type Stored = { profile: PublicProfile; account: AccountDetails; notifications: NotificationPrefs; area: string | null };
+
+const AREA_MAX = 80;
 
 const isRecord = (value: unknown): value is Record<string, unknown> => typeof value === "object" && value !== null && !Array.isArray(value);
 const text = (value: unknown, fallback: string, max: number) => (typeof value === "string" ? value.slice(0, max) : fallback);
@@ -60,7 +63,12 @@ function read(): Stored {
     // Unreadable: start from the samples.
   }
   const stored = isRecord(value) ? value : {};
-  return { profile: validProfile(stored.profile), account: validAccount(stored.account), notifications: validNotifications(stored.notifications) };
+  return {
+    profile: validProfile(stored.profile),
+    account: validAccount(stored.account),
+    notifications: validNotifications(stored.notifications),
+    area: typeof stored.area === "string" && stored.area !== "" ? stored.area.slice(0, AREA_MAX) : null,
+  };
 }
 
 function write(change: Partial<Stored>) {
@@ -87,7 +95,7 @@ export const mockAccountService: AccountService = {
     return {
       nickname: profile.nickname,
       age: defaults.age,
-      area: null,
+      area: read().area,
       bio: profile.bio,
       interests: profile.interests,
       facts: [
@@ -127,6 +135,20 @@ export const mockAccountService: AccountService = {
     if (Object.keys(errors).length > 0) return { ok: false, errors };
     write({ account: validAccount(account) });
     return { ok: true };
+  },
+  async getLocation() {
+    return read().area;
+  },
+  async saveLocation(choice) {
+    await send().catch(() => {
+      throw new Error(getAccountPage().location.failed);
+    });
+    const area = choice.kind === "area" ? choice.area.name : (nearestArea(choice.latitude, choice.longitude)?.name ?? getAccountPage().location.nearYou);
+    write({ area });
+    return area;
+  },
+  async searchAreas(query) {
+    return searchAreaList(query);
   },
   async getPhotos() {
     return [{ url: getAccountPage().photo.src }];

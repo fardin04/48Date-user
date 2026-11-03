@@ -79,6 +79,7 @@ export const screens = {
   "TRUST-HELP": "/profile/trust/review",
   SETTINGS: "/settings",
   ACCOUNT: "/settings/account",
+  "SETTINGS-LOCATION": "/settings/location",
   "NOTIFY-PREFS": "/settings/notifications",
   PRIVACY: "/settings/privacy",
   BLOCKED: "/settings/blocked",

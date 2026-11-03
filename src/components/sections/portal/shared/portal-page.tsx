@@ -20,6 +20,7 @@ import {
   getProfilePage,
 } from "@/stores/portal-store";
 import { AccountView } from "@/components/sections/portal/settings/account-view";
+import { LocationView } from "@/components/sections/portal/settings/location-view";
 import { BlockedView } from "@/components/sections/portal/settings/blocked-view";
 import { ChatView } from "@/components/sections/portal/chats/chat-view";
 import { CheckoutView } from "@/components/sections/portal/membership/checkout-view";
@@ -64,6 +65,7 @@ const accountViews = {
   "TRUST-HELP": { title: "trustHelp", View: TrustHelpView },
   SETTINGS: { title: "settings", View: SettingsView },
   ACCOUNT: { title: "account", View: AccountView },
+  "SETTINGS-LOCATION": { title: "location", View: LocationView },
   "NOTIFY-PREFS": { title: "notifyPrefs", View: NotifyPrefsView },
   PRIVACY: { title: "privacy", View: PrivacyView },
   BLOCKED: { title: "blocked", View: BlockedView },

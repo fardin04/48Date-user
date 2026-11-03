@@ -21,7 +21,7 @@ export type PortalArea =
 /** W09 and W10 screens, one URL each, grouped by the area that serves them. */
 export const accountScreens = {
   profile: ["PROFILE", "PROFILE-EDIT", "PHOTO-MANAGE", "TRUST", "TRUST-HISTORY", "TRUST-HELP"],
-  settings: ["SETTINGS", "ACCOUNT", "NOTIFY-PREFS", "PRIVACY", "BLOCKED", "DELETE-ACCOUNT"],
+  settings: ["SETTINGS", "ACCOUNT", "SETTINGS-LOCATION", "NOTIFY-PREFS", "PRIVACY", "BLOCKED", "DELETE-ACCOUNT"],
   notifications: ["NOTIFICATIONS"],
   membership: ["MEMBERSHIP", "PLANS", "PAY-RESTORE", "PAY-CANCEL", "QUOTA"],
 } as const satisfies Partial<Record<PortalArea, readonly ScreenCode[]>>;

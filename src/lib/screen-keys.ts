@@ -28,6 +28,8 @@ export const screenKeys = {
   profile: [...cacheKeys.me, "profile"],
   photos: [...cacheKeys.me, "photos"],
   account: [...cacheKeys.me, "account"],
+  location: [...cacheKeys.me, "location"],
+  locationAreas: (query: string) => ["settings", "areas", query.trim().toLowerCase()],
   signInMethods: [...cacheKeys.authMethods, "screen"],
   trust: [...cacheKeys.trustScore, "screen"],
   trustHistory: [...cacheKeys.trustHistory, "screen"],

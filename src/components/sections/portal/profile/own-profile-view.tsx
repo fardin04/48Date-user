@@ -3,6 +3,7 @@
 import { liveData } from "@/lib/portal/live";
 import Image from "next/image";
 import { ActionButton } from "@/components/pieces/actions/action-button";
+import { ActionLink } from "@/components/pieces/actions/action-link";
 import { ActionTarget } from "@/components/pieces/actions/action-target";
 import { CardHeading } from "@/components/pieces/content/card-heading";
 import { Chip } from "@/components/pieces/content/chip";
@@ -74,9 +75,14 @@ export function OwnProfileView() {
           <Text as="h2" id="own-name" variant="text20SemiboldSnug" tone="strong">
             {overview.age === null ? overview.nickname : fill(copy.headline, { name: overview.nickname, age: overview.age })}
           </Text>
-          <Text variant="text14SemiboldRelaxed" tone="sub">
-            {area}
-          </Text>
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+            {area && (
+              <Text variant="text14SemiboldRelaxed" tone="sub">
+                {area}
+              </Text>
+            )}
+            <ActionLink action={page.changeLocation} variant="authInline" />
+          </div>
           <span className="flex">
             <Chip variant="rose">{verified ? page.verified : page.pending}</Chip>
           </span>

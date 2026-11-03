@@ -1,4 +1,5 @@
 import type { AccountDetails, NotificationPrefs, ProfileOverview, ProfilePhoto, PublicProfile, ReportReason, TrustSummary } from "@/data/portal/account";
+import type { Area } from "@/data/onboarding/types";
 import type { Fact } from "@/data/portal/types";
 import type { ImageAsset } from "@/data/types";
 import type { Destination } from "@/lib/routes";
@@ -21,6 +22,9 @@ export type NotificationItem = { id: string; title: string; description: string;
 /** Linked sign-in methods: the masked phone and the Google email (null when not linked). */
 export type SignInMethods = { phone: string | null; google: string | null };
 
+/** A new approximate area: the device's position (rounded to ~1 km before it is sent) or a listed area. */
+export type LocationChoice = { kind: "device"; latitude: number; longitude: number } | { kind: "area"; area: Area };
+
 /** A moderation warning waiting for the member to acknowledge it. */
 export type Warning = { id: string; category: string; message: string };
 
@@ -39,6 +43,12 @@ export type AccountService = {
   saveProfile: (profile: PublicProfile) => Promise<SaveResult<PublicProfile>>;
   getAccount: () => Promise<AccountDetails>;
   saveAccount: (account: AccountDetails) => Promise<SaveResult<AccountDetails>>;
+  /** The member's approximate area ("Dhaka"), or null when none is set. */
+  getLocation: () => Promise<string | null>;
+  /** Saves a new area and resolves with its name; rejects with a message to show. */
+  saveLocation: (choice: LocationChoice) => Promise<string>;
+  /** Areas matching a search (the starter list: the API has no place search). */
+  searchAreas: (query: string) => Promise<Area[]>;
   getPhotos: () => Promise<ProfilePhoto[]>;
   /** Uploads new files and saves the photos in order (main first). Rejects with a message on failure. */
   savePhotos: (photos: ProfilePhoto[]) => Promise<void>;

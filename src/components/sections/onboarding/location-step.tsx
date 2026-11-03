@@ -7,6 +7,7 @@ import { OptionRow } from "@/components/pieces/forms/option-row";
 import { SetupStep } from "@/components/pieces/shells/setup-step";
 import { TextField } from "@/components/pieces/forms/text-field";
 import type { Area } from "@/data/onboarding/types";
+import { nearestArea } from "@/lib/onboarding/area-search";
 import { onboardingService } from "@/lib/onboarding/onboarding-service";
 import { profileDraft } from "@/lib/onboarding/profile-draft";
 import { screenKeys } from "@/lib/screen-keys";
@@ -51,9 +52,11 @@ export function LocationStep() {
     setPhase("locating");
     navigator.geolocation.getCurrentPosition(
       async (position) => {
-        profileDraft.update((draft) => ({ ...draft, area: { label: copy.currentAreaLabel, source: "device" } }));
         const { latitude, longitude } = position.coords;
-        await save({ location: { latitude, longitude, permission: true } });
+        // Named after the starter area it falls in, when there is one; the position itself isn't kept.
+        const near = nearestArea(latitude, longitude);
+        profileDraft.update((draft) => ({ ...draft, area: { label: near?.label ?? copy.currentAreaLabel, source: "device" } }));
+        await save({ location: { latitude, longitude, permission: true, ...(near ? { city: near.name, countryCode: near.countryCode } : {}) } });
         setPhase("ask");
       },
       (geoError) => setPhase(geoError.code === geoError.PERMISSION_DENIED ? "denied" : "manual"),

@@ -52,12 +52,13 @@ export type UpdateProfileData = Partial<MeData> & { nickname: string };
 
 export type UpdatePhotosData = { photos: ProfilePhoto[] };
 
+/** `PATCH /users/me/location` merges the fields sent; `null` clears a name (a new GPS position without one). */
 export type UpdateLocationBody = Partial<{
   latitude: number;
   longitude: number;
-  city: string;
-  region: string;
-  countryCode: string;
+  city: string | null;
+  region: string | null;
+  countryCode: string | null;
   permission: LocationPermission;
   source: "GPS" | "MANUAL";
 }>;

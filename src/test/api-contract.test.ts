@@ -279,6 +279,22 @@ describe("live API shapes", () => {
     });
   });
 
+  it("saves a location: a chosen area by name, a device position rounded and named after the area it falls in", async () => {
+    const { account } = await load();
+    const manchester = { id: "manchester", name: "Manchester", label: "Manchester", region: "United Kingdom", countryCode: "GB", center: [53.48, -2.24] as [number, number] };
+    // The collection's example answers "Dhaka"; the request is what matters here.
+    expect(await account.saveLocation({ kind: "area", area: manchester })).toBe("Dhaka");
+    const [manual] = calls.filter((call) => call.method === "PATCH" && call.path === "/users/me/location");
+    expect(manual.body).toEqual({ latitude: 53.48, longitude: -2.24, city: "Manchester", region: null, countryCode: "GB", source: "MANUAL" });
+    await account.saveLocation({ kind: "device", latitude: 40.712776, longitude: -74.005974 });
+    const device = calls.filter((call) => call.method === "PATCH" && call.path === "/users/me/location")[1];
+    expect(device.body).toEqual({ latitude: 40.71, longitude: -74.01, city: "New York", region: null, countryCode: "US", permission: "WHILE_IN_USE", source: "GPS" });
+    // Nowhere near a listed area: the names are cleared rather than kept from before.
+    await account.saveLocation({ kind: "device", latitude: 0.5, longitude: 0.5 });
+    const remote = calls.filter((call) => call.method === "PATCH" && call.path === "/users/me/location")[2];
+    expect(remote.body).toMatchObject({ city: null, countryCode: null, source: "GPS" });
+  });
+
   it("sends a new account to setup and resumes at its first required step", async () => {
     const steps = ["location", "nickname", "real_name", "birthday", "photos", "selfie", "notifications"].map((step) => ({
       step,

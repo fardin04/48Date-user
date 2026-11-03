@@ -101,11 +101,14 @@ const screenOf: Partial<Record<ApiStepKey, OnboardingStep>> = {
   notifications: "notify",
 };
 
-/** The screens (in setup order) that still have a required step to save. */
+/**
+ * The screens (in setup order) that still have a required step to save. Location is optional for
+ * the API but is the first thing setup asks, so a new member starts there until it is saved.
+ */
 function pendingScreens(state: OnboardingStateData): OnboardingStep[] {
   const flow = getOnboardingFlow();
   const screens = state.steps
-    .filter((step) => step.required && step.state === "PENDING")
+    .filter((step) => (step.required || step.step === "location") && step.state === "PENDING")
     .map((step) => screenOf[step.step])
     .filter((screen): screen is OnboardingStep => screen !== undefined);
   return [...new Set(screens)].sort((a, b) => flow[a].number - flow[b].number);
