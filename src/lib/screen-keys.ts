@@ -32,7 +32,7 @@ export const screenKeys = {
   locationAreas: (query: string) => ["settings", "areas", query.trim().toLowerCase()],
   signInMethods: [...cacheKeys.authMethods, "screen"],
   trust: [...cacheKeys.trustScore, "screen"],
-  trustHistory: [...cacheKeys.trustHistory, "screen"],
+  trustHistory: [...cacheKeys.trustScore, "history"],
   notificationPrefs: [...cacheKeys.notificationSettings, "screen"],
   blocked: [...cacheKeys.blocks, "screen"],
   reportReasons: [...cacheKeys.reportReasons, "screen"],

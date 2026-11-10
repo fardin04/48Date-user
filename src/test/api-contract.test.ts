@@ -79,11 +79,11 @@ describe("discovery and matches", () => {
     expect(count("GET", /\/events$/)).toBe(1);
   });
 
-  it("records swipes (a Super Like is a like) and reads full profiles", async () => {
+  it("records swipes (a Super Like as SUPER_LIKE) and reads full profiles", async () => {
     const { portal } = await load();
     await portal.getDeck();
     expect(await portal.decide("Wildflower", "super")).toEqual({ matched: false });
-    expect(calls.find((call) => call.path === "/discovery/swipes")?.body).toMatchObject({ targetNickname: "Wildflower", action: "LIKE", source: "DECK" });
+    expect(calls.find((call) => call.path === "/discovery/swipes")?.body).toMatchObject({ targetNickname: "Wildflower", action: "SUPER_LIKE", source: "DECK" });
     const member = await portal.getMember("wildflower");
     expect(member).toMatchObject({ id: "wildflower", age: 26, verified: true, compatibility: null, bio: "Architect, coffee enthusiast and weekend hiker." });
     expect(member?.aboutFacts.find((fact) => fact.label === "Height")?.value).toBe("168 cm");
@@ -105,12 +105,14 @@ describe("chat", () => {
   it("lists conversations and reads one with its history", async () => {
     const { chat } = await load();
     const list = await chat.getConversations();
-    expect(list[0]).toMatchObject({ member: "Golden_Hour", unread: 2 });
-    const conversation = await chat.getConversation("Golden_Hour");
+    expect(list[0]).toMatchObject({ member: "Noah_Reed", unread: 1, at: Date.parse("2026-10-27T09:00:00.000Z") });
+    const conversation = await chat.getConversation("Noah_Reed");
     expect(conversation.opening).toBe("live");
     expect(conversation.readOnly).toBe(false);
-    expect(conversation.messages.map((message) => message.kind)).toEqual(["photo", "text"]);
-    expect(conversation.messages[1]).toMatchObject({ mine: false, text: "Coffee tomorrow? I know a spot." });
+    // Oldest first, every kind the history holds (service notes, text, photo, voice, date and game cards).
+    expect(conversation.messages.map((message) => message.kind)).toEqual(["system", "text", "photo", "voice", "date", "date", "game", "game"]);
+    expect(conversation.messages[1].mine).toBe(false);
+    expect(conversation.messages[1].text).toMatch(/^I would love that!/);
   });
 
   it("sends with a client id (idempotent retries)", async () => {
@@ -143,10 +145,11 @@ describe("games", () => {
 describe("dates", () => {
   it("reads the plan in its own timezone", async () => {
     const { dates } = await load();
-    const plan = await dates.getPlan("sarah_j");
-    // The collection's plan is an invitation this member sent (REQUESTED, can't accept it).
-    expect(plan).toMatchObject({ status: "pending", timezone: "UTC", date: "2026-10-25", time: 19 * 60 });
-    expect(plan.place.name).toBe("Blue Note Jazz Club");
+    const plan = await dates.getPlan("GoldenHour");
+    // The collection's newest plan is a confirmed date at 15:00 UTC, read on Dhaka's clock (UTC+6).
+    expect(plan).toMatchObject({ status: "confirmed", timezone: "Asia/Dhaka", date: "2026-10-31", time: 21 * 60, attendance: null });
+    expect(plan.place.name).toBe("North End Coffee Roasters");
+    expect(plan.partner).toMatchObject({ name: "GoldenHour", verified: true, photo: { src: "https://cdn.48date.local/users/GoldenHour/photos/main.jpg" } });
   });
 });
 
@@ -342,5 +345,62 @@ describe("live API shapes", () => {
     const plan = await dates.getPlan("noah_reed");
     expect(plan.status).toBe("confirmed");
     expect(plan.partner).toMatchObject({ name: "noah_reed", verified: true, photo: { src: "https://r2.example.com/noah.webp" } });
+  });
+
+  describe("after the date (attendance is the server's)", () => {
+    const plan = (fields: Record<string, unknown>) => ({
+      id: "d1", matchId: "m1", proposerId: "a", receiverId: "b",
+      counterpart: { nickname: "GoldenHour", age: 25, mainPhoto: null, verificationStatus: "VERIFIED", availability: "ACTIVE" },
+      venueName: "North End Coffee Roasters", venueCategory: "Cafe", venueAddress: null, venueLatitude: null, venueLongitude: null, venueRating: null, venuePhotoRef: null,
+      distanceKmFromMe: null, scheduledAt: "2026-10-30T10:00:00.000Z", timeZone: "UTC", status: "AWAITING_CONFIRMATION", cancelReason: null, cancelledBy: null, cancelNote: null,
+      myConfirmation: null, partnerConfirmation: null, bothConfirmed: false, pendingPostponeRequest: null,
+      canAccept: false, canDecline: false, canWithdraw: false, canCancel: false, canPostpone: false, canConfirm: true, canRate: false, hasRated: false,
+      createdAt: "2026-10-29T09:30:00.000Z", updatedAt: "2026-10-29T10:00:00.000Z",
+      ...fields,
+    });
+    const list = (fields: Record<string, unknown>) => ({ "GET /dates": ok([plan(fields)], { page: 1, limit: 50, total: 1, totalPages: 1 }) });
+    const met = { attended: true, confirmedAt: "2026-10-30T12:00:00.000Z" };
+
+    it("asks once the date has passed, then waits for the partner or shows a no-show under review", async () => {
+      expect(await (await load(list({}))).dates.getPlan("GoldenHour")).toMatchObject({ status: "confirmed", attendance: null });
+      expect(await (await load(list({ myConfirmation: met }))).dates.getPlan("GoldenHour")).toMatchObject({ attendance: "waiting" });
+      expect(await (await load(list({ status: "NO_SHOW", bothConfirmed: true }))).dates.getPlan("GoldenHour")).toMatchObject({ status: "confirmed", attendance: "review" });
+    });
+
+    it("sends the answer to /confirm, a no-show with its reason as the note", async () => {
+      const { dates } = await load(list({}));
+      await dates.recordAttendance("GoldenHour", { met: true });
+      expect(calls.find((call) => call.path === "/dates/d1/confirm")).toMatchObject({ method: "POST", body: { attended: true } });
+      await dates.recordAttendance("GoldenHour", { met: false, reason: "noArrival", details: "Waited 40 minutes" });
+      expect(calls.filter((call) => call.path === "/dates/d1/confirm").at(-1)?.body).toMatchObject({ attended: false, note: expect.stringContaining("Waited 40 minutes") });
+      expect(count("POST", "/dates/d1/rating")).toBe(0);
+    });
+
+    it("reads a declined invitation (CANCELLED with reason DECLINED) as declined, not cancelled", async () => {
+      const { dates } = await load(list({ status: "CANCELLED", cancelReason: "DECLINED", scheduledAt: "2026-12-30T10:00:00.000Z" }));
+      expect((await dates.getPlan("GoldenHour")).status).toBe("declined");
+    });
+
+    it("skips feedback without a rating request (a rating needs its scores)", async () => {
+      const { dates } = await load(list({ status: "COMPLETED", myConfirmation: met, canRate: true }));
+      expect(await dates.submitFeedback("GoldenHour", null)).toMatchObject({ feedback: "skipped" });
+      expect(count("POST", "/dates/d1/rating")).toBe(0);
+    });
+  });
+
+  it("shows a removed message without its content, and an edited one as edited", async () => {
+    const id = "c1234567-89ab-cdef-0123-456789abcdef";
+    const message = (fields: Record<string, unknown>) => ({ conversationId: id, senderId: "p", senderNickname: "Noah_Reed", isMine: false, type: "TEXT", file: null, payload: null, status: "SEEN", createdAt: "2026-10-27T08:10:00.000Z", ...fields });
+    const { chat } = await load({
+      [`GET /conversations/${id}/messages`]: ok(
+        [message({ id: "m2", seq: 2, text: "Corrected text", isEdited: true, editedAt: "2026-10-27T08:12:00.000Z" }), message({ id: "m1", seq: 1, text: null, isDeleted: true, deletedAt: "2026-10-27T08:11:00.000Z" })],
+        { nextCursor: null, hasMore: false },
+      ),
+    });
+    const conversation = await chat.getConversation("Noah_Reed");
+    expect(conversation.messages).toMatchObject([
+      { id: "m1", deleted: true, text: "" },
+      { id: "m2", edited: true, text: "Corrected text" },
+    ]);
   });
 });

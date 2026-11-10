@@ -125,6 +125,9 @@ export function toItem(screen: ScreenCode, param: string): Destination {
 }
 
 /** Optional catch-all `section` param → the section id it targets (or undefined for the page top). */
+/** Prerendered as a static 404 by the landing route; `proxy.ts` rewrites unknown top-level paths here. */
+export const notFoundSegment = "not-found";
+
 export function sectionFromParam(param: string[] | undefined, allowed: readonly string[]) {
   if (!param || param.length === 0) return { valid: true, section: undefined };
   const [section, ...rest] = param;

@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { memberIdPattern } from "@/data/portal/types";
-import { isoToZoned, zonedToIso } from "./date-format";
+import { formatStamp, isoToZoned, zonedToIso } from "./date-format";
 
 describe("timezones (date plans)", () => {
   it("turns a wall-clock time into the right instant", () => {
@@ -18,6 +18,29 @@ describe("timezones (date plans)", () => {
 
   it("reads an unknown zone as UTC instead of failing", () => {
     expect(zonedToIso("2026-10-25", 60, "Not/AZone")).toBe("2026-10-25T01:00:00.000Z");
+  });
+});
+
+describe("message and notification times", () => {
+  // Local wall-clock times, so the test reads the same in every zone.
+  const now = new Date(2026, 10, 10, 0, 10).getTime();
+  const time = (at: number) => new Intl.DateTimeFormat(undefined, { hour: "numeric", minute: "2-digit" }).format(at);
+
+  it("shows only the time today, and the calendar day (not 24 hours) before that", () => {
+    const earlier = new Date(2026, 10, 10, 0, 1).getTime();
+    expect(formatStamp(earlier, now)).toBe(time(earlier));
+    // Twenty minutes ago, but before midnight: yesterday.
+    const lateLastNight = new Date(2026, 10, 9, 23, 50).getTime();
+    expect(formatStamp(lateLastNight, now)).toBe(`Yesterday, ${time(lateLastNight)}`);
+    expect(formatStamp(lateLastNight, now, false)).toBe("Yesterday");
+  });
+
+  it("names the weekday within a week, then the date, adding the year for another year", () => {
+    const monday = new Date(2026, 10, 7, 9, 0).getTime();
+    expect(formatStamp(monday, now, false)).toBe(new Intl.DateTimeFormat(undefined, { weekday: "short" }).format(monday));
+    const october = new Date(2026, 9, 24, 9, 0).getTime();
+    expect(formatStamp(october, now, false)).toBe(new Intl.DateTimeFormat(undefined, { day: "numeric", month: "short" }).format(october));
+    expect(formatStamp(new Date(2025, 11, 31, 9, 0).getTime(), now, false)).toMatch(/2025/);
   });
 });
 
