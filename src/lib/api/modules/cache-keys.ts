@@ -9,7 +9,6 @@ export const cacheKeys = {
   verification: ["verification"],
   me: ["users", "me"],
   trustScore: ["users", "trust-score"],
-  trustHistory: ["trust", "history"],
   reportReasons: ["trust", "report-reasons"],
   blocks: ["trust", "blocks"],
   warnings: ["users", "warnings"],

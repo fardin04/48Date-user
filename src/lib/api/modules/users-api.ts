@@ -7,7 +7,6 @@ import type {
   MeData,
   NotificationSettingsBody,
   NotificationSettingsData,
-  TrustEvent,
   TrustScoreData,
   UpdateLocationBody,
   UpdatePhotosData,
@@ -41,9 +40,6 @@ export const usersApi = {
   },
   deleteAccount: () => api.delete<DeleteAccountData>(endpoints.users.me),
   trustScore: () => cached(cacheKeys.trustScore, MINUTE, () => api.get<TrustScoreData>(endpoints.users.trustScore)),
-  /** Newest first; `offset` pagination (Postman `02 Get Trust Score History`). */
-  trustHistory: (limit = 20, offset = 0) =>
-    cached([...cacheKeys.trustHistory, limit, offset], MINUTE, () => api.get<TrustEvent[]>(endpoints.trust.history, { query: { limit, offset } })),
   notificationSettings: () =>
     cached(cacheKeys.notificationSettings, MINUTE, () => api.get<NotificationSettingsData>(endpoints.users.notificationSettings)),
   async updateNotificationSettings(body: NotificationSettingsBody) {

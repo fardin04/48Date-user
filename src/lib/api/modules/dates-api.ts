@@ -1,7 +1,7 @@
 import { cached, invalidate } from "../cache";
 import { api, type StreamEvent } from "../client";
 import { endpoints } from "../endpoints";
-import type { ApiDatePlan, PostponeRequest, RatingBody, SendInviteBody, StartVenuesData, VenueRun, WeatherHint } from "../types/dates";
+import type { ApiDatePlan, ConfirmBody, ConfirmData, PostponeRequest, RatingBody, SendInviteBody, VenueRun, WeatherHint } from "../types/dates";
 import { cacheKeys } from "./cache-keys";
 
 /** A plan changed: the plan screens, match cards (clock stopped) and conversation previews read again. */
@@ -26,8 +26,7 @@ export const datesApi = {
   venues: (matchId: string) =>
     cached([...cacheKeys.venues, "raw", matchId], 10 * 60_000, async () => {
       const signal = new AbortController().signal;
-      const { data } = await api.post<StartVenuesData>(endpoints.matches.venueSuggestions(matchId), { body: {} });
-      const run = "run" in data ? data.run : data;
+      const { data: run } = await api.post<VenueRun>(endpoints.matches.venueSuggestions(matchId), { body: {} });
       return { data: await settleVenues(run, signal) };
     }),
   /** Every plan of this member (newest pages first); shared by all plan screens. */
@@ -56,6 +55,12 @@ export const datesApi = {
     cached([...cacheKeys.venues, "raw", "weather", runId, venueRef, day], 30 * 60_000, () => api.get<WeatherHint>(endpoints.venues.weather(runId), { query: { day, venueRef } })),
   async cancel(id: string, reason: string, note?: string) {
     const result = await api.post<ApiDatePlan>(endpoints.dates.cancel(id), { body: { reason, ...(note ? { note } : {}) } });
+    changed();
+    return result;
+  },
+  /** After the date: whether this member met the partner (both answers complete it, or mark a no-show). */
+  async confirm(id: string, body: ConfirmBody) {
+    const result = await api.post<ConfirmData>(endpoints.dates.confirm(id), { body });
     changed();
     return result;
   },

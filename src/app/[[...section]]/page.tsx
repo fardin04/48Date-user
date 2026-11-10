@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { LandingPage } from "@/components/sections/landing/landing-page";
-import { sectionFromParam } from "@/lib/routes";
+import { notFoundSegment, sectionFromParam } from "@/lib/routes";
 import { getAnchors } from "@/stores/landing-store";
 
 type Params = PageProps<"/[[...section]]">["params"];
@@ -9,7 +9,8 @@ type Params = PageProps<"/[[...section]]">["params"];
 const sectionIds = Object.values(getAnchors());
 
 export function generateStaticParams() {
-  return [{ section: [] }, ...sectionIds.map((id) => ({ section: [id] }))];
+  // The not-found segment is invalid, so it prerenders as a static 404 page with a real 404 status.
+  return [{ section: [] }, ...sectionIds.map((id) => ({ section: [id] })), { section: [notFoundSegment] }];
 }
 
 async function LandingAtSection({ params }: { params: Params }) {

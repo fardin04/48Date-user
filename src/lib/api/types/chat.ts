@@ -64,6 +64,11 @@ export type ApiMessage = {
   file: MessageFile | null;
   payload: Record<string, unknown> | null;
   status: MessageStatus;
+  /** Sent by the edit endpoint and the live events; history pages may leave them out. */
+  isEdited?: boolean;
+  editedAt?: string | null;
+  isDeleted?: boolean;
+  deletedAt?: string | null;
   createdAt: string;
 };
 
@@ -81,6 +86,12 @@ export type ReceiptEvent = { conversationId: string; nickname: string; delivered
 export type TypingEvent = { conversationId: string; nickname: string; isTyping: boolean };
 
 export type ClosedEvent = { conversationId: string; reason: "EXPIRED" | "BLOCKED" | string };
+
+/** `message:edited`: the sender changed a message's text (within 15 minutes of sending). */
+export type MessageEditedEvent = { messageId: string; conversationId: string; text: string; isEdited: true; editedAt: string };
+
+/** `message:deleted`: the sender removed a message (within 24 hours); it stays in place as removed. */
+export type MessageDeletedEvent = { messageId: string; conversationId: string; isDeleted: true; deletedAt: string };
 
 export const chatErrors = {
   notFound: "CONVERSATION_NOT_FOUND",
