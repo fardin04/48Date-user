@@ -20,11 +20,16 @@ export class ApiError extends Error {
 
   static fromBody(status: number, body: unknown): ApiError {
     const failure = (typeof body === "object" && body !== null ? body : {}) as ApiFailure;
-    const code = failure.error?.code ?? (status === 401 ? "UNAUTHORIZED" : `HTTP_${status}`);
-    const message = failure.message ?? failure.error?.message ?? "Something went wrong. Please try again.";
+    const nested = typeof failure.error === "object" ? failure.error : undefined;
+    // A bare `error` string is a code only when it reads like one ("RATING_NOT_FOUND", not "Bad Request").
+    const bare = typeof failure.error === "string" && /^[A-Z][A-Z0-9_]+$/.test(failure.error) ? failure.error : undefined;
+    const code = nested?.code ?? failure.errorCode ?? failure.code ?? bare ?? (status === 401 ? "UNAUTHORIZED" : `HTTP_${status}`);
+    // Validation failures may list several messages: the first is shown.
+    const top = Array.isArray(failure.message) ? failure.message.find((line) => typeof line === "string") : failure.message;
+    const message = top ?? nested?.message ?? "Something went wrong. Please try again.";
     const fields: Record<string, string> = {};
     // `details` is a list of field errors on validation failures, an object on some others (AI limits).
-    const details: unknown = failure.error?.details;
+    const details: unknown = nested?.details;
     for (const detail of Array.isArray(details) ? details : []) {
       if (typeof detail === "object" && detail !== null && typeof detail.field === "string") fields[detail.field] = String(detail.message ?? "");
     }

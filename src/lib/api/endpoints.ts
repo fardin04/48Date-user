@@ -105,6 +105,7 @@ export const endpoints = deepFreeze({
     postponeAction: (id: string, requestId: string, action: "accept" | "decline" | "withdraw") =>
       `/dates/${at(id)}/postpone-requests/${at(requestId)}/${action}`,
     cancel: (id: string) => `/dates/${at(id)}/cancel`,
+    confirm: (id: string) => `/dates/${at(id)}/confirm`,
     rating: (id: string) => `/dates/${at(id)}/rating`,
     history: (id: string) => `/dates/${at(id)}/history`,
   },
@@ -115,7 +116,6 @@ export const endpoints = deepFreeze({
     events: (id: string) => `/reply-suggestions/${at(id)}/events`,
   },
   trust: {
-    history: "/trust-score/history",
     reportReasons: "/reports/reasons",
     reports: "/reports",
     blocks: "/blocks",

@@ -20,6 +20,13 @@ describe("ApiError.fromBody", () => {
     expect(ApiError.fromBody(400, { success: false, error: { code: "X", details: ["platform must be IOS"] } }).fields).toEqual({});
   });
 
+  it("reads the code from errorCode, code or a code-like error string, and a listed message", () => {
+    expect(ApiError.fromBody(409, { success: false, message: "Already confirmed", statusCode: 409, errorCode: "DATE_ALREADY_CONFIRMED" })).toMatchObject({ code: "DATE_ALREADY_CONFIRMED", message: "Already confirmed" });
+    expect(ApiError.fromBody(404, { statusCode: 404, code: "NO_SWIPE_TO_UNDO", message: "No recent swipe" }).code).toBe("NO_SWIPE_TO_UNDO");
+    expect(ApiError.fromBody(404, { statusCode: 404, error: "RATING_NOT_FOUND", message: "Not rated yet" }).code).toBe("RATING_NOT_FOUND");
+    expect(ApiError.fromBody(400, { statusCode: 400, error: "Bad Request", message: ["text must be shorter"] })).toMatchObject({ code: "HTTP_400", message: "text must be shorter" });
+  });
+
   it("falls back for empty bodies", () => {
     expect(ApiError.fromBody(401, null).code).toBe("UNAUTHORIZED");
     expect(ApiError.fromBody(502, "oops").code).toBe("HTTP_502");
