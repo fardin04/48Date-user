@@ -252,7 +252,6 @@ export const accountPage = {
       noFeedback: "No ratings yet",
       /** Trust activity value: `{change} · {date}` ("+0.5 · 24 Oct"). */
       event: "{change} · {date}",
-      reversed: "Reversed",
     },
     /** Profile verification value by review status. */
     verification: { verified: "Verified", pending: "In review", retry: "Not approved", none: "Not verified" },
@@ -445,6 +444,8 @@ export const accountPage = {
     description: "Stay close to the moments that matter.",
     /** An empty inbox (design-silent; for owner approval). */
     empty: "Nothing new yet. We’ll let you know when something happens.",
+    /** Read out before a notification not seen yet (the row is tinted; design-silent). */
+    unread: "Unread",
     items: [
       { title: "A new connection", description: "GoldenHour liked you back.", to: toItem("CHAT-01", "goldenhour") },
       { title: "Your date is tomorrow", description: "Amber & Oak Coffee · 4:00 PM", to: toItem("DATE-PENDING", "riverstone") },

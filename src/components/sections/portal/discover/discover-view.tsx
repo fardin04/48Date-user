@@ -6,6 +6,7 @@ import { ActionButton } from "@/components/pieces/actions/action-button";
 import { FormHeader } from "@/components/pieces/forms/form-header";
 import { PortalBack } from "@/components/pieces/actions/portal-back";
 import { StatusArtwork } from "@/components/pieces/feedback/status-artwork";
+import { StatusNote } from "@/components/pieces/feedback/status-note";
 import { SwipeCard } from "@/components/pieces/cards/swipe-card";
 import { Text } from "@/components/pieces/content/text";
 import { Button } from "@/components/ui/button";
@@ -14,6 +15,7 @@ import type { MemberId } from "@/data/portal/types";
 import { fill } from "@/lib/format";
 import { toItem } from "@/lib/routes";
 import { deckIntent } from "@/lib/portal/deck-intent";
+import { failureReason } from "@/lib/portal/failure";
 import { portalService, type DeckStatus } from "@/lib/portal/portal-service";
 import { preferenceFacts } from "@/lib/portal/preference-facts";
 import { useMemberLocation } from "@/hooks/use-member-location";
@@ -66,6 +68,8 @@ export function DiscoverView() {
   const [matched, setMatched] = useState<MemberId | null>(null);
   const [seenUnseen, setSeenUnseen] = useState(false);
   const [announcement, setAnnouncement] = useState("");
+  /** Why the last decision wasn't recorded, as the API says it (the weekly Super Like limit); the card stays. */
+  const [failure, setFailure] = useState<string | null>(null);
   const [drag, setDrag] = useState<Drag | null>(null);
   const intentTaken = useRef(false);
 
@@ -79,11 +83,14 @@ export function DiscoverView() {
 
   const decide = async (id: MemberId, decision: Decision) => {
     setFeedback({ member: id, decision });
+    setFailure(null);
     setAnnouncement(copy.card.sent[decision]);
     try {
       const [result] = await Promise.all([portalService.decide(id, decision), pause(copy.feedbackMs)]);
       await reload();
       if (result.matched) setMatched(id);
+    } catch (error) {
+      setFailure(failureReason(error));
     } finally {
       setFeedback(null);
     }
@@ -230,6 +237,7 @@ export function DiscoverView() {
               </Button>
             ))}
           </div>
+          {failure && <StatusNote variant="alert" message={failure} />}
           <Text variant="text12Medium" tone="sub" className="text-center">
             {copy.card.hint}
           </Text>

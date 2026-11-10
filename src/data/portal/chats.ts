@@ -21,6 +21,8 @@ export type ConversationSample = {
 const incoming = "Hey! Your film photos are gorgeous. Where was that last one taken?";
 const reply = "Thank you! That’s the bridge at golden hour. Coffee tomorrow?";
 const inboxPreview = "Coffee sounds perfect. Tomorrow at 4?";
+/** Unread messages in a conversation row (design-silent; for owner approval). */
+const unread = "{count} unread";
 
 /** W05 / INBOX and CHAT-EMPTY. */
 export const inboxPage = {
@@ -28,6 +30,7 @@ export const inboxPage = {
   description: "A little conversation. A real-world connection.",
   /** `{name}` is the first conversation. */
   open: "Open {name}",
+  unread,
   back: { label: "Back", icon: "arrow-left-02", to: to("DISCOVER") } satisfies Action,
   conversations: [
     { member: "goldenhour", preview: inboxPreview, opening: "firstHello" },
@@ -49,6 +52,7 @@ export const chatPage = {
   documentTitle: "Chat with {name}",
   listTitle: "Your conversations",
   listLabel: "Conversations",
+  unread,
   status: { open: "{hours}h left · Say hello", agreed: "Date agreed · 24 Oct", agreedLive: "Date agreed", plain: "Say hello" },
   caption: { open: "Verified · {hours}h {minutes}m left to agree on a date", agreed: "Verified · Date agreed", plain: "Verified" },
   messagesLabel: "Messages",
@@ -82,11 +86,15 @@ export const chatPage = {
   aiError: "We couldn’t load suggestions. Your conversation is unaffected.",
   tools: { label: "Conversation tools", ai: "AI help", photo: "Photo", voice: "Voice", safety: "Safety" },
   composer: { label: "Message", placeholder: "Write a message…", send: "Send", maxLength: 1000 },
-  /** `{time}` is the local send time ("2:41 PM"). */
+  /** `{time}` is the local send time: "2:41 PM" today, "Yesterday, 2:41 PM" / "24 Oct, 2:41 PM" before. */
   sent: "Sent · {time}",
   /** Live conversations (design-silent; for owner approval). */
   seen: "Seen · {time}",
   received: "{time}",
+  /** Appended to the status line of a message its sender changed. */
+  edited: "{meta} · Edited",
+  /** A message its sender removed keeps its place without its content. */
+  deleted: "Message removed",
   typing: "{name} is typing",
   older: "Show earlier messages",
   voiceLabel: "Voice message from {name}",

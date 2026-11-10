@@ -10,6 +10,7 @@ import { PortalBack } from "@/components/pieces/actions/portal-back";
 import { Text } from "@/components/pieces/content/text";
 import { cn } from "@/lib/cn";
 import { accountService } from "@/lib/portal/account-service";
+import { formatStamp } from "@/lib/portal/date-format";
 import { screenKeys } from "@/lib/screen-keys";
 import { useLoaded } from "@/hooks/use-loaded";
 import { getAccountPage } from "@/stores/portal-store";
@@ -42,9 +43,15 @@ export function NotificationsView() {
           <li key={item.id}>
             <ActionTarget
               to={item.to}
-              className={cn("focus-ring flex w-full rounded-16 border p-4 text-left transition-colors hover:bg-weak", item.unread ? "border-rose bg-rose-light" : "border-soft-line bg-white")}
+              className={cn("focus-ring flex w-full items-start gap-3 rounded-16 border p-4 text-left transition-colors hover:bg-weak", item.unread ? "border-rose bg-rose-light" : "border-soft-line bg-white")}
             >
-              <CardHeading as="h2" size={14} title={item.title} description={item.description} className="min-h-16 justify-center" />
+              {item.unread && <span className="sr-only">{page.unread}</span>}
+              <CardHeading as="h2" size={14} title={item.title} description={item.description} className="min-h-16 min-w-0 flex-1 justify-center" />
+              {item.at !== null && (
+                <Text as="span" variant="text12Medium" tone="sub" className="shrink-0">
+                  {formatStamp(item.at)}
+                </Text>
+              )}
             </ActionTarget>
           </li>
         ))}
