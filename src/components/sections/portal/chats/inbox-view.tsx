@@ -12,6 +12,7 @@ import { toItem } from "@/lib/routes";
 import { getInboxPage } from "@/stores/portal-store";
 import { LoadFailed } from "@/components/sections/portal/shared/load-failed";
 import { ConversationContext } from "@/components/sections/portal/chats/conversation-context";
+import { conversationRowStatus } from "@/components/sections/portal/chats/conversation-list";
 import { StatusScreen } from "@/components/sections/portal/shared/status-screen";
 import { Workspace } from "@/components/sections/portal/shared/workspace";
 import { screenKeys } from "@/lib/screen-keys";
@@ -49,7 +50,15 @@ export function InboxView() {
           const member = conversation.partner;
           return (
             <li key={conversation.member} className="flex">
-              <MemberRow photo={member.photo} title={member.name} description={conversation.preview} variant="list" to={toItem("CHAT-01", member.id)} revealDelay={index * 40} />
+              <MemberRow
+                photo={member.photo}
+                title={member.name}
+                description={conversation.preview}
+                {...conversationRowStatus(conversation, copy.unread)}
+                variant="list"
+                to={toItem("CHAT-01", member.id)}
+                revealDelay={index * 40}
+              />
             </li>
           );
         })}

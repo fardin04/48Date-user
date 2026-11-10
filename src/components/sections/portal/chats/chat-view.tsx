@@ -26,7 +26,7 @@ import { fieldControl, fieldInput } from "@/lib/control-sizes";
 import { fill } from "@/lib/format";
 import { chatService, type ChatMessage, type OutgoingMessage } from "@/lib/portal/chat-service";
 import { dateService } from "@/lib/portal/date-service";
-import { formatShortDay, formatTime } from "@/lib/portal/date-format";
+import { formatShortDay, formatStamp, formatTime } from "@/lib/portal/date-format";
 import { forMember } from "@/lib/portal/member-link";
 import { membershipService } from "@/lib/portal/membership-service";
 import { screenKeys } from "@/lib/screen-keys";
@@ -38,7 +38,7 @@ import { getChatPage, getInboxPage } from "@/stores/portal-store";
 import { ChatPhoto } from "@/components/sections/portal/chats/chat-photo";
 import { ChatVoice } from "@/components/sections/portal/chats/chat-voice";
 import { ConversationContext } from "@/components/sections/portal/chats/conversation-context";
-import { ConversationList } from "@/components/sections/portal/chats/conversation-list";
+import { ConversationList, chatPaneHeight } from "@/components/sections/portal/chats/conversation-list";
 import { ExpiredMatchScreen } from "@/components/sections/portal/matches/match-detail-view";
 import { LoadFailed } from "@/components/sections/portal/shared/load-failed";
 import { StatusScreen } from "@/components/sections/portal/shared/status-screen";
@@ -46,8 +46,6 @@ import { StatusScreen } from "@/components/sections/portal/shared/status-screen"
 type Suggest = { mode: "ai" | "starters"; status: "generating" | "ready" | "error"; items: string[] };
 type AttachChoice = "game" | "photo" | "voice" | "plan";
 type Panel = "chat" | "attach" | "photo" | "voice";
-
-const timeOf = (at: number) => new Intl.DateTimeFormat(undefined, { hour: "numeric", minute: "2-digit" }).format(at);
 
 /** Card inside the messages ("Your first hello", "Date invitation", "A little help with your hello"). */
 function MessageCard({ title, description, children }: { title: string; description: string; children: ReactNode }) {
@@ -339,15 +337,22 @@ export function ChatView({ memberId }: { memberId: MemberId }) {
         </li>
       );
     }
-    const text = message.kind === "photo" ? message.text || copy.photoMessage : message.kind === "voice" ? fill(copy.voiceMessage, { duration: message.text }) : message.text;
-    const time = timeOf(message.sentAt);
-    const meta = !message.mine ? fill(copy.received, { time }) : message.status === "failed" ? copy.failed : fill(message.status === "seen" ? copy.seen : copy.sent, { time });
+    const text = message.deleted
+      ? copy.deleted
+      : message.kind === "photo"
+        ? message.text || copy.photoMessage
+        : message.kind === "voice"
+          ? fill(copy.voiceMessage, { duration: message.text })
+          : message.text;
+    const time = formatStamp(message.sentAt);
+    const status = !message.mine ? fill(copy.received, { time }) : message.status === "failed" ? copy.failed : fill(message.status === "seen" ? copy.seen : copy.sent, { time });
+    const meta = message.edited ? fill(copy.edited, { meta: status }) : status;
     const media = message.mediaUrl;
     return (
       <ChatBubble
         key={message.id}
         variant={message.mine ? "own" : "incoming"}
-        text={message.kind === "photo" && message.text ? `${copy.photoMessage} · ${text}` : text}
+        text={message.kind === "photo" && message.text && !message.deleted ? `${copy.photoMessage} · ${text}` : text}
         meta={meta}
         metaTone={message.status === "failed" ? "alert" : "sub"}
         image={message.kind === "photo" && media ? { src: media, alt: copy.photoMessage, width: 720, height: 960 } : undefined}
@@ -456,7 +461,7 @@ export function ChatView({ memberId }: { memberId: MemberId }) {
   return (
     <div className="grid items-start gap-6 lg:grid-cols-[280px_minmax(0,1fr)] xl:grid-cols-[280px_minmax(0,1fr)_312px]">
       <ConversationList current={memberId} className="max-lg:hidden" />
-      <PortalCard as="section" surface="outline" padding="lg" revealDelay={0} aria-labelledby="chat-title" className="flex w-full flex-col gap-4 lg:h-190">
+      <PortalCard as="section" surface="outline" padding="lg" revealDelay={0} aria-labelledby="chat-title" className={cn("flex w-full flex-col gap-4", chatPaneHeight)}>
         <header className="flex items-center gap-3">
           <Avatar image={member.photo} size={48} decorative />
           <div className="flex min-w-0 flex-1 flex-col gap-1">
@@ -515,7 +520,7 @@ export function ChatView({ memberId }: { memberId: MemberId }) {
           {pending && <ChatBubble variant="own" text={pending} meta={copy.sending} />}
           {typing && (
             <li className="flex w-full">
-              <TypingDots variant="typing" label={fill(copy.typing, { name: member.name })} />
+              <TypingDots variant="bubble" label={fill(copy.typing, { name: member.name })} />
             </li>
           )}
           {suggest?.status === "ready" && (
