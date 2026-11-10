@@ -77,17 +77,5 @@ export type TrustScoreData = {
   };
 };
 
-export type TrustEvent = {
-  id: string;
-  type: string;
-  points: number;
-  reason: string;
-  sourceType: string;
-  sourceId: string | null;
-  fadesUntil: string | null;
-  isReversed: boolean;
-  createdAt: string;
-};
-
 export type NotificationSettingsData = { matches: boolean; messages: boolean; dates: boolean; games: boolean; announcements: boolean; account: boolean };
 export type NotificationSettingsBody = Partial<Omit<NotificationSettingsData, "account">>;

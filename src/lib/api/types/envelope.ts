@@ -9,12 +9,16 @@ export type PageMeta = { page: number; limit: number; total: number; totalPages:
 export type ApiFieldDetail = { field: string; message: string } | string;
 
 /**
- * Failures come in two shapes in the collection: the message at the top
+ * Failures come in several shapes in the collection, all read: the message at the top
  * (`{ success:false, message, error:{ code, details? } }`) or inside `error`
- * (`{ success:false, error:{ code, message, details? } }`). Both are read.
+ * (`{ success:false, error:{ code, message, details? } }`); the code at the top as `errorCode`
+ * (dates) or `code` (discovery); or the framework's own (`{ statusCode, message, error }`, where
+ * `error` is a status phrase such as "Bad Request", or a code such as "RATING_NOT_FOUND").
  */
 export type ApiFailure = {
-  success: false;
-  message?: string;
-  error?: { code?: string; message?: string; details?: ApiFieldDetail[] | Record<string, unknown> };
+  success?: false;
+  message?: string | string[];
+  errorCode?: string;
+  code?: string;
+  error?: string | { code?: string; message?: string; details?: ApiFieldDetail[] | Record<string, unknown> };
 };

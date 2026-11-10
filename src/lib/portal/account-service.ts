@@ -17,7 +17,8 @@ export type SaveResult<T> = { ok: true } | { ok: false; errors: FieldErrors<T>; 
 export type ReportSubject = { kind: "member" | "story"; id: string } | null;
 
 /** One NOTIFICATIONS row: what happened and the screen it opens. */
-export type NotificationItem = { id: string; title: string; description: string; to: Destination; unread: boolean };
+/** `at`: when it was sent (ms), null when unknown. */
+export type NotificationItem = { id: string; title: string; description: string; to: Destination; unread: boolean; at: number | null };
 
 /** Linked sign-in methods: the masked phone and the Google email (null when not linked). */
 export type SignInMethods = { phone: string | null; google: string | null };

@@ -29,21 +29,32 @@ export type VenueRun = {
   expiresAt: string | null;
 };
 
-/** The collection wraps the run (`{ run, isCached }`); the live API returns the run itself. */
-export type StartVenuesData = { run: VenueRun; isCached: boolean } | VenueRun;
+/**
+ * SET → AWAITING_CONFIRMATION once the time has passed → COMPLETED when both say they met, or
+ * NO_SHOW. A declined or withdrawn invitation is CANCELLED with `cancelReason` DECLINED / WITHDRAWN
+ * (older builds answered DECLINED as a status).
+ */
+export type DateStatus = "REQUESTED" | "SET" | "AWAITING_CONFIRMATION" | "COMPLETED" | "NO_SHOW" | "CANCELLED" | "DECLINED";
 
-export type DateStatus = "REQUESTED" | "SET" | "COMPLETED" | "CANCELLED" | "DECLINED";
-
-/** The collection names the photo `primaryPhotoUrl` and sends `verificationStatus`; the live API sends `mainPhotoUrl` and `isVerified`. */
+/**
+ * The collection sends the photo as `mainPhoto` with `verificationStatus`; a backend checked
+ * earlier sent `mainPhotoUrl` / `isVerified` (and older collections `primaryPhotoUrl`).
+ */
 export type DateCounterpart = {
   nickname: string;
   age: number | null;
-  primaryPhotoUrl?: string | null;
+  mainPhoto?: string | null;
   mainPhotoUrl?: string | null;
+  primaryPhotoUrl?: string | null;
   verificationStatus?: string;
   isVerified?: boolean;
+  occupation?: string | null;
+  location?: { city: string | null; country: string | null } | null;
   availability: "ACTIVE" | "UNAVAILABLE";
 };
+
+/** One member's answer after the date (`POST /dates/:id/confirm`). */
+export type DateConfirmation = { attended: boolean; confirmedAt: string };
 
 export type PostponeRequest = {
   id: string;
@@ -54,6 +65,8 @@ export type PostponeRequest = {
   newScheduledAt: string | null;
   requestedBy: string;
   status: "PENDING" | "ACCEPTED" | "DECLINED" | "WITHDRAWN" | "EXPIRED";
+  respondedBy?: string | null;
+  respondedAt?: string | null;
   createdAt: string;
 };
 
@@ -75,13 +88,19 @@ export type ApiDatePlan = {
   timeZone: string | null;
   status: DateStatus;
   cancelReason: string | null;
+  cancelledBy?: string | null;
   cancelNote: string | null;
+  /** This member's and the partner's answer after the date; null until given. */
+  myConfirmation?: DateConfirmation | null;
+  partnerConfirmation?: DateConfirmation | null;
+  bothConfirmed?: boolean;
   pendingPostponeRequest: PostponeRequest | null;
   canAccept: boolean;
   canDecline: boolean;
   canWithdraw: boolean;
   canCancel: boolean;
   canPostpone: boolean;
+  canConfirm?: boolean;
   canRate: boolean;
   hasRated: boolean;
   createdAt: string;
@@ -98,6 +117,38 @@ export type SendInviteBody = {
   longitude?: number;
   runId?: string;
 };
+
+export type ConfirmBody = { attended: boolean; note?: string };
+
+export type ConfirmData = {
+  datePlanId: string;
+  status: DateStatus;
+  myConfirmation: DateConfirmation | null;
+  partnerConfirmation: DateConfirmation | null;
+  bothConfirmed: boolean;
+  completed: boolean;
+};
+
+/**
+ * Socket.IO `date:*` events (invite, accepted, declined, withdrawn, cancelled, postpone_requested,
+ * postpone_responded, awaiting_confirmation, confirmed, completed): which plan changed. Each also
+ * carries event-specific fields the screens re-read from `GET /dates` instead.
+ */
+export type DateEvent = { datePlanId: string; matchId: string; conversationId: string; status?: DateStatus };
+
+/** The `date:*` event names (48Date-WebSockets, Status & Receipts `09–18`). */
+export const dateEvents = [
+  "date:invite",
+  "date:accepted",
+  "date:declined",
+  "date:withdrawn",
+  "date:cancelled",
+  "date:postpone_requested",
+  "date:postpone_responded",
+  "date:awaiting_confirmation",
+  "date:confirmed",
+  "date:completed",
+] as const;
 
 export type RatingBody = {
   showedUp: boolean;

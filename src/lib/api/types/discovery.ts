@@ -93,7 +93,8 @@ export type DiscoveryProfile =
     }
   | { id: string; availability: "UNAVAILABLE"; nickname: string; message?: string };
 
-export type SwipeAction = "PASS" | "LIKE";
+/** `SUPER_LIKE` has a weekly quota: past it the API answers 429 with its own message. */
+export type SwipeAction = "PASS" | "LIKE" | "SUPER_LIKE";
 
 export type SwipeBody = { targetNickname: string; action: SwipeAction; source?: "DECK" | "PROFILE"; runId?: string };
 
