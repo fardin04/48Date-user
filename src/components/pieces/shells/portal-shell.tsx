@@ -19,7 +19,8 @@ export function PortalShell({ active, children }: PortalShellProps) {
   return (
     <div className="min-h-svh bg-gray-50">
       <PortalHeader active={active} />
-      <main className="mx-auto flex w-full max-w-360 flex-col gap-6 p-4 max-sm:pb-24 sm:p-6 xl:px-20 xl:py-8">
+      {/* Wider than the 1440 frame up to 1920, so zooming out (a wider CSS viewport) doesn't leave grey bands beside the full-width header. */}
+      <main className="mx-auto flex w-full max-w-480 flex-col gap-6 p-4 max-sm:pb-24 sm:p-6 xl:px-20 xl:py-8">
         <SessionGate allow="member" redirect="SIGNIN">
           <SetupGate>{children}</SetupGate>
         </SessionGate>

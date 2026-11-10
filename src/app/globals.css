@@ -124,6 +124,8 @@
 
   --animate-accordion-down: accordion-down 240ms ease-out;
   --animate-accordion-up: accordion-up 240ms ease-out;
+  /* Chat typing dots: each floats up and brightens in turn (staggered by the piece), then rests. */
+  --animate-typing-float: typing-float 1.2s cubic-bezier(0.45, 0, 0.55, 1) infinite;
 
   @keyframes accordion-down {
     from { height: 0; }
@@ -132,6 +134,10 @@
   @keyframes accordion-up {
     from { height: var(--radix-accordion-content-height); }
     to { height: 0; }
+  }
+  @keyframes typing-float {
+    0%, 60%, 100% { transform: translateY(0); opacity: 0.45; }
+    30% { transform: translateY(-4px); opacity: 1; }
   }
 }
 
@@ -310,7 +316,14 @@
   }
   /* Not-yet-wired actions render as buttons; let them follow their container's casing like links do. */
   button { text-transform: inherit; }
+  /* Tailwind v4 dropped the pointer cursor on buttons; disabled and not-yet-wired ones keep the default. */
+  button:not(:disabled):not([aria-disabled="true"]),
+  [role="button"]:not([aria-disabled="true"]),
+  summary,
+  label:has(> input:not(:disabled)) { cursor: pointer; }
   body {
+    /* Long names, URLs and pasted words wrap instead of widening their column. */
+    overflow-wrap: break-word;
     background: var(--color-white);
     color: var(--color-gray-950);
     font-family: var(--font-sans);
