@@ -7,7 +7,7 @@ import { chatApi } from "@/lib/api/modules/chat-api";
 import { onboardingApi } from "@/lib/api/modules/onboarding-api";
 import { trustApi } from "@/lib/api/modules/trust-api";
 import { acquireSocket } from "@/lib/api/socket";
-import type { ApiMessage, ClosedEvent, ReceiptEvent, SendMessageBody, TypingEvent } from "@/lib/api/types/chat";
+import type { ApiMessage, ClosedEvent, MessageDeletedEvent, MessageEditedEvent, ReceiptEvent, SendMessageBody, TypingEvent } from "@/lib/api/types/chat";
 import { mediaUrl, toSummary } from "@/lib/portal/api-members";
 import { findMatch } from "@/lib/portal/api-match-lookup";
 import type { ChatMessage, ChatService, Conversation, ConversationWatcher, MessageKind, OutgoingMessage } from "@/lib/portal/chat-service";
@@ -76,16 +76,18 @@ const kinds: Record<ApiMessage["type"], MessageKind> = {
 
 function toMessage(message: ApiMessage, partnerSeen: number): ChatMessage {
   const kind = kinds[message.type] ?? "system";
+  const deleted = message.isDeleted === true;
   const seconds = message.file?.durationSeconds ?? (typeof message.payload?.durationSeconds === "number" ? message.payload.durationSeconds : 0);
-  const media = mediaUrl(message.file?.url);
+  const media = deleted ? null : mediaUrl(message.file?.url);
   return {
     id: message.id,
     kind,
     mine: message.isMine,
-    text: kind === "voice" ? clock(seconds) : (message.text ?? ""),
+    text: deleted ? "" : kind === "voice" ? clock(seconds) : (message.text ?? ""),
     sentAt: Date.parse(message.createdAt) || Date.now(),
     status: message.isMine && (message.status === "SEEN" || message.seq <= partnerSeen) ? "seen" : "sent",
     ...(media ? { mediaUrl: media } : {}),
+    ...(deleted ? { deleted } : message.isEdited ? { edited: true } : {}),
   };
 }
 
@@ -257,6 +259,7 @@ export const apiChatService: ChatService = {
       preview: item.lastMessage?.preview ?? item.lastMessage?.text ?? preview,
       unread: item.unreadCount,
       blocked: false,
+      at: Date.parse(item.lastMessage?.createdAt ?? item.updatedAt) || null,
     }));
   },
   async getConversation(member) {
@@ -342,14 +345,14 @@ export const apiChatService: ChatService = {
         })
         .catch(() => undefined);
     const refresh = () => invalidate(listKey);
+    // An edited or removed last message changes the preview.
+    const listEvents = ["message:new", "message:edited", "message:deleted", "conversation:closed"];
     socket.on("connect", join);
-    socket.on("message:new", refresh);
-    socket.on("conversation:closed", refresh);
+    for (const event of listEvents) socket.on(event, refresh);
     if (socket.connected) join();
     return () => {
       socket.off("connect", join);
-      socket.off("message:new", refresh);
-      socket.off("conversation:closed", refresh);
+      for (const event of listEvents) socket.off(event, refresh);
       // Leave rooms no other list and no open conversation still needs.
       const open = new Set([...watchers.keys()].map((key) => rooms.get(key)?.conversationId));
       for (const id of mine) {
@@ -399,7 +402,6 @@ export const apiChatService: ChatService = {
       }
       notify(room);
       invalidate(listKey);
-      if (message.type === "DATE" || message.type === "DATE_INVITE") invalidate(cacheKeys.dates, cacheKeys.matches);
     };
     const onReceipt = (event: ReceiptEvent) => {
       const room = rooms.get(key);
@@ -421,12 +423,26 @@ export const apiChatService: ChatService = {
       notify(room);
       invalidate(cacheKeys.matches, cacheKeys.conversations);
     };
+    /** Applies an edit or removal to a message already on screen (one not loaded yet arrives changed). */
+    const onAltered = (event: MessageEditedEvent | MessageDeletedEvent) => {
+      const room = rooms.get(key);
+      const entry = room && event.conversationId === room.conversationId ? room.messages.get(event.messageId) : undefined;
+      if (!room || !entry) return;
+      const message: ApiMessage =
+        "text" in event
+          ? { ...entry.message, text: event.text, isEdited: true, editedAt: event.editedAt }
+          : { ...entry.message, text: null, file: null, isDeleted: true, deletedAt: event.deletedAt };
+      room.messages.set(event.messageId, { seq: entry.seq, message });
+      notify(room);
+    };
 
     socket.on("connect", rejoin);
     socket.on("message:new", onMessage);
     socket.on("conversation:receipt", onReceipt);
     socket.on("typing", onTyping);
     socket.on("conversation:closed", onClosed);
+    socket.on("message:edited", onAltered);
+    socket.on("message:deleted", onAltered);
     void roomFor(member)
       .then(() => socket.connected && join())
       .catch(() => undefined);
@@ -438,6 +454,8 @@ export const apiChatService: ChatService = {
       socket.off("conversation:receipt", onReceipt);
       socket.off("typing", onTyping);
       socket.off("conversation:closed", onClosed);
+      socket.off("message:edited", onAltered);
+      socket.off("message:deleted", onAltered);
       set.delete(watcher);
       if (set.size > 0) return;
       watchers.delete(key);

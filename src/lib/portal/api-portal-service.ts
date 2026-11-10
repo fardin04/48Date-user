@@ -108,12 +108,12 @@ const resetDeck = () => {
 };
 
 /**
- * A date is confirmed when its latest plan is set (or done). The 48-hour countdown runs only while
+ * A date is confirmed when its latest plan is set (or past, or done). The 48-hour countdown runs only while
  * the server gives a deadline and hasn't stopped the clock; otherwise the match has no countdown.
  */
 function toMatch(item: MatchItem): Match {
   const status = item.latestDate?.status;
-  const confirmed = status === "SET" || status === "COMPLETED";
+  const confirmed = status === "SET" || status === "AWAITING_CONFIRMATION" || status === "COMPLETED";
   const counting = item.clockStoppedAt === null && item.expiresAt !== null;
   return {
     member: item.otherUser.nickname,
@@ -188,10 +188,9 @@ export const apiPortalService: PortalService = {
     const runId = deck?.runId;
     decided.add(member);
     try {
-      // The API has PASS and LIKE; a Super Like is sent as a like.
       const { data } = await discoveryApi.swipe({
         targetNickname: member,
-        action: decision === "pass" ? "PASS" : "LIKE",
+        action: decision === "pass" ? "PASS" : decision === "super" ? "SUPER_LIKE" : "LIKE",
         source: source === "profile" ? "PROFILE" : "DECK",
         ...(source === "deck" && runId ? { runId } : {}),
       });

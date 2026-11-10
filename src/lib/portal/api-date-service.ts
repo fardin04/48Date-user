@@ -1,9 +1,11 @@
 import type { FeedbackAnswer, Venue } from "@/data/portal/dates";
 import type { MemberId, MemberSummary } from "@/data/portal/types";
-import { onCacheClear } from "@/lib/api/cache";
+import { invalidate, onCacheClear } from "@/lib/api/cache";
 import { isApiError } from "@/lib/api/errors";
+import { cacheKeys } from "@/lib/api/modules/cache-keys";
 import { datesApi } from "@/lib/api/modules/dates-api";
-import type { ApiDatePlan, ApiVenue, SendInviteBody, VenueCategory } from "@/lib/api/types/dates";
+import { acquireSocket } from "@/lib/api/socket";
+import { dateEvents, type ApiDatePlan, type ApiVenue, type DateEvent, type SendInviteBody, type VenueCategory } from "@/lib/api/types/dates";
 import { fill } from "@/lib/format";
 import { memberPhoto, toSummary } from "@/lib/portal/api-members";
 import { findMatch, requireMatch } from "@/lib/portal/api-match-lookup";
@@ -35,17 +37,16 @@ type Draft = {
   time: number | null;
   timezone: string | null;
   updatedAt: number;
-  /** After the date, per plan id: "We met" (waiting), or a no-show sent for review. */
-  attendance: Record<string, "waiting" | "review">;
+  /** After the date, per plan id: feedback given or skipped (the API records only ratings, not a skip). */
   feedback: Record<string, "submitted" | "skipped">;
   /** Postpone requests this member sent (the API doesn't say who asked). */
   postpones: string[];
 };
 
-const emptyDraft = (): Draft => ({ venue: null, place: null, details: null, date: null, time: null, timezone: null, updatedAt: 0, attendance: {}, feedback: {}, postpones: [] });
+const emptyDraft = (): Draft => ({ venue: null, place: null, details: null, date: null, time: null, timezone: null, updatedAt: 0, feedback: {}, postpones: [] });
 
 /** Keeps a finished draft's after-date answers and sent requests. */
-const keptOf = (draft: Draft): Draft => ({ ...emptyDraft(), attendance: draft.attendance, feedback: draft.feedback, postpones: draft.postpones });
+const keptOf = (draft: Draft): Draft => ({ ...emptyDraft(), feedback: draft.feedback, postpones: draft.postpones });
 
 function validPlace(value: unknown): Venue | null {
   if (!isRecord(value) || !isRecord(value.photo) || !isRecord(value.pin)) return null;
@@ -97,7 +98,6 @@ function readDrafts(): Record<string, Draft> {
         time: time !== null && Number.isInteger(time) && time >= 0 && time < 24 * 60 ? time : null,
         timezone: text(raw.timezone, 64),
         updatedAt: num(raw.updatedAt) ?? 0,
-        attendance: states(raw.attendance, ["waiting", "review"]) as Draft["attendance"],
         feedback: states(raw.feedback, ["submitted", "skipped"]) as Draft["feedback"],
         postpones: Array.isArray(raw.postpones) ? raw.postpones.filter((id): id is string => typeof id === "string").slice(-20) : [],
       };
@@ -120,7 +120,52 @@ function writeDraft(member: MemberId, draft: Draft) {
 
 /** Places of the last suggestions run per member, so a chosen id can be turned into a full place. */
 const suggested = new Map<string, { runId: string; venues: ApiVenue[]; places: Venue[] }>();
-onCacheClear(() => suggested.clear());
+/** Live plan updates per member, shared by every screen showing that plan. */
+const watching = new Map<string, { users: number; stop: () => void }>();
+onCacheClear(() => {
+  suggested.clear();
+  watching.clear();
+});
+
+/**
+ * Listens for the `date:*` events of the match's conversation (joined for invitations and answers;
+ * the attendance events also reach the member directly) and reads the plan again when one arrives.
+ */
+function listen(member: MemberId): () => void {
+  const handle = acquireSocket();
+  const { socket } = handle;
+  let match: { id: string; conversationId: string | null } | null = null;
+  let stopped = false;
+  const join = () => {
+    if (match?.conversationId && socket.connected) socket.emit("joinConversation", { conversationId: match.conversationId });
+  };
+  // Back after a dropped connection: join again and read what changed meanwhile.
+  let connectedBefore = socket.connected;
+  const onConnect = () => {
+    join();
+    if (connectedBefore) invalidate(cacheKeys.dates, cacheKeys.matches);
+    connectedBefore = true;
+  };
+  const onDate = (event: DateEvent) => {
+    if (match && (event.matchId === match.id || event.conversationId === match.conversationId)) invalidate(cacheKeys.dates, cacheKeys.matches);
+  };
+  socket.on("connect", onConnect);
+  for (const event of dateEvents) socket.on(event, onDate);
+  void findMatch(member)
+    .then((found) => {
+      if (stopped || !found) return;
+      match = found;
+      join();
+    })
+    .catch(() => undefined);
+  return () => {
+    stopped = true;
+    socket.off("connect", onConnect);
+    for (const event of dateEvents) socket.off(event, onDate);
+    // The room isn't left here: the conversation's own screens may still be in it, and it goes with the connection.
+    handle.release();
+  };
+}
 
 function categoryLabel(category: string | null | undefined) {
   const copy = getLiveVenueCopy();
@@ -194,19 +239,32 @@ async function latestPlan(member: MemberId): Promise<ApiDatePlan | null> {
   );
 }
 
+/** Plans that still stand: open, confirmed, or past and being confirmed. */
+const standing = new Set<ApiDatePlan["status"]>(["REQUESTED", "SET", "AWAITING_CONFIRMATION", "COMPLETED", "NO_SHOW"]);
+
 function statusOf(plan: ApiDatePlan | null): PlanStatus {
   if (!plan) return "draft";
   switch (plan.status) {
     case "REQUESTED":
       return plan.canAccept || plan.canDecline ? "invited" : "pending";
     case "SET":
+    case "AWAITING_CONFIRMATION":
     case "COMPLETED":
+    case "NO_SHOW":
       return "confirmed";
     case "DECLINED":
       return "declined";
     default:
-      return "cancelled";
+      return plan.cancelReason === "DECLINED" ? "declined" : "cancelled";
   }
+}
+
+/** After the date, from the member's own answer: met (waiting for feedback), or a no-show under review. */
+function attendanceOf(plan: ApiDatePlan | null): DatePlan["attendance"] {
+  if (!plan) return null;
+  const mine = plan.myConfirmation;
+  if (plan.status === "NO_SHOW" || mine?.attended === false) return "review";
+  return mine?.attended || plan.hasRated ? "waiting" : null;
 }
 
 function partnerOf(plan: ApiDatePlan | null, fallback: MemberSummary): MemberSummary {
@@ -215,7 +273,7 @@ function partnerOf(plan: ApiDatePlan | null, fallback: MemberSummary): MemberSum
   return toSummary({
     nickname: counterpart.nickname,
     age: counterpart.age,
-    mainPhotoUrl: counterpart.mainPhotoUrl ?? counterpart.primaryPhotoUrl,
+    mainPhotoUrl: counterpart.mainPhoto ?? counterpart.mainPhotoUrl ?? counterpart.primaryPhotoUrl,
     isVerified: counterpart.isVerified ?? counterpart.verificationStatus === "VERIFIED",
   });
 }
@@ -224,14 +282,14 @@ async function planFor(member: MemberId): Promise<DatePlan> {
   const [remote, match] = await Promise.all([latestPlan(member), findMatch(member).catch(() => null)]);
   const draft = readDraft(member);
   const fallback = match ? toSummary(match.otherUser) : toSummary({ nickname: member });
-  const open = remote !== null && (remote.status === "REQUESTED" || remote.status === "SET" || remote.status === "COMPLETED");
+  const open = remote !== null && standing.has(remote.status);
   // A plan being made (a first one, a new time, a plan after a decline) shows the draft's choices.
   const composing = draft.updatedAt > 0 && (!remote || draft.updatedAt > Date.parse(remote.updatedAt));
   const timezone = (composing ? draft.timezone : null) ?? remote?.timeZone ?? draft.timezone ?? defaultTimezone();
   const scheduled = remote ? isoToZoned(remote.scheduledAt, remote.timeZone ?? timezone) : null;
   const status = composing && !open ? "draft" : statusOf(remote);
   const place = (composing ? draft.place : null) ?? (remote ? remotePlace(remote) : (draft.place ?? emptyPlace()));
-  const answered = remote ? draft.attendance[remote.id] : undefined;
+  const attendance = attendanceOf(remote);
   const request = remote?.status === "SET" ? remote.pendingPostponeRequest : null;
   const moved = request?.status === "PENDING" && request.newScheduledAt ? isoToZoned(request.newScheduledAt, timezone) : null;
   return {
@@ -243,8 +301,8 @@ async function planFor(member: MemberId): Promise<DatePlan> {
     time: (composing ? draft.time : null) ?? scheduled?.minutes ?? null,
     timezone,
     status,
-    attendance: answered ?? (remote?.hasRated ? "waiting" : null),
-    feedback: (remote && draft.feedback[remote.id]) ?? (remote?.hasRated && answered !== "review" ? "submitted" : null),
+    attendance,
+    feedback: (remote && draft.feedback[remote.id]) ?? (remote?.hasRated && attendance !== "review" ? "submitted" : null),
     postpone: request && moved ? { date: moved.day, time: moved.minutes, mine: draft.postpones.includes(request.id) } : null,
   };
 }
@@ -364,17 +422,14 @@ export const apiDateService: DateService = {
   },
   async recordAttendance(member, answer) {
     const remote = await requireRemote(member);
-    const draft = readDraft(member);
-    if (!answer.met) {
-      const label = getDatePage().noShow.options.find((option) => option.value === answer.reason)?.label ?? answer.reason;
-      try {
-        await datesApi.rate(remote.id, { showedUp: false, comment: [label, answer.details].filter(Boolean).join(" · ").slice(0, 1000) });
-      } catch (error) {
-        if (!(isApiError(error) && error.code === "DATE_RATING_DONE")) throw error;
-      }
+    const label = answer.met ? null : (getDatePage().noShow.options.find((option) => option.value === answer.reason)?.label ?? answer.reason);
+    const note = answer.met ? "" : [label, answer.details].filter(Boolean).join(" · ").slice(0, 500);
+    try {
+      await datesApi.confirm(remote.id, { attended: answer.met, ...(note ? { note } : {}) });
+    } catch (error) {
+      // Answered already (another device): the plan read below shows that answer.
+      if (!(isApiError(error) && error.code === "DATE_ALREADY_CONFIRMED")) throw error;
     }
-    // "We met" is sent with the feedback (the API takes attendance and ratings together).
-    writeDraft(member, { ...draft, attendance: { ...draft.attendance, [remote.id]: answer.met ? "waiting" : "review" } });
     return planFor(member);
   },
   async answerPostpone(member, answer) {
@@ -395,19 +450,33 @@ export const apiDateService: DateService = {
       return null;
     }
   },
+  watch(member) {
+    const key = keyOf(member);
+    const entry = watching.get(key);
+    if (entry) entry.users += 1;
+    else watching.set(key, { users: 1, stop: listen(member) });
+    let released = false;
+    return () => {
+      const current = watching.get(key);
+      if (released || !current) return;
+      released = true;
+      current.users -= 1;
+      if (current.users > 0) return;
+      current.stop();
+      watching.delete(key);
+    };
+  },
   async submitFeedback(member, answers) {
     const remote = await requireRemote(member);
     const draft = readDraft(member);
-    try {
-      await datesApi.rate(
-        remote.id,
-        answers
-          ? { showedUp: true, overall: score(answers.again), behavior: score(answers.kind), punctuality: score(answers.punctual), safety: score(answers.safe) }
-          : { showedUp: true },
-      );
-    } catch (error) {
-      // Rated already (another device), or skipping isn't accepted without stars: the answer stays recorded here.
-      if (!(isApiError(error) && (error.code === "DATE_RATING_DONE" || (!answers && error.status === 400)))) throw error;
+    // Attendance was sent with `confirm`; a skip sends nothing (a rating needs its scores).
+    if (answers) {
+      try {
+        await datesApi.rate(remote.id, { showedUp: true, overall: score(answers.again), behavior: score(answers.kind), punctuality: score(answers.punctual), safety: score(answers.safe) });
+      } catch (error) {
+        // Rated already (another device): the answer stays recorded here.
+        if (!(isApiError(error) && error.code === "DATE_RATING_DONE")) throw error;
+      }
     }
     writeDraft(member, { ...draft, feedback: { ...draft.feedback, [remote.id]: answers ? "submitted" : "skipped" } });
     return planFor(member);

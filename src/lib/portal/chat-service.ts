@@ -17,6 +17,9 @@ export type ChatMessage = {
   status: "sent" | "seen" | "failed";
   /** A photo or voice note the browser may load (API messages). */
   mediaUrl?: string;
+  /** The sender changed the text, or removed the message (it keeps its place, without content). */
+  edited?: boolean;
+  deleted?: boolean;
 };
 
 /** How a conversation opens: the mock's sample openings, or `live` (the history as it is). */
@@ -37,7 +40,8 @@ export type Conversation = {
   introSeen: boolean;
 };
 
-export type ConversationSummary = { member: MemberId; partner: MemberSummary; preview: string; unread: number; blocked: boolean };
+/** `at`: when the last message was sent (ms), null when unknown. */
+export type ConversationSummary = { member: MemberId; partner: MemberSummary; preview: string; unread: number; blocked: boolean; at: number | null };
 
 export type SuggestionsResult = { status: "ready"; suggestions: string[] } | { status: "unavailable"; reason?: string };
 
