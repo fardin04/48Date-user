@@ -15,6 +15,36 @@ export function formatTime(minutes: number) {
   return `${hours % 12 || 12}:${String(minutes % 60).padStart(2, "0")} ${hours < 12 ? "AM" : "PM"}`;
 }
 
+/** Whole calendar days between two instants in the browser's zone (0 = same day). */
+function daysBetween(at: number, now: number) {
+  const day = (ms: number) => {
+    const date = new Date(ms);
+    return Date.UTC(date.getFullYear(), date.getMonth(), date.getDate());
+  };
+  return Math.round((day(now) - day(at)) / 86_400_000);
+}
+
+/**
+ * When a message or notification arrived, in the browser's language and zone: "2:41 PM" today,
+ * "Yesterday, 2:41 PM", "Mon, 2:41 PM" within the week, "24 Oct, 2:41 PM" before (with the year
+ * when it isn't this one). `withTime: false` keeps only the day part ("Yesterday", "24 Oct").
+ */
+export function formatStamp(at: number, now = Date.now(), withTime = true) {
+  const time = new Intl.DateTimeFormat(undefined, { hour: "numeric", minute: "2-digit" }).format(at);
+  const days = daysBetween(at, now);
+  if (days <= 0) return time;
+  let day: string;
+  if (days === 1) {
+    const yesterday = new Intl.RelativeTimeFormat(undefined, { numeric: "auto" }).format(-1, "day");
+    day = yesterday.charAt(0).toLocaleUpperCase() + yesterday.slice(1);
+  } else {
+    const sameYear = new Date(at).getFullYear() === new Date(now).getFullYear();
+    const options: Intl.DateTimeFormatOptions = days < 7 ? { weekday: "short" } : { day: "numeric", month: "short", ...(sameYear ? {} : { year: "numeric" }) };
+    day = new Intl.DateTimeFormat(undefined, options).format(at);
+  }
+  return withTime ? `${day}, ${time}` : day;
+}
+
 /** Today in the browser's calendar, as `YYYY-MM-DD`. */
 export function todayIso(now = new Date()) {
   return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;

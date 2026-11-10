@@ -150,6 +150,8 @@ export const mockDateService: DateService = {
   async getWeather() {
     return null;
   },
+  // No live events: the mock answers on its own timer, and `useDatePlan` reads a pending plan again.
+  watch: () => () => undefined,
   async submitFeedback(member, answers) {
     await wait();
     return update(member, { feedback: answers ? "submitted" : "skipped" });

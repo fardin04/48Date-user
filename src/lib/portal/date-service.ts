@@ -49,6 +49,8 @@ export type DateService = {
   answerPostpone: (member: MemberId, answer: "accept" | "decline" | "withdraw") => Promise<DatePlan>;
   /** A weather hint for the chosen place and day ("Mainly clear · 14–22°C"), or null. */
   getWeather: (member: MemberId) => Promise<{ description: string; min: number; max: number } | null>;
+  /** Keeps the plan live while it is on screen (the partner answers, confirms or moves it); returns the stop function. */
+  watch: (member: MemberId) => () => void;
 };
 
 /** The API (`NEXT_PUBLIC_API_BASE_URL` set) or the marked mock. */

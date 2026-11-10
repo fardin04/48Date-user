@@ -90,13 +90,15 @@ const delivered = () => navigator.onLine;
 
 export const mockChatService: ChatService = {
   async getConversations() {
-    const { blocked } = read();
+    const { blocked, messages } = read();
     return getInboxPage().conversations.map((sample) => ({
       member: sample.member,
       partner: partnerOf(sample.member),
       preview: sample.preview,
       unread: 0,
       blocked: blocked.includes(sample.member),
+      // Sample previews have no time; one the member sent in this tab has.
+      at: messages[sample.member]?.at(-1)?.sentAt ?? null,
     }));
   },
   async getConversation(member): Promise<Conversation> {

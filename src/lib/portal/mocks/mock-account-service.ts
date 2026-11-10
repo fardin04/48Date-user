@@ -180,7 +180,7 @@ export const mockAccountService: AccountService = {
     return getMemberAvatar();
   },
   async getNotifications() {
-    return getAccountPage().notifications.items.map((item, index) => ({ id: String(index), title: item.title, description: item.description, to: item.to, unread: false }));
+    return getAccountPage().notifications.items.map((item, index) => ({ id: String(index), title: item.title, description: item.description, to: item.to, unread: false, at: null }));
   },
   async getUnreadCount() {
     return 0;
