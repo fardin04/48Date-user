@@ -35,9 +35,6 @@ function labelOf(list: SelectOption[] | undefined, value: string | null | undefi
   return list?.find((option) => option.value === value)?.label ?? value;
 }
 
-/** Set once `GET /trust-score/history` answers 404, so the missing endpoint isn't asked again. */
-let historyMissing = false;
-
 /** Where a notification leads: its target screen, opened for the member it is about. */
 function destinationOf(item: InboxNotification): Destination {
   const screen = (item.target?.screen ?? item.type ?? "").toUpperCase();
@@ -227,19 +224,7 @@ export const apiAccountService: AccountService = {
   async getTrustHistory() {
     const { live } = getAccountPage().trust;
     const signed = (points: number) => `${points > 0 ? "+" : ""}${points}`;
-    if (!historyMissing) {
-      try {
-        const { data } = await usersApi.trustHistory();
-        return data.map((event) => ({
-          label: event.reason,
-          value: fill(live.event, { change: event.isReversed ? live.reversed : signed(event.points), date: formatDayMonth(event.createdAt) }),
-        }));
-      } catch (error) {
-        if (!(isApiError(error) && error.status === 404)) throw error;
-        // This backend has no history endpoint (Postman `02` answers 404): use the score's breakdown.
-        historyMissing = true;
-      }
-    }
+    // The API has no history endpoint: the score's breakdown lists what changed it.
     const { data } = await usersApi.trustScore();
     return [...data.breakdown.items]
       .sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt))
@@ -271,7 +256,14 @@ export const apiAccountService: AccountService = {
   },
   async getNotifications() {
     const { data } = await notificationsApi.inbox();
-    return data.map((item) => ({ id: item.id, title: item.title ?? "", description: item.body ?? "", to: destinationOf(item), unread: !item.readAt }));
+    return data.map((item) => ({
+      id: item.id,
+      title: item.title ?? "",
+      description: item.body ?? "",
+      to: destinationOf(item),
+      unread: !item.readAt,
+      at: Date.parse(item.createdAt) || null,
+    }));
   },
   async getUnreadCount() {
     return (await notificationsApi.unreadCount()).data.unreadCount;

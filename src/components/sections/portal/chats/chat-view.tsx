@@ -477,7 +477,7 @@ export function ChatView({ memberId }: { memberId: MemberId }) {
           ref={messages}
           aria-label={copy.messagesLabel}
           aria-live="polite"
-          className="flex min-h-80 flex-1 flex-col gap-4 overflow-x-clip overflow-y-auto rounded-16 bg-canvas-cool p-4 max-lg:max-h-112"
+          className="flex min-h-80 flex-1 flex-col gap-4 overflow-x-clip overflow-y-auto lg:min-h-0 rounded-16 bg-canvas-cool p-4 max-lg:max-h-112"
         >
           {live && conversation.hasOlder && (
             <li className="flex w-full justify-center">
