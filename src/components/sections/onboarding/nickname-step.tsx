@@ -9,7 +9,7 @@ import { onboardingService, type NicknameCheck } from "@/lib/onboarding/onboardi
 import { profileDraft, useProfileDraft } from "@/lib/onboarding/profile-draft";
 import { useLoaded } from "@/hooks/use-loaded";
 import { getNicknameStep, getOnboardingShared, getStepFlow } from "@/stores/onboarding-store";
-import { SetupBack, SetupError, SetupPrimary, useSaveStep } from "./step-actions";
+import { SetupBack, SetupError, SetupPrimary, useAdvance, useSaveStep } from "./step-actions";
 import { screenKeys } from "@/lib/screen-keys";
 
 /** The API's rule (Postman `07 Save Onboarding Step — Nickname`): 3–20 characters, starts with a letter. */
@@ -24,14 +24,17 @@ export function NicknameStep() {
   const copy = getNicknameStep();
   const shared = getOnboardingShared();
   const flow = getStepFlow("nickname");
+  const advance = useAdvance("nickname");
   const { save, saving, error } = useSaveStep("nickname");
   const suggestions = useLoaded(screenKeys.nicknameSuggestions, onboardingService.getNicknameSuggestions).value ?? copy.suggestions;
+  const progress = useLoaded(screenKeys.onboardingProgress, onboardingService.getProgress).value;
   const noteId = useId();
   const draft = useProfileDraft();
   const [phase, setPhase] = useState<Phase>({ kind: "edit" });
   // Ignores a response that arrives after Back or a new check.
   const request = useRef(0);
   const nickname = draft.fields.nickname ?? "";
+  const lockedNickname = progress?.lockedNickname;
 
   const edit = (value: string) => {
     request.current += 1;
@@ -65,6 +68,24 @@ export function NicknameStep() {
 
   const field = { label: copy.field.label, value: nickname, onChange: edit, placeholder: copy.field.placeholder, maxLength: MAX_LENGTH, autoComplete: "nickname" };
   const back = <SetupBack onClick={() => edit(nickname)} />;
+
+  if (lockedNickname) {
+    return (
+      <SetupStep
+        intro={copy.intro}
+        onSubmit={(event) => {
+          event.preventDefault();
+          advance();
+        }}
+        back={<SetupBack link={flow.back} />}
+        primary={<SetupPrimary label={shared.continueLabel} onClick={advance} />}
+        revealDelay={0}
+      >
+        <TextField label={copy.field.label} value={lockedNickname} onChange={() => undefined} state="disabled" describedBy={noteId} />
+        <StatusNote variant="notice" id={noteId} message="Your nickname is permanent once chosen (D-117)." />
+      </SetupStep>
+    );
+  }
 
   if (phase.kind === "checking") {
     return (

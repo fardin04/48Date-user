@@ -2,15 +2,17 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { ActionButton } from "@/components/pieces/actions/action-button";
 import { BackButton } from "@/components/pieces/actions/back-button";
 import { StatusNote } from "@/components/pieces/feedback/status-note";
 import { Button } from "@/components/ui/button";
 import type { OnboardingStep, StepLink } from "@/data/onboarding/types";
 import type { Destination } from "@/lib/routes";
-import { onboardingService, type StepInput } from "@/lib/onboarding/onboarding-service";
+import { onboardingService, type SavedProgress, type StepInput } from "@/lib/onboarding/onboarding-service";
 import { profileDraft } from "@/lib/onboarding/profile-draft";
 import { stepDestination, stepHref } from "@/lib/onboarding/steps";
+import { screenKeys } from "@/lib/screen-keys";
 import { getOnboardingShared, getStepFlow } from "@/stores/onboarding-store";
 
 type PrimaryProps = {
@@ -79,6 +81,7 @@ export function useAdvance(step: OnboardingStep) {
  */
 export function useSaveStep(step: OnboardingStep) {
   const advance = useAdvance(step);
+  const queryClient = useQueryClient();
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -86,10 +89,24 @@ export function useSaveStep(step: OnboardingStep) {
     if (saving) return;
     setSaving(true);
     setError(null);
-    const result = await onboardingService.saveStep(step, { draft: profileDraft.read(), ...extra });
+    const draft = profileDraft.read();
+    const result = await onboardingService.saveStep(step, { draft, ...extra });
     setSaving(false);
-    if (result.ok) advance();
-    else setError(result.message);
+    if (result.ok) {
+      if (step === "nickname") {
+        const savedNickname = draft.fields.nickname;
+        if (savedNickname) {
+          queryClient.setQueryData(screenKeys.onboardingProgress, (old: SavedProgress | undefined) =>
+            old
+              ? { ...old, lockedNickname: savedNickname }
+              : { completed: false, draft: { fields: { nickname: savedNickname } }, lockedNickname: savedNickname }
+          );
+        }
+      }
+      advance();
+    } else {
+      setError(result.message);
+    }
   }
 
   return { save, saving, error };

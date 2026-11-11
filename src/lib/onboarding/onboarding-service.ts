@@ -34,7 +34,7 @@ export type StepOptions = { fields: Partial<Record<DraftField, SelectOption[]>>;
  * Answers saved earlier (another device, a previous visit). `pending` lists, in setup order, the
  * screens with a required step the API still lists as pending (none once every required step is saved).
  */
-export type SavedProgress = { completed: boolean; draft: Partial<ProfileDraft>; pending?: OnboardingStep[] };
+export type SavedProgress = { completed: boolean; draft: Partial<ProfileDraft>; pending?: OnboardingStep[]; lockedNickname?: string };
 
 /**
  * Contract the onboarding screens talk to (handoff: "Any prototype timeout illustrates a

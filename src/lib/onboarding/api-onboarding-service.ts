@@ -132,7 +132,7 @@ async function sendInOrder(step: OnboardingStep, input: StepInput) {
   const { data } = await onboardingApi.state();
   for (const { step: key, name, required, state } of data.steps) {
     const call = calls.get(key);
-    if (call && (state === "PENDING" || own.includes(call))) {
+    if (call && (state === "PENDING" || (own.includes(call) && key !== "nickname"))) {
       setupStatus.fromApi((await onboardingApi.saveStep(call.step, call.body)).data.onboardingStatus);
     } else if (!call && required && state === "PENDING") {
       // Waiting for a later screen is fine; a missing earlier answer is not.
@@ -147,7 +147,11 @@ async function sendInOrder(step: OnboardingStep, input: StepInput) {
 /** `GET /onboarding` saved values → the draft fields of each screen (the real name is never returned). */
 function toProgress(state: OnboardingStateData): SavedProgress {
   const saved = state.savedValues ?? {};
-  const value = (step: keyof typeof saved, key: string) => text(saved[step]?.[key]);
+  const value = (step: keyof typeof saved, key: string) => {
+    const raw = saved[step];
+    if (typeof raw === "string") return text(raw);
+    return text(raw?.[key]);
+  };
   const fields: ProfileDraft["fields"] = {
     nickname: value("nickname", "nickname"),
     dob: value("birthday", "birthDate"),
@@ -168,9 +172,12 @@ function toProgress(state: OnboardingStateData): SavedProgress {
   const interests = Array.isArray(saved.interests?.interestIds) ? (saved.interests.interestIds as string[]) : undefined;
   const city = value("location", "city");
   const completed = state.onboardingStatus === "COMPLETED";
+  const isNicknameSaved = state.steps.some((s) => s.step === "nickname" && s.state === "DONE");
+  const lockedNickname = isNicknameSaved ? value("nickname", "nickname") : undefined;
   return {
     completed,
     ...(completed ? {} : { pending: pendingScreens(state) }),
+    ...(lockedNickname ? { lockedNickname } : {}),
     draft: {
       fields: Object.fromEntries(Object.entries(fields).filter(([, entry]) => entry !== undefined)),
       ...(interests ? { interests } : {}),
