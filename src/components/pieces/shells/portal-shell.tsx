@@ -17,10 +17,10 @@ type PortalShellProps = {
  */
 export function PortalShell({ active, children }: PortalShellProps) {
   return (
-    <div className="min-h-svh bg-gray-50">
+    <div className="flex min-h-svh flex-col bg-gray-50">
       <PortalHeader active={active} />
-      {/* Full width like the header, so zooming out (a wider CSS viewport) never leaves grey bands beside it (rule 47); pages fill the room with their grids. */}
-      <main className="flex w-full flex-col gap-6 p-4 max-sm:pb-24 max-sm:short:pb-16 sm:p-6 xl:px-20 xl:py-8">
+      {/* Full width like the header and grows to the bottom of the viewport, so zooming out never leaves grey bands beside or below the page (rule 47); views fill it. */}
+      <main className="flex w-full flex-1 flex-col gap-6 p-4 max-sm:pb-24 max-sm:short:pb-16 sm:p-6 xl:px-20 xl:py-8">
         <SessionGate allow="member" redirect="SIGNIN">
           <SetupGate>{children}</SetupGate>
         </SessionGate>

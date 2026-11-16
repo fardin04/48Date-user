@@ -6,6 +6,7 @@ import { useLoaded } from "@/hooks/use-loaded";
 import { authService } from "@/lib/auth/auth-service";
 import { onboardingService } from "@/lib/onboarding/onboarding-service";
 import { hrefFor } from "@/lib/routes";
+import { replaceRoute } from "@/lib/navigation/replace-route";
 import { screenKeys } from "@/lib/screen-keys";
 
 const noChange = () => () => {};
@@ -25,7 +26,7 @@ export function SetupGate({ children }: { children: ReactNode }) {
   const waiting = known !== "portal" && progress.value === undefined && progress.error === undefined;
 
   useEffect(() => {
-    if (unfinished) router.replace(hrefFor("LOCATION"));
+    if (unfinished) replaceRoute(router, hrefFor("LOCATION"));
   }, [router, unfinished]);
 
   if (unfinished || waiting) return null;

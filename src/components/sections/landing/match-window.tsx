@@ -29,7 +29,7 @@ export function MatchWindow() {
           spacing="window"
           tone="dark"
           descriptionClassName="max-w-162.5"
-          className="min-w-0 flex-1"
+          className="min-w-0 flex-1 lg:basis-105 xl:basis-0"
           revealDelay={120}
         />
         <Countdown countdown={matchWindow.countdown} revealDelay={240} />
