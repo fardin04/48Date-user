@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { storyService } from "@/lib/portal/story-service";
 import { useLoaded } from "@/hooks/use-loaded";
 import { hrefFor } from "@/lib/routes";
+import { replaceRoute } from "@/lib/navigation/replace-route";
 import { getStoriesPage } from "@/stores/portal-store";
 import { StatusScreen } from "@/components/sections/portal/shared/status-screen";
 import { StoryBody } from "@/components/sections/portal/stories/story-body";
@@ -29,7 +30,7 @@ export function StoryMineView() {
 
   // Nothing submitted yet: write one.
   useEffect(() => {
-    if (none) router.replace(hrefFor("STORY-CREATE"));
+    if (none) replaceRoute(router, hrefFor("STORY-CREATE"));
   }, [none, router]);
 
   if (!submission) return null;

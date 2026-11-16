@@ -10,6 +10,9 @@ import { StatusNote } from "@/components/pieces/feedback/status-note";
 import { SwipeCard } from "@/components/pieces/cards/swipe-card";
 import { Text } from "@/components/pieces/content/text";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/cn";
+import { layout } from "@/lib/control-sizes";
+import { usePrimaryInView } from "@/hooks/use-primary-in-view";
 import type { Decision } from "@/data/portal/discover";
 import type { MemberId } from "@/data/portal/types";
 import { fill } from "@/lib/format";
@@ -124,6 +127,11 @@ export function DiscoverView() {
     if (shownMatch) void portalService.markMatchSeen(shownMatch);
   }, [shownMatch]);
 
+  // At high zoom the card and Like / Pass lead, ahead of the page heading.
+  const deck = useRef<HTMLElement>(null);
+  const decisionRow = useRef<HTMLDivElement>(null);
+  usePrimaryInView(deck, decisionRow, Boolean(data && member));
+
   if (!data) return error ? <LoadFailed onRetry={() => void reload()} error={error} /> : null;
 
   const screen = screenFor(data.deck, shownMatch, feedback !== null);
@@ -197,15 +205,16 @@ export function DiscoverView() {
         <FormHeader variant="portalPage" title={copy.title} description={copy.description} revealDelay={0} className="min-w-0 flex-1" />
         <ActionButton action={copy.adjustFilters} variant="roseOutline" size="pillCompact" width="portalAction" />
       </div>
-      <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,400px)_minmax(0,1fr)] xl:grid-cols-[240px_448px_minmax(0,1fr)]">
+      {/* 240 / 448 / 544 at 1440 as drawn; wider viewports (zoomed out) grow the card and overview in that ratio. */}
+      <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,400px)_minmax(0,1fr)] xl:grid-cols-[240px_minmax(min(448px,100%),448fr)_minmax(0,544fr)]">
         <DiscoverSidebar
           location={location}
           facts={preferenceFacts(data.preferences, location, ["interestedIn", "ageRange", "distance", "verification"])}
           activeMatches={data.activeMatches}
-          // W11: tablets hide the preferences column ("Adjust filters" stays in the heading); phones keep it on top.
-          className="md:max-xl:hidden"
+          // W11: tablets hide the preferences column ("Adjust filters" stays in the heading); phones show it after the profile, which leads at high zoom (rule 49).
+          className="max-md:order-last md:max-xl:hidden"
         />
-        <section aria-label={copy.card.deckLabel} className="flex w-full flex-col gap-3">
+        <section ref={deck} aria-label={copy.card.deckLabel} className="flex w-full scroll-mt-4 flex-col gap-3">
           <SwipeCard
             key={memberId}
             member={member}
@@ -222,7 +231,7 @@ export function DiscoverView() {
           <p id="deck-drag-hint" className="sr-only">
             {copy.card.dragHint}
           </p>
-          <div role="group" aria-label={copy.card.decisionsLabel} className="flex w-full gap-3">
+          <div ref={decisionRow} role="group" aria-label={copy.card.decisionsLabel} className={cn("flex w-full gap-3", layout.stickyActions)}>
             {decisions.map((option) => (
               <Button
                 key={option.decision}

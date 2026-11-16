@@ -14,6 +14,7 @@ import { formatFullDay } from "@/lib/portal/date-format";
 import { membershipService } from "@/lib/portal/membership-service";
 import { useLoaded } from "@/hooks/use-loaded";
 import { hrefFor } from "@/lib/routes";
+import { replaceRoute } from "@/lib/navigation/replace-route";
 import { usePlans } from "@/hooks/use-plans";
 import { getMembershipPage } from "@/stores/portal-store";
 import { MembershipContext } from "@/components/sections/portal/membership/membership-context";
@@ -33,7 +34,7 @@ export function SubscriptionView() {
   const free = membership !== undefined && !membership.plan;
 
   useEffect(() => {
-    if (free) router.replace(hrefFor("MEMBERSHIP"));
+    if (free) replaceRoute(router, hrefFor("MEMBERSHIP"));
   }, [free, router]);
 
   if (!membership?.plan || !membership.periodEnds) {

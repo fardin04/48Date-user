@@ -11,6 +11,7 @@ import { SettingsRow } from "@/components/pieces/cards/settings-row";
 import { Button } from "@/components/ui/button";
 import { authService } from "@/lib/auth/auth-service";
 import { hrefFor } from "@/lib/routes";
+import { replaceRoute } from "@/lib/navigation/replace-route";
 import { getAccountPage } from "@/stores/portal-store";
 import { ProfileContext } from "@/components/sections/portal/profile/profile-context";
 import { Workspace } from "@/components/sections/portal/shared/workspace";
@@ -26,7 +27,7 @@ export function SettingsView() {
     if (busy) return;
     setBusy(true);
     await authService.signOut();
-    router.replace(hrefFor("WELCOME"));
+    replaceRoute(router, hrefFor("WELCOME"));
   };
 
   return (
