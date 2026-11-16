@@ -15,6 +15,7 @@ import type { authShared } from "@/data/auth/shared";
 import { authService } from "@/lib/auth/auth-service";
 import { maskPhone, phoneSession } from "@/lib/auth/phone";
 import { hrefFor, to, type ScreenCode } from "@/lib/routes";
+import { replaceRoute } from "@/lib/navigation/replace-route";
 
 /** OTP · OTP-FILLED (code) · OTP-ERROR · OTP-RESEND · OTP-EXPIRED · OTP-LIMIT · VERIFY-PROCESS */
 type Status = "code" | "error" | "resent" | "expired" | "limited" | "processing" | "banned" | "failed";
@@ -36,7 +37,7 @@ export function VerifyStep({ copy, code: text, entry, verified }: VerifyStepProp
 
   // Arriving without a number (direct visit, new tab): start the flow again.
   useEffect(() => {
-    if (!phoneSession.read()) router.replace(hrefFor(entry));
+    if (!phoneSession.read()) replaceRoute(router, hrefFor(entry));
   }, [entry, router]);
 
   const masked = phone ? maskPhone(phone) : text.phoneFallback;
@@ -47,7 +48,7 @@ export function VerifyStep({ copy, code: text, entry, verified }: VerifyStepProp
     if (!phone || code.length !== CODE_LENGTH) return;
     setStatus("processing");
     const result = await authService.verifyCode(phone, code);
-    if (result === "verified") return router.push(hrefFor(verified));
+    if (result === "verified") return replaceRoute(router, hrefFor(verified));
     // OTP-EXPIRED shows empty cells; OTP-ERROR keeps the digits so they can be edited.
     if (result === "expired") setCode("");
     setStatus(result === "mismatch" ? "error" : result);

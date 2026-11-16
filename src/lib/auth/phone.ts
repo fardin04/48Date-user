@@ -9,13 +9,21 @@ const VISIBLE_DIGITS = 4;
 
 export const digitsOnly = (value: string) => value.replace(/\D/g, "");
 
+export function normalizeNational(country: Country, national: string): string {
+  const digits = digitsOnly(national);
+  if ((country.iso === "BD" || country.iso === "GB" || country.iso === "AU") && digits.startsWith("0")) {
+    return digits.slice(1);
+  }
+  return digits;
+}
+
 export function isValidNational(country: Country, national: string) {
-  return new RegExp(country.pattern).test(digitsOnly(national));
+  return new RegExp(country.pattern).test(normalizeNational(country, national));
 }
 
 export const toPhoneNumber = (country: Country, national: string): PhoneNumber => ({
   dial: country.dial,
-  national: digitsOnly(national),
+  national: normalizeNational(country, national),
 });
 
 /** "+880 •••••• 6155" — the number shown on verify screens. */

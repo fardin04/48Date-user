@@ -18,7 +18,7 @@ async function requestCode(phone: PhoneNumber): Promise<SendCodeResult> {
     rememberDevOtp(data.devOtp); // TESTING ONLY — see dev-otp-hint.tsx
     return "sent";
   } catch (error) {
-    return isApiError(error) && limitCodes.includes(error.code) ? "limited" : "failed";
+    return isApiError(error) && (error.status === 429 || limitCodes.includes(error.code)) ? "limited" : "failed";
   }
 }
 

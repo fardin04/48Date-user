@@ -31,6 +31,7 @@ export function PhoneStep({ intro, field, submitLabel, countries, defaultCountry
   const router = useRouter();
   const inputId = useId();
   const errorId = useId();
+  const sendErrorId = useId();
   const hintId = useId();
   const stored = phoneSession.parse(
     useSyncExternalStore(phoneSession.subscribe, phoneSession.snapshot, () => null),
@@ -77,12 +78,12 @@ export function PhoneStep({ intro, field, submitLabel, countries, defaultCountry
         national={value.national}
         onCountryChange={(iso) => update({ iso })}
         onNationalChange={(national) => update({ national })}
-        invalid={invalid}
-        describedBy={invalid ? `${errorId} ${hintId}` : hintId}
+        invalid={invalid || Boolean(sendError)}
+        describedBy={invalid ? `${errorId} ${hintId}` : sendError ? `${sendErrorId} ${hintId}` : hintId}
         revealDelay={60}
       />
       {invalid && <StatusNote variant="error" id={errorId} message={field.invalid} />}
-      {sendError && <StatusNote variant="error" message={sendError} />}
+      {sendError && <StatusNote variant="error" id={sendErrorId} message={sendError} />}
       <span id={hintId}>
         <Text variant="text14Relaxed" tone="sub">
           {field.hint}
