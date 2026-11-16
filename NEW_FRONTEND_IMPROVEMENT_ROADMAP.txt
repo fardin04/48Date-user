@@ -30,7 +30,7 @@ PHASE LIST   (✓ = completed; see NEW_FRONTEND_QA_REPORT.md for each phase's re
   0  Project Audit and Baseline  [✓ COMPLETED 2026-11-16]
   1  Global Portal Shell, Shared Layout, Back-Navigation and Image Infrastructure  [✓ COMPLETED 2026-11-16]
   2  Landing Page and Public Sections  [✓ COMPLETED 2026-11-16]
-  3  Legal Pages (Terms, Privacy)  [ ] NOT STARTED
+  3  Legal Pages (Terms, Privacy)  [✓ COMPLETED 2026-11-16]
   4  Authentication (Sign up, Sign in, OTP, Google, Session ended)  [ ] NOT STARTED
   5  Onboarding A: Profile Steps 1-11  [ ] NOT STARTED
   6  Onboarding B: Photos, Selfie Verification, Notifications, Ready  [ ] NOT STARTED
@@ -765,7 +765,7 @@ WORK ORDER
 
 
 ================================================================================
-PHASE 3 - LEGAL PAGES (TERMS, PRIVACY)   [ ] NOT STARTED
+PHASE 3 - LEGAL PAGES (TERMS, PRIVACY)   [✓ COMPLETED 2026-11-16]
 ================================================================================
 A. PHASE IDENTIFICATION
   Phase number: 3

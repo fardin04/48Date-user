@@ -128,7 +128,7 @@ All under `src/components/`. Every composite piece also takes `revealDelay` and 
 - `pieces/content/icon.tsx` — `Icon` (atom): Hugeicons mask — `name`, `size` (12–64 | 120), `tone`, `label`
 - `pieces/content/icon-badge.tsx` — `IconBadge` (atom): 52px icon tile — `icon`, `variant` (roseLight | neutral | onDark)
 - `pieces/cards/icon-row.tsx` — `IconRow`: icon + title + description row — `item`, `variant` (outline | card | glass), `as`
-- `pieces/shells/legal-contents.tsx` — `LegalContents` (client): "On this page" list, open on desktop, disclosure on mobile — `label`
+- `pieces/shells/legal-contents.tsx` — `LegalContents` (client): "On this page" list, open beside the article from 1024px (sticky while it fits the viewport, scrolling inside itself otherwise, static in short viewports) and a button disclosure below that (CSS-driven, so the server render matches every width; picking a link closes it and re-scrolls an already-open section) — `label`, children
 - `pieces/brand/logo.tsx` — `Logo`: original 48Date mark + wordmark — `size` (xs | header | sm | md | lg | xl), `tone` (dark | light), `to`, `label`
 - `pieces/cards/match-card.tsx` — `MatchCard`: 240px photo, name, status badge, last message and three actions — `name`, `photo`, `badge`, `preview`, `primary`, `secondary`, `details`
 - `pieces/cards/member-row.tsx` — `MemberRow`: 48px photo + title + line ("You & GoldenHour") — `photo`, `title`, `description`, `meta` (time beside the title), `badge` (`text` + screen-reader `label`, unread count), `variant` (plain | list | selected), `to`, `current`
@@ -163,7 +163,7 @@ All under `src/components/`. Every composite piece also takes `revealDelay` and 
 - `pieces/layout/reveal.tsx` — `Reveal` (client): fade-up on scroll, no-JS/reduced-motion safe — `as`, `delay`
 - `pieces/media/selfie-frame.tsx` — `SelfieFrame`: 180×300 portrait on the 300px preview surface for the live camera or the captured selfie — children
 - `pieces/content/rich-text.tsx` — `RichText` (atom): renders `\n` breaks and `*highlight*` — `copy`
-- `pieces/layout/scroll-to-section.tsx` — `ScrollToSection` (client): scrolls the section named by the URL path into view — `id`
+- `pieces/layout/scroll-to-section.tsx` — `ScrollToSection` (client): scrolls the section named by the URL path into view — `id`, `focus` (also moves focus to the section, which needs `tabIndex={-1}`); also exports `bringIntoView(id, focus)`
 - `pieces/layout/section.tsx` — `Section`: full-bleed band — `id`, `labelledBy`, `surface`, `spacing` (md | lg | xl), `contained`
 - `pieces/forms/select-field.tsx` — `SelectField`: labelled 56px native select with arrow — `label`, `value`, `onChange`, `options`, `placeholder` (optional), `state`, `message`
 - `pieces/forms/selection-mark.tsx` — `SelectionMark` (atom): decorative 20px radio / checkbox — `type`, `checked`
@@ -306,6 +306,7 @@ All under `src/components/`. Every composite piece also takes `revealDelay` and 
   - **Bottom:** the shell's main column grows to the viewport bottom; `Workspace` panels and the chat panes (`max(420px, var(--svh) − 152px)`, no 760px cap) fill it.
   - **Zoom in:** in stacked layouts the conversation opens with its header and the composer visible, and Discover opens on the card with Pass / Like / Super Like pinned. On phones the preferences column now follows the profile. Discover's xl columns are 240 / 448fr / 544fr (448 at 1440, as drawn).
 - **Landing (Phase 2, 2026-11-16):** the hero quote card is anchored from the right of the collage (`right-[4.81%]`, the same Figma geometry), so its 300px minimum grows leftwards instead of into the gutter at 1280. From 1024 to 1279 the match-window intro keeps a 420px basis, so the countdown wraps below instead of squeezing the heading to ~210px. In short viewports (300–400 % zoom) the glass nav is 64px and sits 12px from the top, and the hero starts at 96px, so the headline shows on the first screen.
+- **Legal pages (Phase 3, 2026-11-16):** past the 1920 frame the legal pages scale as one piece like the landing page (`fit-landing` on `main`). The article keeps its 1088px column, but the body text is capped at 75 characters per line (`--container-measure: 75ch`, `layout.readingMeasure`), so 50 % zoom and 1600px+ screens read like the frame instead of 94-character lines (the Figma frame draws ~94; design-silent readability choice). The solid nav is 64px tall in short viewports (300–400 % zoom), so the title shows on the first screen. A contents link moves focus to its section, and the same link clicked again brings the section back. The logo mark loads eagerly everywhere (one shared SVG; it was the LCP image in short viewports).
 
 <!-- BEGIN:nextjs-agent-feedback -->
 
