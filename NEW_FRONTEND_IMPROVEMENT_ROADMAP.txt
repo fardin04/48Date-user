@@ -2677,6 +2677,7 @@ B. SCOPE
 C. INITIAL AUDIT
   - The three panels at 100 % (1440), 110 % (1309, still xl: the 280 + 312 fixed columns leave about 600 px for the conversation), 125 % (1152, lg: the context is hidden, with no way to open it), 150-175 % (single pane), 200-400 % (single pane, 225-450 px tall: the 420 px pane floor is taller than the viewport, so the composer is pushed off-screen?).
   - At 50 % (2880 px): the panes cap at 760 px tall and the columns are fixed, so check the empty space.
+  - OWNER REPORT (2026-11-16): at 100 % in a normal browser the messaging section looks oversized (type, paddings and the header / action rows feel too big). The message box where the conversation shows is so short that only one or two messages are visible and everything else needs scrolling. Measure at 1440x900, 1309x818 and 1152x720: the height of the message list (the scroller) versus everything stacked above and below it inside the pane (conversation header, Figma action row, tools, composer), and the type sizes against the Figma W05 frame and the token scale. Write the numbers into the report before changing code.
   - Preserve: the list joining every room live, the unread counts, CHAT-EMPTY, the conversation lookup by nickname in the cached list (one request).
 D. IMPLEMENTATION
   1. Three-panel layout:
@@ -2686,6 +2687,7 @@ D. IMPLEMENTATION
   2. Pane height: replace the fixed 760 px / 420 px floor with height = 100dvh minus the header, the tab bar and the page padding (as CSS variables from Phase 1), with a minimum that still fits a 225 px viewport. The message list is the only scroller, and the composer is always visible at the bottom of the pane.
   3. At 50 % zoom: the panes grow in height up to a sensible cap and the columns widen through clamp; no fixed 760 px.
   4. Conversation list rows: truncate names and previews with min-w-0; time and unread badge never overflow.
+  5. Message area first (owner report). The message list gets the largest share of the pane: at 1440x900 (100 %) it shows at least 6-8 ordinary one-line messages without scrolling, and at 1309 / 1152 proportionally as many. Get there by compacting what surrounds it (header row, the Figma action row, the tools that Phase 13 moves into the "+" menu, composer paddings), and by bringing chat type and spacing that is larger than the Figma W05 frame back to the Figma size through the scale tokens. Never by shrinking text below Figma or below readable sizes. Keep px type (rules 4 / 24). The Figma frame is a reference, not a blind spec: keep the owner's later changes and make the result look polished. Record before / after list heights and visible message counts in the report.
 E. RESPONSIVENESS
 Zoom levels (all mandatory): 50, 75, 90, 100, 110, 125, 150, 175, 200, 250, 300, 350 and 400 % at a 1440x900 window, then spot-check 50 %, 200 % and 400 % at a 1920x1080 window. Also check the rule 3 widths 360, 390, 768, 1024, 1280, 1440 and 1920. (Equivalent CSS viewports are in standing rule 3.)
 At every zoom, record and fix:
@@ -2736,6 +2738,7 @@ Generic acceptance (all must hold):
   [ ] No backend code, no unrelated pages changed, no new dependency without approval, nothing committed.
   Phase-specific:
   [ ] The composer is visible at all 13 zoom levels.
+  [ ] At 100 % (1440x900) the message list shows at least 6-8 one-line messages without scrolling, and chat type is no larger than the Figma W05 sizes (owner report).
   [ ] The context is reachable at every width (column or drawer).
   [ ] The list updates live.
 
@@ -2911,7 +2914,8 @@ D. IMPLEMENTATION
        - Remove the old 4-pill tools grid and fold the CHAT-ATTACH chooser into the menu (keep the CHAT-ATTACH state only if Figma flows need it; otherwise record the replacement in Decisions).
        - No new dependency.
   5. Composer: the textarea auto-grows up to about 5 lines (token) then scrolls. Send is always visible and disabled while empty or sending. Keep the existing Enter / Shift+Enter behaviour (verify it) and an aria-label for Send. The composer sits inside the Phase 12 pane so it never leaves the viewport.
-  6. Fix every other bug found (scroll to the newest message on send or arrival, keeping position when loading earlier messages, no duplicate messages on reconnect).
+  6. OWNER-REPORTED BUG (2026-11-16): duplicate bubble after sending. Sending a message shows "Sending…"; once it is sent, TWO bubbles show for about a second (the sent message with "Sent" AND a second copy still reading "Sending…"), then the extra one vanishes. Cause found while writing this phase: chat-view.tsx send() renders a separate `pending` bubble (`{pending && <ChatBubble … meta={copy.sending} />}`) and clears it only after `await chatService.send(...)` AND `await refresh()`. The service already merges the sent message and notifies watchers (and the socket's message:new can arrive first), so the real message renders while `pending` is still set. Fix: one bubble per message for its whole life. The optimistic message carries its clientMessageId and is replaced in place by the server copy (or the socket copy) with the same id, so it goes "Sending…" -> "Sent" -> "Seen" without a second bubble, and never two copies when the POST response and message:new both arrive. The same applies to Retry, photo and voice sends. Add a test (src/lib/portal/chat-optimistic.test.ts): send, then server response, then socket echo (and the reverse order) gives exactly one message with the right status at each step.
+  7. Fix every other bug found (scroll to the newest message on send or arrival, keeping position when loading earlier messages, no duplicate messages on reconnect).
 E. RESPONSIVENESS
 Zoom levels (all mandatory): 50, 75, 90, 100, 110, 125, 150, 175, 200, 250, 300, 350 and 400 % at a 1440x900 window, then spot-check 50 %, 200 % and 400 % at a 1920x1080 window. Also check the rule 3 widths 360, 390, 768, 1024, 1280, 1440 and 1920. (Equivalent CSS viewports are in standing rule 3.)
 At every zoom, record and fix:
@@ -2976,6 +2980,7 @@ Generic acceptance (all must hold):
   [ ] Timestamps are hidden until hover, focus or tap; delivery and seen keep working.
   [ ] One "+" button holds all six actions, closes on outside click and on Escape, works on touch and never clips.
   [ ] Attachments keep their ratio.
+  [ ] A sent message is one bubble from "Sending…" to "Sent" / "Seen": never a second "Sending…" copy, not even for a moment (owner report).
 
 STANDING RULES (apply to every step of this phase)
 
