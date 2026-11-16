@@ -150,6 +150,8 @@ Browser zoom changes the CSS viewport. At a 1440×900 window: 50 % → 2880×180
 | R8 | `HeaderMenu` is a fixed `w-24` box, with no room for the new heart control | `pieces/shells/header-menu.tsx` | 1, 10 |
 | R9 | Fluid display type resolves to its minimum (140 / 64 / 46 px) at 360–480 px, so landing headlines may overflow | `globals.css` `type-fluid` | 2 |
 | R10 | The swipe card plus decision buttons may not fit a 225–360 px tall viewport, which hides Like / Pass | `discover-view.tsx`, `swipe-card.tsx` | 7 |
+| R11 | **Owner report (2026-11-16):** at 100 % the messaging section looks oversized, and the message box shows only one or two messages before scrolling | `chat-view.tsx`, `chat-bubble.tsx` | 12 (added to its audit, step D5 and acceptance) |
+| R12 | **Owner report (2026-11-16):** after sending, a second "Sending…" copy shows beside the sent message for about a second. Cause: `chat-view.tsx` `send()` keeps its separate `pending` bubble until `await refresh()` returns, while the service (and the socket's `message:new`) have already rendered the real message. | `chat-view.tsx` (`pending`), `api-chat-service.ts` | 13 (added as step D6, with a test and an acceptance line) |
 
 ## 6. Known navigation (Back) issues
 
@@ -223,7 +225,7 @@ Image inventory: about 40 `next/image` usages. Portraits, avatars, venues and ma
 | 0 | Project audit and baseline | P0 | **Done 2026-11-16** |
 | 1 | Global portal shell, layout, back-navigation and image infrastructure | P0 | **Done 2026-11-16** (see Phase 1 section) |
 | 2 | Landing page (+ portal-wide zoom fill and focus, rule 59) | P2 | **Done 2026-11-16** (see Phase 2 section) |
-| 3 | Legal pages | P3 | Not started |
+| 3 | Legal pages | P3 | **Done 2026-11-16** (see Phase 3 section) |
 | 4 | Authentication | P1 | Not started |
 | 5 | Onboarding A (steps 1–11) | P2 | Not started |
 | 6 | Onboarding B (photos, verification, notifications, ready) | P2 | Not started |
@@ -500,6 +502,107 @@ Screenshots: Discover at 50 % is pixel-for-pixel the 100 % layout at twice the s
 - The nav `<details>` menu doesn't close on Escape or on an outside click (native `details` behaviour). It's keyboard-usable; consider it in Phase 35.
 - Zoom-out fit and `--svh` cover the portal and the landing page. Auth, onboarding and legal pages still use raw `svh` and have no fit class; they get them in phases 3–6 (the standing rule is in their prompts).
 - The other `usePrimaryInView` targets named in rule 59 (Likes, date planning, membership) come with their phases (10, 15–17, 33).
+
+## Phase 3: Legal pages (Terms, Privacy)
+
+### Pre-change audit (2026-11-16)
+
+Method: headless Chrome 157 over CDP from a scratch script. Each zoom level is emulated as its CSS viewport with `deviceScaleFactor` = zoom (rule 46). No real-zoom browser tool was available in this session. The checks ran against the owner's `next dev` on port 3000 for the audit, then a production build on port 3006 (see environment notes). The pages are static: no API requests.
+
+| Check | Result before |
+|---|---|
+| Horizontal overflow, `/terms` and `/privacy/information-you-provide`, 13 zooms + 1920 spot checks + rule 3 widths (46 runs) | none |
+| Line length | **94 characters** per line at 1600 px and wider (1032 px of 18 px text); 80 at 1440 |
+| 50 % zoom (2880 px) | **no fit class**: the 1536 column stayed 1536, leaving 672 px empty on each side |
+| Contents list | sticky from 1024 px with no height cap (405 px tall). It fit every matrix viewport, but a wide and short window (e.g. 1280×400) would have hidden its last links. |
+| Mobile disclosure | rendered **open on the server** (`useSyncExternalStore` server snapshot `true`), then closed after hydration on phones, so the article jumped up |
+| Contents link | scrolled to the section but left focus on the link. Clicking the link of the section already in the URL did nothing (the effect only re-runs when the id changes). |
+| Short viewports (300–400 %) | the 112 px solid nav pushed the title down (h1 top 205 px of a 225 px viewport) |
+| Console | **Next LCP warning on a plain load** at 250–400 % and at 1920@400: the logo mark was the LCP image and lazy |
+| Long words / URLs at 360 px | none overflow (global `break-word`); headings fit |
+
+### Result
+
+| | |
+|---|---|
+| Status | **Done** (2026-11-16) |
+| Routes completed | `/terms`, `/terms/<section>` (8), `/privacy`, `/privacy/<section>` (8) |
+| Tests | `npm test`: **11 files, 167 tests, 167 passed, 0 failed** (the 158 earlier tests unchanged, plus 9 new) · `npm run lint`: clean · `npm run build`: compiled, no warnings |
+
+**Files changed**
+- `src/components/sections/legal/legal-page.tsx`: `fit-landing`, reading column / measure tokens, focusable sections, `ScrollToSection focus`
+- `src/components/pieces/shells/legal-contents.tsx`: rewritten as a CSS-driven button disclosure; sticky only while it fits; closes on pick; re-scrolls an already-open section
+- `src/components/pieces/layout/scroll-to-section.tsx`: `focus` prop and the exported `bringIntoView` helper (landing behaviour unchanged)
+- `src/components/pieces/shells/site-nav.tsx`: solid variant `short:h-16` (used only by the legal pages)
+- `src/components/pieces/brand/logo.tsx`: mark `loading="eager"`
+- `src/app/globals.css` (`--container-measure: 75ch`), `src/lib/control-sizes.ts` (`layout.readingColumn`, `layout.readingMeasure`)
+- Docs: `AGENTS.md` (registry entries for `LegalContents` and `ScrollToSection`, one Decisions entry), `NEW_FRONTEND_IMPROVEMENT_ROADMAP.txt` (Phase 3 completion tags; owner messaging reports added to phases 12 and 13, see R11 / R12)
+
+**New tests:** `src/data/legal/legal-sections.test.ts` (9):
+- for each document, every contents entry builds `/<doc>/<id>` with no hash;
+- ids are unique and URL-safe, and each section has a title and a body;
+- `sectionFromParam` accepts the root and every id, and rejects unknown, nested, not-found and wrongly cased values;
+- Terms stays keyed L02-TC and Privacy L03;
+- the footer's Legal links and the moderation warning's "community guidelines" link point at real legal pages / sections;
+- the reading text is capped by a `ch` measure token.
+
+**Bugs found and fixed**
+
+| # | Bug | Fix |
+|---|---|---|
+| P3-1 | 94-character lines at 1600 px and wider | Body text capped at 75ch (`max-w-measure`); the article keeps its 1088 px column |
+| P3-2 | 672 px empty on each side at 50 % zoom | `fit-landing` on `main`: ×1.25 / 1.5 / 2 from 2400 / 2880 / 3840, like the landing page |
+| P3-3 | Phone disclosure rendered open, then snapped shut after hydration | Open state is CSS (`hidden` / `lg:block`) plus a button with `aria-expanded` / `aria-controls`; the server and client agree at every width |
+| P3-4 | Contents list sticky with no height cap | `lg:max-h-[calc(var(--svh)-4rem)]` with an inner scroll, and `short:static` (never sticky at max-height 420 px) |
+| P3-5 | Contents link left focus behind; re-clicking the section already in the URL did nothing | Sections are `tabIndex={-1}` and receive focus after scrolling; a link to the current path calls `bringIntoView` directly; picking a link closes the phone list |
+| P3-6 | Title below the first screen at 300–400 % | Solid nav 64 px under `short` (h1 top 157 px, was 205) |
+| P3-7 | LCP warning: lazy logo mark | `loading="eager"` on the mark (one shared SVG for every size) |
+
+### Zoom matrix (after)
+
+Production build (`next start`, port 3006). ✓ means: no horizontal overflow, no element outside the viewport, no clipped text, no console errors or warnings. The text column is the body paragraph width, in px and characters.
+
+| Route | 50 | 75 | 90 | 100 | 110 | 125 | 150 | 175 | 200 | 250 | 300 | 350 | 400 | Notes |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| `/terms` | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | 50 %: ×1.5, text 1235 px = 75ch. 75–100 %: 823 px / 75ch. 110 / 125 %: 68 / 57ch. 150 %+: contents is a closed disclosure. 300–400 %: h1 at 157 px. |
+| `/privacy/information-you-provide` | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | lands on the section at every level |
+| 1920×1080: 50 / 200 / 400 (both routes) | ✓ (×2, 1647 px / 75ch) | | | | | | | | ✓ | | | | ✓ (480×270) | |
+| Rule 3 widths 360 / 390 / 768 / 1024 / 1280 / 1440 / 1920 (both routes) | ✓ all | | | | | | | | | | | | | 360: 29ch; 1024: 45ch beside the contents |
+
+- **Contents list:** sticky and fully in view at 1024 px and wider (32–445 px of 900 while reading); static at 1280×400.
+- **Bottom gap:** none. The page is taller than the viewport at every level (it scales with `--fit` when zoomed out).
+- **Primary action:** the contents disclosure, reachable from the keyboard at 400 %.
+- **Regression for the shared pieces** (`ScrollToSection`, `Logo`): `/` and `/how-it-works`, 23 runs each, no overflow and 0 console errors. The one element left of the viewport is the existing final-CTA glow (`left-[-26.4%]`, clipped, unchanged).
+
+### Back navigation and functional checks
+
+| Check | Result |
+|---|---|
+| Contents link → `/terms/membership-and-billing`: URL, scroll, focus on the section | PASS. The section sits at 191 px because the page has reached its end (sections 5–8 can't reach the top at 1440×900). |
+| Clicking the same link again after scrolling to the top brings the section back | PASS |
+| `/terms` (scrolled to 300) → section 3 → section 7 → Back = `/terms/connections-and-communication` at that section → Back = `/terms` at scroll 300 | PASS |
+| Direct entry `/privacy/your-privacy-controls`: scrolls to and focuses the section; refresh keeps it | PASS |
+| 400 % (360×225): disclosure starts closed; Enter opens it; all 8 links fit 345 px; Tab reaches the first link; Enter on it opens `/terms/using-the-platform`, closes the list and focuses the section (56 px from the top) | PASS |
+| `/signup` with a typed phone → "Terms of Service" → Back = `/signup` with the phone kept | PASS. Scroll is restored trivially: `/signup` doesn't scroll at 1440×900. |
+| Footer Legal links and the warning's guidelines link | Unit-tested (targets L02-TC / L03 / `community-conduct`) |
+| "Back to 48Date" | unchanged: opens `/` (L02) |
+| Console during the functional run | 0 errors / warnings |
+
+**Images:** the only image is the shared logo mark. Its 48×38 box is unstretched in the screenshots at 360×225 (×4), 1440 and 2880 (×1.5). No content images (rule 50 N/A).
+
+**Multi-account checks:** N/A. The pages are public and static.
+
+**Backend / API blockers:** none (static draft copy, rule 28).
+
+**Environment notes**
+- The owner's `next dev` on port 3000 served stale modules after my edits. It reported "Export `bringIntoView` doesn't exist" although the file exports it, and parsed `scroll-to-section.tsx` as `globals.css` ("Invalid empty selector"). This is a Turbopack hot-reload glitch, not the code: `npm run build` compiled cleanly and the production server shows no errors. I didn't restart the owner's server. If it still shows the overlay, restarting `next dev` clears it.
+- A second `next dev` on port 3001 refuses to start while one runs for the same directory ("Another next dev server is already running"), so the post-change checks used `next start` on 3006.
+- Changes in this repo were committed automatically during the phase by a tool outside this session (commits "Update shells: site-nav.tsx and 3 more", "Update src: globals.css and 3 more"). This phase ran no git commands.
+
+**Remaining issues**
+- At 1920 px the body text (823 px) leaves ~300 px free to the right of the article. That is the reading-measure trade-off rule 47 allows; headings keep the 1088 px column.
+- The landing nav has the same "section link to the current URL does nothing" gap that P3-5 fixed for legal contents (e.g. clicking "How it works" while on `/how-it-works` after scrolling away). `bringIntoView` is ready for it; landing is outside this phase (Phase 35 or a landing touch-up).
+- The legal pages have no footer, as in the current design; the footer exists only on the landing page.
 
 ---
 
