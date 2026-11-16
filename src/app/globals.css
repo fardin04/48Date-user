@@ -242,6 +242,20 @@
 /* Short viewports: 300–400 % browser zoom leaves 225–300 CSS px of height (rules 46 / 49). */
 @custom-variant short (@media (max-height: 420px));
 
+/*
+ * Zoom-out fit (rules 46 / 47). Past its design frame (portal 1440, landing 1920) a page scales as one
+ * piece, so zooming out (a wider CSS viewport) grows every column, card, text and gap in proportion
+ * instead of stretching one part and leaving gaps. Steps match the tested zoom levels. The zoom sits on
+ * <body> so dialogs (portalled to body) scale too; viewport heights inside use --svh, which undoes it.
+ */
+:root { --fit: 1; }
+body { --svh: calc(100svh / var(--fit)); zoom: var(--fit); }
+@media (min-width: 1600px) { body:has(.fit-portal) { --fit: 1.1111; } }
+@media (min-width: 1920px) { body:has(.fit-portal) { --fit: 1.3333; } }
+@media (min-width: 2400px) { body:has(.fit-portal) { --fit: 1.6667; } body:has(.fit-landing) { --fit: 1.25; } }
+@media (min-width: 2880px) { body:has(.fit-portal) { --fit: 2; } body:has(.fit-landing) { --fit: 1.5; } }
+@media (min-width: 3840px) { body:has(.fit-portal) { --fit: 2.6667; } body:has(.fit-landing) { --fit: 2; } }
+
 /* User text (names, messages, URLs) may break anywhere rather than widen its column (rule 48). */
 @utility break-anywhere {
   overflow-wrap: anywhere;

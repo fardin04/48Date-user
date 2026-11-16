@@ -14,7 +14,8 @@ import { Safety } from "./safety";
 export function LandingPage({ section }: { section?: string }) {
   return (
     <>
-      <main>
+      {/* fit-landing: past the 1920 frame the page scales as one piece (globals.css, rule 47). */}
+      <main className="fit-landing">
         <Hero />
         <HowItWorks />
         <Features />

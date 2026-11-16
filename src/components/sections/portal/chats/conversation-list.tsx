@@ -21,7 +21,7 @@ import { screenKeys } from "@/lib/screen-keys";
  * (748px at 1440×900, about the drawn 760px): shorter screens keep the composer in view, taller
  * ones (zoomed out) leave no grey band below the conversation. Floor 420px.
  */
-export const chatPaneHeight = "lg:h-[max(420px,calc(100svh-152px))]";
+export const chatPaneHeight = "lg:h-[max(420px,calc(var(--svh)-152px))]";
 
 /** A conversation row's last-message time ("2:41 PM", "Yesterday") and unread count (shared with INBOX). */
 export function conversationRowStatus(conversation: ConversationSummary, unreadCopy: string) {

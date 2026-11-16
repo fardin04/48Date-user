@@ -28,7 +28,7 @@ function DialogContent({ className, children, ...props }: ComponentProps<typeof 
       <DialogPrimitive.Content
         data-slot="dialog-content"
         className={cn(
-          "fixed top-1/2 left-1/2 z-50 max-h-[calc(100svh-32px)] w-[calc(100%-32px)] -translate-x-1/2 -translate-y-1/2 overflow-y-auto bg-white shadow-dialog outline-none",
+          "fixed top-1/2 left-1/2 z-50 max-h-[calc(var(--svh)-32px)] w-[calc(100%-32px)] -translate-x-1/2 -translate-y-1/2 overflow-y-auto bg-white shadow-dialog outline-none",
           className,
         )}
         {...props}
