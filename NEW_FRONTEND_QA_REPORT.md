@@ -463,7 +463,7 @@ Routes: `/discover`, `/matches`, `/chats`, `/chats/northpeak`, `/settings`, `/se
 | 1920×1080 spot checks (50 / 200 / 400) | ✓ ×2.67 | | | | | | | | ✓ | | | | ✓ composer 128–226 / 270, Like 164–220 | |
 | 390×844 phone | | | | | | | | | | | | | | composer 663–773, Like 712–768, tab bar at 779 ✓ |
 
-¹ At 125 %, the first run left 16 px under the conversation panes, because the pane height assumed the xl padding. They now subtract 136 px at 1024–1279 and 152 px from 1280; re-checked after the rebuild (see below).
+¹ At 125 %, the first run left 16 px under the conversation panes, because the pane height assumed the xl padding. They now subtract 136 px at 1024–1279 and 152 px from 1280; re-checked after the rebuild: 0 px at 110 / 125 / 100 / 50 % on `/chats/northpeak` and `/chats`.
 ² As drawn (Phase 7); multi-column layouts are deliberately not scrolled.
 
 Screenshots: Discover at 50 % is pixel-for-pixel the 100 % layout at twice the size. At 400 %, the conversation opens on the member name and the composer with Send, and Discover opens on the photo with Pass / Like / Super Like pinned above the tab bar.
@@ -479,7 +479,7 @@ Screenshots: Discover at 50 % is pixel-for-pixel the 100 % layout at twice the s
 
 **Functional**
 - FAQ: several answers can be open at once (first + two more opened: `true,true,true,false,false`); toggled from the keyboard.
-- Nav menu at 400 %: focusable and opens from the keyboard. It lists How it works, Features, Safety, Membership, Log in and Get started. The menu runs past the 225 px viewport (top 102 px, bottom 340 px) and scrolls with the page, so every item stays reachable.
+- Nav menu at 400 %: focusable and opens from the keyboard. It lists How it works, Features, Safety, Membership, Log in and Get started. With the compact short-viewport nav (64 px), the menu spans 76–314 px. It runs past the 225 px viewport and scrolls with the page, so every item stays reachable.
 - CTAs: Log in → `/signin`; Get started, Find your connection, Create your profile, Or continue in your browser, Start your story → `/signup`.
 - App Store and Google Play: `aria-disabled`, with the reasons "Production App Store URL pending" and "Production Google Play URL pending".
 - API: none (static page); 0 API requests recorded during the full run.
