@@ -10,8 +10,9 @@ import { Text } from "@/components/pieces/content/text";
 const variants = {
   /** Floating frosted bar over the hero photograph. */
   glass: {
-    header: "absolute inset-x-0 top-7 z-20",
-    bar: "grid h-21 grid-cols-[auto_1fr_auto] items-center gap-4 rounded-18 border border-white/72 bg-white/90 pr-5 pl-7 shadow-float backdrop-blur-[20px] xl:grid-cols-[200fr_966fr_320fr]",
+    /** Short viewports (300–400 % zoom) get a compact bar so the hero headline shows on the first screen. */
+    header: "absolute inset-x-0 top-7 z-20 short:top-3",
+    bar: "grid h-21 short:h-16 grid-cols-[auto_1fr_auto] items-center gap-4 rounded-18 border border-white/72 bg-white/90 pr-5 pl-7 shadow-float backdrop-blur-[20px] xl:grid-cols-[200fr_966fr_320fr]",
     links: "gap-9.5",
     link: "navGlass",
     /** Figma renders the floating bar's actions in Title Case ("Log In", "Get Started"). */

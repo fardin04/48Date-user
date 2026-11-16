@@ -33,7 +33,7 @@ export function Hero() {
       />
       <span aria-hidden="true" className="hero-scrim absolute inset-0 -z-10" />
       <SiteNav variant="glass" revealDelay={0} />
-      <Container className="pt-36 pb-28 xl:pt-50.5 xl:pb-29.5">
+      <Container className="pt-36 pb-28 short:pt-24 xl:pt-50.5 xl:pb-29.5">
         <div className="grid gap-14 xl:grid-cols-[minmax(min(560px,100%),683fr)_minmax(0,765fr)] xl:gap-16 2xl:gap-22">
           <div className="flex flex-col items-start xl:self-end xl:pb-23.5">
             <Text variant="text13Bold" tone="roseSoft" revealDelay={80}>
