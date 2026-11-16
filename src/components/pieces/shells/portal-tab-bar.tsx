@@ -35,10 +35,11 @@ export function PortalTabBar({ active, className, revealDelay }: PortalTabBarPro
               <ActionTarget
                 to={item.to}
                 aria-current={current ? "page" : undefined}
-                className={cn("focus-ring flex h-16 flex-col items-center justify-center gap-1", current ? textTones.rose : textTones.navInk)}
+                className={cn("focus-ring flex h-16 flex-col items-center justify-center gap-1 short:h-11", current ? textTones.rose : textTones.navInk)}
               >
                 <Icon name={item.icon} size={24} />
-                <Text as="span" variant={current ? "text12Bold" : "text12Medium"} tone="inherit">
+                {/* Short viewports (high zoom): icons only, the label stays for screen readers. */}
+                <Text as="span" variant={current ? "text12Bold" : "text12Medium"} tone="inherit" className="short:sr-only">
                   {item.label}
                 </Text>
               </ActionTarget>

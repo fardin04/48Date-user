@@ -13,14 +13,14 @@ type PortalShellProps = {
 /**
  * Member portal frame (W04, 1440 frames): web header over the grey workspace. The 1280px
  * column keeps 80px gutters at 1440 and narrows to 48 / 32 / 16px. Phones navigate from the
- * bottom tab bar, so the workspace leaves room for it.
+ * bottom tab bar, so the workspace leaves room for it (less in short viewports, where the bar is compact).
  */
 export function PortalShell({ active, children }: PortalShellProps) {
   return (
     <div className="min-h-svh bg-gray-50">
       <PortalHeader active={active} />
-      {/* Wider than the 1440 frame up to 1920, so zooming out (a wider CSS viewport) doesn't leave grey bands beside the full-width header. */}
-      <main className="mx-auto flex w-full max-w-480 flex-col gap-6 p-4 max-sm:pb-24 sm:p-6 xl:px-20 xl:py-8">
+      {/* Full width like the header, so zooming out (a wider CSS viewport) never leaves grey bands beside it (rule 47); pages fill the room with their grids. */}
+      <main className="flex w-full flex-col gap-6 p-4 max-sm:pb-24 max-sm:short:pb-16 sm:p-6 xl:px-20 xl:py-8">
         <SessionGate allow="member" redirect="SIGNIN">
           <SetupGate>{children}</SetupGate>
         </SessionGate>

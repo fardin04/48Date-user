@@ -27,7 +27,8 @@ export function HeaderMenu() {
   const unread = useLoaded(screenKeys.unreadCount, accountService.getUnreadCount, { refetchOnWindowFocus: true, enabled }).value ?? 0;
   const avatar = useLoaded(screenKeys.avatar, accountService.getAvatar, { enabled }).value ?? (liveData ? getMemberCopy().placeholder : getMemberAvatar());
   return (
-    <div className="flex w-24 shrink-0 justify-end gap-2">
+    // Intrinsic width: a third 44px control (Likes received) fits at 360px.
+    <div className="flex shrink-0 items-center justify-end gap-2">
       <ActionTarget
         to={shell.notifications.to}
         aria-label={unread > 0 ? fill(shell.unread, { count: unread }) : shell.notifications.label}

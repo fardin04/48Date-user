@@ -27,8 +27,9 @@ type PortalDialogProps = {
 export function PortalDialog({ open, onOpenChange, title, description, closeLabel, children, actions, header = "tall" }: PortalDialogProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="flex max-w-130 flex-col items-center gap-6 rounded-24 p-8 max-sm:p-6">
-        <div className={cn("relative flex w-full items-center", header === "tall" && "min-h-32", "border-b border-soft-line py-4 pr-10 pl-5 max-sm:pl-0")}>
+      {/* Short viewports (300–400 % zoom): tighter padding, no tall header, actions pinned to the bottom of the scrolling panel (rule 49). */}
+      <DialogContent className="flex max-w-130 flex-col items-center gap-6 rounded-24 p-8 max-sm:p-6 short:gap-4 short:p-4">
+        <div className={cn("relative flex w-full items-center", header === "tall" && "min-h-32 short:min-h-0", "border-b border-soft-line py-4 pr-10 pl-5 max-sm:pl-0 short:py-2")}>
           <div className="flex min-w-0 flex-1 flex-col gap-1">
             <DialogTitle asChild>
               <Text as="h2" variant="dialogTitle24" tone="strong">
@@ -46,7 +47,7 @@ export function PortalDialog({ open, onOpenChange, title, description, closeLabe
           </DialogClose>
         </div>
         {children}
-        <div className="flex w-full flex-col gap-3">{actions}</div>
+        <div className="flex w-full flex-col gap-3 short:sticky short:-bottom-4 short:bg-white short:py-2">{actions}</div>
       </DialogContent>
     </Dialog>
   );
