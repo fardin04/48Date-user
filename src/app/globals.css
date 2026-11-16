@@ -239,6 +239,14 @@
   font-feature-settings: "ss11" 1, "calt" 0, "liga" 0;
 }
 
+/* Short viewports: 300–400 % browser zoom leaves 225–300 CSS px of height (rules 46 / 49). */
+@custom-variant short (@media (max-height: 420px));
+
+/* User text (names, messages, URLs) may break anywhere rather than widen its column (rule 48). */
+@utility break-anywhere {
+  overflow-wrap: anywhere;
+}
+
 /* Shared page column (registered in lib/control-sizes.ts as `container`). */
 @utility page-container {
   width: 100%;

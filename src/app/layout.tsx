@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import { Manrope } from "next/font/google";
+import { Suspense } from "react";
+import { NavigationTracker } from "@/components/pieces/layout/navigation-tracker";
 import { QueryProvider } from "@/components/pieces/shells/query-provider";
 import "./globals.css";
 
@@ -25,6 +27,10 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       </head>
       <body>
         <QueryProvider>{children}</QueryProvider>
+        {/* usePathname suspends on member pages rendered on request (rule 44); keep the shell prerendered. */}
+        <Suspense fallback={null}>
+          <NavigationTracker />
+        </Suspense>
       </body>
     </html>
   );
