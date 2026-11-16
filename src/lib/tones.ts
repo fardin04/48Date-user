@@ -41,6 +41,8 @@ export const surfaces = {
   rose: "bg-rose",
   night: "bg-night",
   hero: "bg-hero",
+  /** Behind a contained photo (MediaFrame), so letterboxing reads as a frame, not a gap. */
+  media: "bg-gray-100",
 } as const;
 
 export type Surface = keyof typeof surfaces;

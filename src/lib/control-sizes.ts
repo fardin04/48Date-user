@@ -24,32 +24,36 @@ export const buttonSizes = {
 
 export type ButtonSize = keyof typeof buttonSizes;
 
-/** Fixed widths the Align UI buttons use in Figma. */
+/**
+ * Fixed widths the Align UI buttons use in Figma. Each fixed width also carries
+ * "max-w-full whitespace-normal text-center": it keeps the Figma width where there is room and
+ * shrinks (wrapping its label) inside a narrower container, e.g. 360px at 400 % zoom (rule 48).
+ */
 export const buttonWidths = {
   auto: "",
-  login: "w-30",
-  signup: "w-40",
-  back: "w-52",
+  login: "w-30 max-w-full whitespace-normal text-center",
+  signup: "w-40 max-w-full whitespace-normal text-center",
+  back: "w-52 max-w-full whitespace-normal text-center",
   full: "w-full",
   /** Onboarding action row: 112px Back, 240px primary (shrinks beside Back on phones). */
   setupBack: "w-28",
-  setupPrimary: "w-60 min-w-0 max-sm:shrink max-sm:px-4",
+  setupPrimary: "w-60 min-w-0 max-w-full max-sm:shrink max-sm:px-4",
   /** Portal decision row: 136 / 136 / 152 of the 448px deck, scaling together on narrow screens. */
   decision: "min-w-0 flex-[136_1_0]",
   superLike: "min-w-0 flex-[152_1_0]",
   /** Portal fixed widths from the W04 frames. */
-  portalAction: "w-45",
-  findMore: "w-54",
-  notifyAction: "w-56",
-  summaryAction: "w-60",
-  profileAction: "w-75",
+  portalAction: "w-45 max-w-full whitespace-normal text-center",
+  findMore: "w-54 max-w-full whitespace-normal text-center",
+  notifyAction: "w-56 max-w-full whitespace-normal text-center",
+  summaryAction: "w-60 max-w-full whitespace-normal text-center",
+  profileAction: "w-75 max-w-full whitespace-normal text-center",
   /** W05 screen action slot: 200px, wider for long labels. */
   actionSlot: "min-w-50 max-sm:w-full",
   /** Chat composer "Send". */
-  send: "w-20",
-  passAction: "w-50",
+  send: "w-20 max-w-full whitespace-normal text-center",
+  passAction: "w-50 max-w-full whitespace-normal text-center",
   /** W09 PROFILE "Settings" beside the 160px "Edit profile". */
-  settingsAction: "w-35",
+  settingsAction: "w-35 max-w-full whitespace-normal text-center",
   /** Equal share of a portal action row; full width when the row stacks on phones. */
   grow: "w-full min-w-0 sm:w-auto sm:flex-1",
 } as const;
@@ -94,6 +98,23 @@ export const fieldInput = "h-full min-w-0 flex-1 bg-transparent text-inherit out
 
 export type IconSize = keyof typeof iconSizes;
 
+/**
+ * Tallest a MediaFrame may grow (CSS lengths, rule 50): a tall upload is capped by height and
+ * narrows to keep its ratio, so a 9:16 story never fills more than this of the screen.
+ */
+export const mediaHeights = {
+  /** Story photo on STORY-DETAIL / STORY-MINE. */
+  story: "min(calc(var(--svh) * 0.7), 40rem)",
+  /** Story card in the feed. */
+  card: "min(calc(var(--svh) * 0.5), 26rem)",
+  /** Photo sent in a conversation. */
+  attachment: "min(calc(var(--svh) * 0.5), 20rem)",
+  /** Preview before uploading or sending. */
+  preview: "min(calc(var(--svh) * 0.6), 32rem)",
+} as const;
+
+export type MediaHeight = keyof typeof mediaHeights;
+
 export const sectionSpacing = {
   /** 128px at desktop */
   lg: "py-16 md:py-24 xl:py-32",
@@ -120,4 +141,9 @@ export type IntroSpacing = keyof typeof introSpacing;
 
 export const layout = {
   container: "page-container",
+  /**
+   * A page's primary controls (chat composer, Like / Pass) pinned to the bottom of the viewport below
+   * 1024px, above the phone tab bar (64px, 44px when short), so they show at 200–400 % zoom (rule 49).
+   */
+  stickyActions: "max-lg:sticky max-lg:bottom-0 max-sm:bottom-16 max-sm:short:bottom-11 max-lg:z-10 max-lg:bg-white max-lg:py-3 max-lg:short:py-1.5",
 } as const;

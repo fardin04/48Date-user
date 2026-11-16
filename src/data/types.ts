@@ -47,6 +47,8 @@ export type Action = {
   label: string;
   to: Destination;
   icon?: IconName;
+  /** A Back that always opens `to`, never the previous page (e.g. "Back to welcome" after deletion, rule 51). */
+  back?: "fixed";
 };
 
 export type ImageAsset = {
