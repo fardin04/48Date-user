@@ -222,7 +222,7 @@ Image inventory: about 40 `next/image` usages. Portraits, avatars, venues and ma
 |---|---|---|---|
 | 0 | Project audit and baseline | P0 | **Done 2026-11-16** |
 | 1 | Global portal shell, layout, back-navigation and image infrastructure | P0 | **Done 2026-11-16** (see Phase 1 section) |
-| 2 | Landing page | P2 | Not started |
+| 2 | Landing page (+ portal-wide zoom fill and focus, rule 59) | P2 | **Done 2026-11-16** (see Phase 2 section) |
 | 3 | Legal pages | P3 | Not started |
 | 4 | Authentication | P1 | Not started |
 | 5 | Onboarding A (steps 1–11) | P2 | Not started |
@@ -375,6 +375,113 @@ Method: headless Chrome over CDP at a 1440×900 window, each zoom emulated as it
 - `/discover` keeps fixed 240 / 448 px columns at ≥1280 (Phase 7).
 - The 88 px header isn't compacted in short viewports. It scrolls away, so it doesn't block content; revisit if a page needs its primary action above the fold at 400 %.
 - No page sets `tabletAside="below"` yet (Stories, Phase 20).
+
+## Phase 2: Landing page and public sections (+ zoom fill and focus across the portal)
+
+The owner added three requirements for this phase, and they apply to every later phase (AGENTS.md rule 59, and a new standing rule in every roadmap phase prompt):
+1. No empty space anywhere on a page, including below it.
+2. When zooming **in**, the page's main thing leads: the composer in a conversation, the profile photo and details plus Like / Pass on Discover.
+3. When zooming **out**, the whole page scales evenly, instead of one component growing and leaving gaps.
+
+### Pre-change audit (2026-11-16)
+
+Method: headless Chrome 157 over CDP from a scratch script (no project dependency). Each zoom level is emulated as its CSS viewport with `deviceScaleFactor` = zoom (rule 46); this session had no real-zoom browser tool. The landing page was tested against the owner's own `next dev` on port 3000. It is static: **0 API requests**.
+
+| Check | Result before |
+|---|---|
+| Horizontal overflow, 13 zooms + 1920 spot checks + rule 3 widths (23 runs) | none (`scrollWidth = clientWidth` everywhere) |
+| Headline at 360–480 px | fits: h1 16–344 px at 360, no clipping |
+| 1920 composition | page height 9651 px (Figma 9652) |
+| Hero collage at 1280 (110 % zoom) | **bug**: the quote card's 300 px minimum pushed it 42 px past the content column into the gutter |
+| Match window at 1024–1279 (125 % zoom) | **bug**: the heading was squeezed into a ~210 px column beside the countdown ("A little / time.") |
+| Glass nav in short viewports | `absolute`, scrolls away (never covers content). But at 300–400 % the 84 px bar plus 144 px of hero padding filled the first screen, so the headline started below the fold. |
+| 50 % zoom | section backgrounds are full-bleed, but the 1536 column left 672 px empty on each side at 2880 px |
+| Portal bottom (owner report) | short pages left a grey band under the workspace; the chat panes stopped at 760 px, leaving a band at 50–75 % |
+| Portal at 200–400 % | conversation composer at y = 663 in a 225 px viewport (off-screen); on Discover the preferences column came before the card, so Like / Pass sat at y = 523 |
+| Portal at 50–75 % | Discover's 240 / 448 px columns stayed fixed while the overview grew, so the page looked uneven |
+| Console | one Next LCP warning, caused by the harness's programmatic scrolling (later lazy images became LCP candidates). It was not seen on a plain load. |
+
+### Result
+
+| | |
+|---|---|
+| Status | **Done** (2026-11-16) |
+| Routes completed | `/` and every section path (`/how-it-works`, `/features`, `/safety`, `/membership`, `/download`, `/faq`); zoom fill and focus for every PortalShell route (shared shell, `Workspace`, chat, discover) |
+| Tests | `npm test`: **11 files, 158 tests, 158 passed, 0 failed** (the 107 earlier tests unchanged, plus 51 new) · `npm run lint`: clean · `npm run build`: compiled, no warnings |
+
+**Files changed**
+- Landing: `sections/landing/hero.tsx`, `sections/landing/match-window.tsx`, `sections/landing/landing-page.tsx`, `pieces/shells/site-nav.tsx` (glass variant only; legal pages use `solid`)
+- Zoom fill (shared): `src/app/globals.css` (zoom-out fit, `--svh`), `pieces/shells/portal-shell.tsx`, `sections/portal/shared/workspace.tsx`, `ui/dialog.tsx` (max height via `--svh`), `lib/control-sizes.ts` (`layout.stickyActions`, `mediaHeights` via `--svh`)
+- Zoom focus: `src/hooks/use-primary-in-view.ts` (new), `sections/portal/chats/chat-view.tsx`, `sections/portal/chats/conversation-list.tsx`, `sections/portal/discover/discover-view.tsx`
+- Docs: `AGENTS.md` (rule 59, hooks list, `Workspace` registry entry, two Decisions entries), `CLAUDE.md` (rule 59 pointer), `NEW_FRONTEND_IMPROVEMENT_ROADMAP.txt` (completion tags, plus the new standing zoom rule in all 38 phase prompts)
+
+**New tests**
+- `src/lib/routes.landing.test.ts` (5): each anchor builds `/<id>` with no hash; the ids are URL-safe and unique; `sectionFromParam` accepts the root and each anchor and rejects unknown, nested, not-found and wrongly cased values; every nav section link targets a real anchor.
+- `src/data/landing/landing-images.test.ts` (31): every image reachable from the landing store has an explicit `alt` (empty marks decorative), positive width / height, and a file in `public/`.
+- `src/hooks/use-primary-in-view.test.ts` (4): stacked layouts (≤1023 px) lead with the primary region when its control starts below the viewport. Visible controls and multi-column layouts never move, including 1440×900, where Like / Pass end 10 px below the fold.
+- `src/app/zoom-fit.test.ts` (11): every zoom-out step in `globals.css` equals viewport ÷ design frame (portal 1440, landing 1920); 50 % and 75 % lay out at the design frame; heights inside use `--svh`.
+
+**Bugs found and fixed**
+
+| # | Bug | Fix |
+|---|---|---|
+| P2-1 | Hero quote card overflowed the content column at 1280–1309 | Anchored from the right (`right-[4.81%]`, the same Figma geometry), so the 300 px minimum grows leftwards. Grid minimum is now `minmax(min(560px,100%),…)`. |
+| P2-2 | Match-window heading squeezed to ~210 px at 1024–1279 | Intro keeps a 420 px basis at `lg`, so the countdown wraps below. 1280+ is unchanged. |
+| P2-3 | At 300–400 % the hero headline started below the first screen | `short` variant: nav 64 px tall, 12 px from the top; hero top padding 96 px. The headline now starts on the first screen. |
+| P2-4 | 50 % zoom left 672 px empty on each side of the landing page | Above 1920 px the page scales as one piece (`fit-landing`: ×1.25 / 1.5 / 2 at 2400 / 2880 / 3840). At 2880 the nav is 2304 px (1536 × 1.5) and the page 14466 px tall (9651 × 1.5): the 1920 composition, larger. |
+| P2-5 | Grey band under short portal pages | Shell is a full-height flex column; `main` grows; the `Workspace` panel stretches (stacked: panel row `1fr`, flow support keeps its height) |
+| P2-6 | Chat panes capped at 760 px left a band on tall viewports | Panes are `max(420px, var(--svh) − 152px)`: 748 px at 1440×900 (as before) and full height when taller |
+| P2-7 | At 50–90 % zoom single portal columns grew while the rest stayed fixed (uneven) | Above 1440 px the portal scales as one piece (`fit-portal`: ×1.11 / 1.33 / 1.67 / 2 / 2.67), so 50 % looks exactly like 100 %, larger (screenshots compared). The zoom sits on `body`, so dialogs scale too. Viewport heights inside use `--svh`. Discover's xl columns are 240 / 448fr / 544fr, so the card keeps the 448 : 544 ratio between steps. |
+| P2-8 | Conversation composer off-screen at 150–400 % | `usePrimaryInView` scrolls the conversation header to the top on open (stacked layouts only), and the composer is `layout.stickyActions` (sticky above the tab bar; the pane no longer clips it below `lg`) |
+| P2-9 | Discover at 200–400 % opened on the heading and preferences, with the card and Like / Pass far below | Preferences now follow the profile on phones; the deck leads on open; Pass / Like / Super Like are sticky above the tab bar |
+
+### Zoom matrix (after)
+
+Method: as in the audit. Landing on a mock-mode production build (`next start`, port 3006); portal signed in through the mock. ✓ means: no horizontal overflow, no element outside the viewport, no clipped text, no console errors.
+
+**Landing `/`**
+
+| Route | 50 | 75 | 90 | 100 | 110 | 125 | 150 | 175 | 200 | 250 | 300 | 350 | 400 | Notes |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| `/` | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | 50 %: whole page ×1.5 (h1 1025 px = 683 × 1.5). 300–400 %: compact nav 12–76 px, headline on the first screen. |
+| 1920×1080: 50 / 200 / 400 | ✓ (×2, page 19303 px) | | | | | | | | ✓ | | | | ✓ (480×270) | |
+| Rule 3 widths 360 / 390 / 768 / 1024 / 1280 / 1440 / 1920 | ✓ all | | | | | | | | | | | | | 1920: page 9651 px, the composition unchanged |
+| `/how-it-works` direct entry, 100 % and 400 % | ✓ | | | | | | | | | | | | ✓ | the section lands 48 px from the top, and stays there after a refresh |
+
+PORTAL_MATRIX_PLACEHOLDER
+
+**Back navigation (browser history; the landing page has no in-page Back, as in Figma)**
+
+| Check | Result |
+|---|---|
+| `/` (scrolled to 600) → "How it works" (section link) → browser Back | PASS: `/` at scroll 600 |
+| `/` (scrolled to 2400) → Get started → `/signup` → browser Back | PASS: `/` at scroll 2400 |
+| Direct entry `/how-it-works` at 1440×900 and 360×225 | PASS: section top at 48 px |
+| Refresh on `/how-it-works` | PASS: section top at 48 px |
+
+**Functional**
+- FAQ: several answers can be open at once (first + two more opened: `true,true,true,false,false`); toggled from the keyboard.
+- Nav menu at 400 %: focusable and opens from the keyboard. It lists How it works, Features, Safety, Membership, Log in and Get started. The menu runs past the 225 px viewport (top 102 px, bottom 340 px) and scrolls with the page, so every item stays reachable.
+- CTAs: Log in → `/signin`; Get started, Find your connection, Create your profile, Or continue in your browser, Start your story → `/signup`.
+- App Store and Google Play: `aria-disabled`, with the reasons "Production App Store URL pending" and "Production Google Play URL pending".
+- API: none (static page); 0 API requests recorded during the full run.
+
+**Images:** the hero background (`preload`, cover), the collage `PhotoCard`s (eager, cover in aspect boxes), the safety photo with pinned overlays, the download phones (one row, unsquashed at 360 / 768 / 1440 / 2880) and the step images were checked in full-page screenshots at 360, 720, 1152 and 2880 px. Nothing is distorted. The data test checks every landing image's intrinsic size and file.
+
+**Multi-account checks:** N/A. The landing page has no signed-in state, and the portal zoom checks ran on the mock, to avoid revoking the shared staging sessions (see Phase 1).
+
+**Backend / API blockers:** none for this phase.
+
+**Environment notes**
+- In PowerShell, `$env:NEXT_PUBLIC_API_BASE_URL = ""` *deletes* the variable, so `.env.local` wins. Build the mock from Bash instead (`NEXT_PUBLIC_API_BASE_URL= npx next build`).
+- The production build at the end of this phase was made with the real `.env.local`.
+
+**Remaining issues**
+- At 1440×900, Discover's Like / Pass end 10 px below the fold, as drawn (Phase 7). The focus hook deliberately leaves multi-column layouts alone.
+- `ScrollToSection` lands sections 48 px from the top: `scroll-mt-6` and `scroll-padding-top: 24px` add up. Harmless (the nav isn't sticky); left as is.
+- The nav `<details>` menu doesn't close on Escape or on an outside click (native `details` behaviour). It's keyboard-usable; consider it in Phase 35.
+- Zoom-out fit and `--svh` cover the portal and the landing page. Auth, onboarding and legal pages still use raw `svh` and have no fit class; they get them in phases 3–6 (the standing rule is in their prompts).
+- The other `usePrimaryInView` targets named in rule 59 (Likes, date planning, membership) come with their phases (10, 15–17, 33).
 
 ---
 
