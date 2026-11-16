@@ -9,6 +9,7 @@ import type { Action, Intro } from "@/data/types";
 import { authService } from "@/lib/auth/auth-service";
 import { renderGoogleButton } from "@/lib/auth/google-identity";
 import { hrefFor, type ScreenCode } from "@/lib/routes";
+import { replaceRoute } from "@/lib/navigation/replace-route";
 
 type GoogleStepProps = {
   intro: Intro;
@@ -32,13 +33,13 @@ export function GoogleStep({ intro, waitingLabel, primary, failed }: GoogleStepP
   useEffect(() => {
     let active = true;
     const fail = () => {
-      if (active) router.replace(hrefFor(failed));
+      if (active) replaceRoute(router, hrefFor(failed));
     };
     const signIn = async (idToken: string) => {
       setChecking(true);
       const result = await authService.signInWithGoogle(idToken);
       if (!active) return;
-      if (result.status === "verified") router.replace(hrefFor(result.next === "portal" ? "DISCOVER" : "LOCATION"));
+      if (result.status === "verified") replaceRoute(router, hrefFor(result.next === "portal" ? "DISCOVER" : "LOCATION"));
       else fail();
     };
     if (slot.current) void renderGoogleButton(slot.current, (token) => void signIn(token), fail).catch(fail);

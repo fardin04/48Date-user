@@ -18,7 +18,7 @@ export function MessageStep({ intro, visual, primary, secondary }: MessageStepPr
     <div className="flex flex-col items-center gap-6">
       <FormHeader eyebrow={intro.eyebrow} title={intro.title} description={intro.description ?? ""} revealDelay={0} />
       {visual?.kind === "success" && (
-        <Image src={visual.image.src} alt={visual.image.alt} width={visual.image.width} height={visual.image.height} />
+        <Image src={visual.image.src} alt={visual.image.alt} width={visual.image.width} height={visual.image.height} className="max-w-full h-auto shrink-0" />
       )}
       {visual?.kind === "activity" && <TypingDots variant="activity" label={visual.label} />}
       <ActionButton action={primary} variant="solid" size="pill" width="full" revealDelay={80} className="w-full" />

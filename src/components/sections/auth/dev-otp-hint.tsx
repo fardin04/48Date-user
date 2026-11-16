@@ -76,7 +76,7 @@ export function DevOtpHint() {
   };
 
   return (
-    <div className={cn("flex w-full items-center justify-between gap-3 rounded-12 bg-notice-bg p-3", textTones.notice)}>
+    <div className={cn("flex w-full flex-wrap items-center justify-between gap-3 rounded-12 bg-notice-bg p-3 sm:flex-nowrap", textTones.notice)}>
       <p className={typeScale.text14MediumRelaxed}>
         {COPY.label}:{" "}
         <button type="button" onClick={copy} className={cn("focus-ring select-all rounded-12 tracking-[0.2em]", typeScale.text20Bold)}>
@@ -87,7 +87,7 @@ export function DevOtpHint() {
         type="button"
         onClick={copy}
         aria-label={COPY.copyLabel}
-        className={cn("focus-ring flex min-h-11 items-center gap-1.5 rounded-full bg-white px-4", typeScale.text14Semibold)}
+        className={cn("focus-ring flex min-h-11 shrink-0 items-center gap-1.5 rounded-full bg-white px-4", typeScale.text14Semibold)}
       >
         {copied && <Icon name="tick-02" size={16} />}
         <span aria-live="polite">{copied ? COPY.copied : COPY.copy}</span>

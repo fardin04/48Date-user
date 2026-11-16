@@ -1,3 +1,4 @@
+import type { Action } from "@/data/types";
 import { ActionButton } from "@/components/pieces/actions/action-button";
 import { ActionLink } from "@/components/pieces/actions/action-link";
 import { AuthShell } from "@/components/pieces/shells/auth-shell";
@@ -93,5 +94,28 @@ export function AuthPage({ flowName, step }: { flowName: AuthFlowName; step: Aut
     }
   })();
 
-  return <AuthShell backPosition={flow.backAtBottom?.includes(step) ? "bottom" : "top"}>{body}</AuthShell>;
+  const backAction: Action = (() => {
+    switch (step) {
+      case "verify":
+        return { label: "Back", to: to(flow.routes.entry), icon: "arrow-left-02" };
+      case "google":
+        return flow.backAtBottom?.includes(step)
+          ? shared.back
+          : { label: "Back", to: to(flow.routes.entry), icon: "arrow-left-02" };
+      case "googleError":
+        return { label: "Back", to: to(flow.routes.entry), icon: "arrow-left-02" };
+      case "session":
+        return { label: "Sign in", to: to("SIGNIN"), icon: "arrow-left-02" };
+      case "entry":
+      case "verified":
+      default:
+        return shared.back;
+    }
+  })();
+
+  return (
+    <AuthShell backAction={backAction} backPosition={flow.backAtBottom?.includes(step) ? "bottom" : "top"}>
+      {body}
+    </AuthShell>
+  );
 }
