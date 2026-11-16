@@ -19,9 +19,10 @@ import { screenKeys } from "@/lib/screen-keys";
 /**
  * The list and conversation panes fill the viewport below the 88px header and workspace padding
  * (748px at 1440×900, about the drawn 760px): shorter screens keep the composer in view, taller
- * ones (zoomed out) leave no grey band below the conversation. Floor 420px.
+ * ones (zoomed out) leave no grey band below the conversation. Floor 420px. Header 88px plus the
+ * main column's vertical padding: 24px a side at 1024–1279, 32px from 1280.
  */
-export const chatPaneHeight = "lg:h-[max(420px,calc(var(--svh)-152px))]";
+export const chatPaneHeight = "lg:h-[max(420px,calc(var(--svh)-136px))] xl:h-[max(420px,calc(var(--svh)-152px))]";
 
 /** A conversation row's last-message time ("2:41 PM", "Yesterday") and unread count (shared with INBOX). */
 export function conversationRowStatus(conversation: ConversationSummary, unreadCopy: string) {

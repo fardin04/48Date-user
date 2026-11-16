@@ -407,7 +407,7 @@ Method: headless Chrome 157 over CDP from a scratch script (no project dependenc
 |---|---|
 | Status | **Done** (2026-11-16) |
 | Routes completed | `/` and every section path (`/how-it-works`, `/features`, `/safety`, `/membership`, `/download`, `/faq`); zoom fill and focus for every PortalShell route (shared shell, `Workspace`, chat, discover) |
-| Tests | `npm test`: **11 files, 158 tests, 158 passed, 0 failed** (the 107 earlier tests unchanged, plus 51 new) · `npm run lint`: clean · `npm run build`: compiled, no warnings |
+| Tests | `npm test`: **10 files, 158 tests, 158 passed, 0 failed** (the 107 earlier tests unchanged, plus 51 new) · `npm run lint`: clean · `npm run build`: compiled, no warnings |
 
 **Files changed**
 - Landing: `sections/landing/hero.tsx`, `sections/landing/match-window.tsx`, `sections/landing/landing-page.tsx`, `pieces/shells/site-nav.tsx` (glass variant only; legal pages use `solid`)
@@ -448,7 +448,25 @@ Method: as in the audit. Landing on a mock-mode production build (`next start`, 
 | Rule 3 widths 360 / 390 / 768 / 1024 / 1280 / 1440 / 1920 | ✓ all | | | | | | | | | | | | | 1920: page 9651 px, the composition unchanged |
 | `/how-it-works` direct entry, 100 % and 400 % | ✓ | | | | | | | | | | | | ✓ | the section lands 48 px from the top, and stays there after a refresh |
 
-PORTAL_MATRIX_PLACEHOLDER
+**Portal: bottom gap and primary control (mock build, 14 routes × 13 zooms + 1920 spot checks + 390×844)**
+
+Routes: `/discover`, `/matches`, `/chats`, `/chats/northpeak`, `/settings`, `/settings/privacy`, `/settings/blocked`, `/profile`, `/stories`, `/notifications`, `/membership`, `/matches/match/goldenhour`, `/dates/venues/goldenhour`, `/games/goldenhour`.
+- **Bottom gap** is the grey space between the lowest surface and the viewport bottom, after main's designed padding and the tab bar.
+- **Primary control** is the composer on the conversation and Pass / Like / Super Like on Discover, as y-range in a viewport of height h, with the tab bar top t.
+
+| Check | 50 | 75 | 90 | 100 | 110 | 125 | 150 | 175 | 200 | 250 | 300 | 350 | 400 | Notes |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| Horizontal overflow, all 14 routes | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | 0 of 238 runs |
+| Bottom gap, all 14 routes | 0 | 0 | 0 | 0 | 0 | 0 ¹ | 0 | 0 | 0 | 0 | 0 | 0 | 0 | the whole page scales ×2 / ×1.33 / ×1.11 at 50 / 75 / 90 % |
+| `/chats/northpeak` composer (y, h, t) | – | – | – | 685–771 / 900 | 603–689 / 818 | 497–583 / 720 | 490–600 / 600 | ✓ | 340–450 / 450 | 218–316 / 360, t 315 | 158–256 / 300, t 255 | 121–219 / 257, t 212 | 83–181 / 225, t 180 | was 663–773 at 200–400 % |
+| `/discover` Like / Pass (y, h, t) | – | – | – | 854–910 / 900 ² | ✓ | ✓ | 532–588 / 600 | ✓ | 382–438 / 450 | 280–336 / 360 | 194–250 / 300 | 151–207 / 257 | 119–175 / 225, t 180 | was 523–579 at 200–400 % |
+| 1920×1080 spot checks (50 / 200 / 400) | ✓ ×2.67 | | | | | | | | ✓ | | | | ✓ composer 128–226 / 270, Like 164–220 | |
+| 390×844 phone | | | | | | | | | | | | | | composer 663–773, Like 712–768, tab bar at 779 ✓ |
+
+¹ At 125 %, the first run left 16 px under the conversation panes, because the pane height assumed the xl padding. They now subtract 136 px at 1024–1279 and 152 px from 1280; re-checked after the rebuild (see below).
+² As drawn (Phase 7); multi-column layouts are deliberately not scrolled.
+
+Screenshots: Discover at 50 % is pixel-for-pixel the 100 % layout at twice the size. At 400 %, the conversation opens on the member name and the composer with Send, and Discover opens on the photo with Pass / Like / Super Like pinned above the tab bar.
 
 **Back navigation (browser history; the landing page has no in-page Back, as in Figma)**
 
