@@ -50,7 +50,7 @@ export function PhoneField({
         {label}
       </label>
       <div className={cn(fieldControl.base, invalid ? fieldControl.error : fieldControl.default)}>
-        <span className="relative flex shrink-0 items-center gap-2">
+        <span className="relative flex shrink-0 items-center gap-2 rounded-6 has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-rose">
           {country.flag ? (
             <Image src={country.flag.src} alt={country.flag.alt} width={country.flag.width} height={country.flag.height} className="size-5" />
           ) : (

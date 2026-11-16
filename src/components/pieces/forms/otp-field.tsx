@@ -42,7 +42,7 @@ export function OtpField({ label, value, onChange, state = "default", describedB
           <span
             key={index}
             className={cn(
-              "flex h-16 items-center justify-center rounded-12 border transition-colors",
+              "flex h-16 min-w-0 items-center justify-center rounded-12 border transition-colors short:h-12",
               typeScale.text24Semibold,
               textTones.gray900,
               cellStates[state],

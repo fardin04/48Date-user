@@ -29,7 +29,7 @@ export function AuthPhotoPanel({ className, revealDelay }: AuthPhotoPanelProps) 
           fill
           loading="eager"
           sizes="(min-width: 1024px) 648px, 1px"
-          className="object-cover"
+          className="object-cover object-top"
         />
       </span>
       <span
