@@ -1,18 +1,11 @@
 "use client";
 
-import { useState, useSyncExternalStore, type ReactNode } from "react";
+import { useId, useState, type MouseEvent, type ReactNode } from "react";
 import { cn } from "@/lib/cn";
 import { typeScale } from "@/lib/type-scale";
 import { textTones } from "@/lib/tones";
 import { Icon } from "@/components/pieces/content/icon";
-
-const DESKTOP_QUERY = "(min-width: 1024px)";
-
-function subscribe(onChange: () => void) {
-  const query = window.matchMedia(DESKTOP_QUERY);
-  query.addEventListener("change", onChange);
-  return () => query.removeEventListener("change", onChange);
-}
+import { bringIntoView } from "@/components/pieces/layout/scroll-to-section";
 
 type LegalContentsProps = {
   label: string;
@@ -22,43 +15,46 @@ type LegalContentsProps = {
 };
 
 /**
- * "On this page" list: always open beside the article on desktop,
- * collapsed into a disclosure above the article on smaller screens (handoff note).
+ * "On this page" list: always open beside the article from 1024px (sticky while it fits the
+ * viewport, scrolling inside itself otherwise, never sticky in short viewports), and a
+ * disclosure above the article below that (handoff note). Open / closed is CSS-driven, so the
+ * server render matches every width and nothing snaps shut on hydration.
  */
 export function LegalContents({ label, className, children }: LegalContentsProps) {
-  const isDesktop = useSyncExternalStore(
-    subscribe,
-    () => window.matchMedia(DESKTOP_QUERY).matches,
-    () => true,
-  );
-  const [openOnMobile, setOpenOnMobile] = useState(false);
+  const [open, setOpen] = useState(false);
+  const listId = useId();
+
+  const onPick = (event: MouseEvent) => {
+    const link = (event.target as Element).closest("a");
+    if (!link) return;
+    setOpen(false);
+    // The same URL doesn't re-run ScrollToSection, so bring an already-open section back here.
+    if (link.pathname === window.location.pathname) bringIntoView(link.pathname.split("/").pop(), true);
+  };
 
   return (
-    <details
-      open={isDesktop || openOnMobile}
-      onToggle={(event) => {
-        if (!isDesktop) setOpenOnMobile(event.currentTarget.open);
-      }}
-      className={cn("group rounded-16 border border-soft-line p-4 lg:rounded-none lg:border-0 lg:p-0", className)}
+    <div
+      className={cn(
+        "rounded-16 border border-soft-line p-4 lg:sticky lg:top-8 lg:max-h-[calc(var(--svh)-4rem)] lg:overflow-y-auto lg:rounded-none lg:border-0 lg:p-1 lg:short:static lg:short:max-h-none",
+        className,
+      )}
     >
-      <summary
-        className={cn(
-          "focus-ring flex cursor-pointer list-none items-center justify-between rounded-9 lg:pointer-events-none lg:cursor-auto [&::-webkit-details-marker]:hidden",
-          typeScale.label14,
-          textTones.rose,
-        )}
+      <button
+        type="button"
+        aria-expanded={open}
+        aria-controls={listId}
+        onClick={() => setOpen((value) => !value)}
+        className={cn("focus-ring flex w-full cursor-pointer items-center justify-between rounded-9 lg:hidden", typeScale.label14, textTones.rose)}
       >
         {label}
-        <span className="lg:hidden">
-          <span className="flex group-open:hidden">
-            <Icon name="add-01" size={20} tone="iconSoft" />
-          </span>
-          <span className="hidden group-open:flex">
-            <Icon name="minus-sign" size={20} tone="sub" />
-          </span>
-        </span>
-      </summary>
-      {children}
-    </details>
+        <Icon name={open ? "minus-sign" : "add-01"} size={20} tone={open ? "sub" : "iconSoft"} />
+      </button>
+      <p aria-hidden="true" className={cn("hidden lg:block", typeScale.label14, textTones.rose)}>
+        {label}
+      </p>
+      <div id={listId} onClick={onPick} className={cn(open ? "block" : "hidden", "lg:block")}>
+        {children}
+      </div>
+    </div>
   );
 }

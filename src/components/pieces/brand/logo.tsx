@@ -40,7 +40,8 @@ export function Logo({ size = "sm", tone = "dark", to, label, className, revealD
   const spec = sizes[size];
   const mark = (
     <span className={cn("flex w-max flex-col items-center", spec.gap)}>
-      <Image src="/brand/logo-mark.svg" alt="" width={spec.width} height={spec.height} className={spec.box} />
+      {/* Eager: the mark heads every page (and is the LCP in short viewports); every size shares one file. */}
+      <Image src="/brand/logo-mark.svg" alt="" width={spec.width} height={spec.height} loading="eager" className={spec.box} />
       <span className={cn("whitespace-nowrap", spec.type)} aria-hidden="true">
         <span className={textTones.rose}>{brand.wordmark.number}</span>{" "}
         <span className={tone === "dark" ? textTones.strong : textTones.white}>{brand.wordmark.word}</span>

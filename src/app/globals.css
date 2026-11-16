@@ -121,6 +121,8 @@
 
   --container-content: 1536px;
   --container-reading: 1088px;
+  /* Readable line length for long-form text (legal pages): about 75 characters at any zoom. */
+  --container-measure: 75ch;
 
   --animate-accordion-down: accordion-down 240ms ease-out;
   --animate-accordion-up: accordion-up 240ms ease-out;
