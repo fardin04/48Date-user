@@ -20,10 +20,10 @@ const variants = {
     login: { variant: "secondary", size: "md", width: "auto" },
     signup: { variant: "primary", size: "md", width: "auto", hideIcon: false },
   },
-  /** White bar used by the legal pages. */
+  /** White bar used by the legal pages (64px tall in short viewports, so the title shows on the first screen). */
   solid: {
     header: "relative z-20 bg-white",
-    bar: "flex h-28 items-center gap-6 xl:gap-14",
+    bar: "flex h-28 short:h-16 items-center gap-6 xl:gap-14",
     links: "flex-1 gap-9",
     link: "navSolid",
     actions: "gap-4 xl:w-75",

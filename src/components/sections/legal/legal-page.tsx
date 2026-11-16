@@ -6,6 +6,8 @@ import { ScrollToSection } from "@/components/pieces/layout/scroll-to-section";
 import { SectionIntro } from "@/components/pieces/layout/section-intro";
 import { SiteNav } from "@/components/pieces/shells/site-nav";
 import { Text } from "@/components/pieces/content/text";
+import { cn } from "@/lib/cn";
+import { layout } from "@/lib/control-sizes";
 import { to } from "@/lib/routes";
 import { getLegalDocument, getLegalShared, type LegalDocumentName } from "@/stores/legal-store";
 
@@ -20,7 +22,8 @@ export function LegalPage({ name, activeSection }: { name: LegalDocumentName; ac
   return (
     <>
       <SiteNav variant="solid" />
-      <main>
+      {/* fit-landing: past the 1920 frame the page scales as one piece, like the landing page (rule 59). */}
+      <main className="fit-landing">
         <Section surface="roseLight" spacing="md" labelledBy={TITLE_ID}>
           <SectionIntro
             intro={{ eyebrow: shared.eyebrow, title: legalDoc.title, description: legalDoc.subtitle }}
@@ -35,7 +38,7 @@ export function LegalPage({ name, activeSection }: { name: LegalDocumentName; ac
         </Section>
         <Section spacing="md">
           <div className="flex flex-col gap-10 lg:flex-row lg:items-start lg:gap-16 2xl:gap-24">
-            <LegalContents label={shared.contentsLabel} className="lg:sticky lg:top-8 lg:w-88 lg:shrink-0">
+            <LegalContents label={shared.contentsLabel} className="lg:w-88 lg:shrink-0">
               <nav aria-label={shared.contentsLabel}>
                 <ol className="flex flex-col gap-6 pt-6">
                   {legalDoc.sections.map((section, index) => (
@@ -49,13 +52,13 @@ export function LegalPage({ name, activeSection }: { name: LegalDocumentName; ac
                 </ol>
               </nav>
             </LegalContents>
-            <article className="flex max-w-272 min-w-0 flex-1 flex-col gap-10">
+            <article className={cn("flex min-w-0 flex-1 flex-col gap-10", layout.readingColumn)}>
               {legalDoc.sections.map((section, index) => (
-                <section key={section.id} id={section.id} aria-labelledby={`${section.id}-title`} className="flex scroll-mt-8 flex-col gap-4">
+                <section key={section.id} id={section.id} aria-labelledby={`${section.id}-title`} tabIndex={-1} className="flex scroll-mt-8 flex-col gap-4 outline-none">
                   <Text as="h2" id={`${section.id}-title`} variant="heading28" tone="strong" revealDelay={index * 40}>
                     {section.title}
                   </Text>
-                  <Text variant="text18Reading" tone="sub" className="max-w-258">
+                  <Text variant="text18Reading" tone="sub" className={layout.readingMeasure}>
                     {section.body}
                   </Text>
                 </section>
@@ -67,7 +70,7 @@ export function LegalPage({ name, activeSection }: { name: LegalDocumentName; ac
           </div>
         </Section>
       </main>
-      <ScrollToSection id={activeSection} />
+      <ScrollToSection id={activeSection} focus />
     </>
   );
 }

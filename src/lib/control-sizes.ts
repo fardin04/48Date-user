@@ -141,6 +141,9 @@ export type IntroSpacing = keyof typeof introSpacing;
 
 export const layout = {
   container: "page-container",
+  /** Long-form reading column (legal articles): 1088px wide, text capped near 75 characters per line. */
+  readingColumn: "max-w-reading break-anywhere",
+  readingMeasure: "max-w-measure",
   /**
    * A page's primary controls (chat composer, Like / Pass) pinned to the bottom of the viewport below
    * 1024px, above the phone tab bar (64px, 44px when short), so they show at 200–400 % zoom (rule 49).
