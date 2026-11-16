@@ -22,7 +22,8 @@ import { TypingDots } from "@/components/pieces/content/typing-dots";
 import { Button } from "@/components/ui/button";
 import type { Fact, MemberId } from "@/data/portal/types";
 import { cn } from "@/lib/cn";
-import { fieldControl, fieldInput } from "@/lib/control-sizes";
+import { fieldControl, fieldInput, layout } from "@/lib/control-sizes";
+import { usePrimaryInView } from "@/hooks/use-primary-in-view";
 import { fill } from "@/lib/format";
 import { chatService, type ChatMessage, type OutgoingMessage } from "@/lib/portal/chat-service";
 import { dateService } from "@/lib/portal/date-service";
@@ -109,6 +110,9 @@ export function ChatView({ memberId }: { memberId: MemberId }) {
   const generation = useRef<AbortController | null>(null);
   const photoUrl = useRef<string | null>(null);
   const photoFile = useRef<File | null>(null);
+  const paneTop = useRef<HTMLElement>(null);
+  const composer = useRef<HTMLFormElement>(null);
+  usePrimaryInView(paneTop, composer, Boolean(conversation) && clock.status !== "loading");
 
   const refresh = () => reload();
 
@@ -461,8 +465,8 @@ export function ChatView({ memberId }: { memberId: MemberId }) {
   return (
     <div className="grid items-start gap-6 lg:grid-cols-[280px_minmax(0,1fr)] xl:grid-cols-[280px_minmax(0,1fr)_312px]">
       <ConversationList current={memberId} className="max-lg:hidden" />
-      <PortalCard as="section" surface="outline" padding="lg" revealDelay={0} aria-labelledby="chat-title" className={cn("flex w-full flex-col gap-4", chatPaneHeight)}>
-        <header className="flex items-center gap-3">
+      <PortalCard as="section" surface="outline" padding="lg" revealDelay={0} aria-labelledby="chat-title" className={cn("flex w-full flex-col gap-4 max-lg:overflow-visible", chatPaneHeight)}>
+        <header ref={paneTop} className="flex scroll-mt-4 items-center gap-3">
           <Avatar image={member.photo} size={48} decorative />
           <div className="flex min-w-0 flex-1 flex-col gap-1">
             <Text as="h1" id="chat-title" variant="text20SemiboldSnug" tone="strong">
@@ -572,7 +576,7 @@ export function ChatView({ memberId }: { memberId: MemberId }) {
           <ChatAction label={copy.tools.voice} onClick={openVoice} size="pillCompact" width="full" />
           <ChatAction label={copy.tools.safety} onClick={openBlock} size="pillCompact" width="full" />
         </div>
-        <form id="chat-composer" onSubmit={send}>
+        <form ref={composer} id="chat-composer" onSubmit={send} className={layout.stickyActions}>
           <FormField htmlFor="chat-message" label={copy.composer.label}>
             <div className="flex items-center gap-2">
               <div className={cn(fieldControl.base, fieldControl.default, "min-w-0 flex-1")}>

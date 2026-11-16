@@ -20,6 +20,7 @@ import { fill } from "@/lib/format";
 import { dateService } from "@/lib/portal/date-service";
 import { useDatePlan } from "@/hooks/use-date-plan";
 import { hrefFor, toItem } from "@/lib/routes";
+import { replaceRoute } from "@/lib/navigation/replace-route";
 import { getDatePage, getMemberName } from "@/stores/portal-store";
 import { DateContext } from "@/components/sections/portal/dates/date-context";
 import { DateSummary } from "@/components/sections/portal/dates/date-summary";
@@ -39,7 +40,7 @@ export function ManageView({ memberId }: { memberId: MemberId }) {
 
   // Only a confirmed date can be changed or cancelled; anything else shows on the plan URL.
   useEffect(() => {
-    if (unmanaged) router.replace(hrefFor("DATE-PENDING", memberId));
+    if (unmanaged) replaceRoute(router, hrefFor("DATE-PENDING", memberId));
   }, [unmanaged, memberId, router]);
 
   if (!plan || unmanaged) return null;

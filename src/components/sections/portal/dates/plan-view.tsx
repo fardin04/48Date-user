@@ -22,6 +22,7 @@ import { useDatePlan } from "@/hooks/use-date-plan";
 import { useMatchClock } from "@/hooks/use-match-clock";
 import { useServiceAction } from "@/hooks/use-service-action";
 import { hrefFor, toItem } from "@/lib/routes";
+import { replaceRoute } from "@/lib/navigation/replace-route";
 import { getDatePage, getMemberName } from "@/stores/portal-store";
 import { DateContext } from "@/components/sections/portal/dates/date-context";
 import { DateSummary } from "@/components/sections/portal/dates/date-summary";
@@ -41,7 +42,7 @@ export function PlanView({ memberId }: { memberId: MemberId }) {
 
   // No plan yet (direct visit): start with a place.
   useEffect(() => {
-    if (draft) router.replace(hrefFor("VENUES", memberId));
+    if (draft) replaceRoute(router, hrefFor("VENUES", memberId));
   }, [draft, memberId, router]);
 
   if (!plan || draft || clock.status === "loading") return null;

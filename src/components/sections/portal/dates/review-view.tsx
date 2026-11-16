@@ -17,6 +17,7 @@ import { fill } from "@/lib/format";
 import { dateService } from "@/lib/portal/date-service";
 import { useDatePlan } from "@/hooks/use-date-plan";
 import { hrefFor, toItem } from "@/lib/routes";
+import { replaceRoute } from "@/lib/navigation/replace-route";
 import { getDatePage, getMemberName } from "@/stores/portal-store";
 import { DateContext } from "@/components/sections/portal/dates/date-context";
 import { DateSummary } from "@/components/sections/portal/dates/date-summary";
@@ -33,7 +34,7 @@ export function ReviewView({ memberId }: { memberId: MemberId }) {
 
   // Nothing to review yet (direct visit): choose the date and time first.
   useEffect(() => {
-    if (incomplete) router.replace(hrefFor("DATE-TIME", memberId));
+    if (incomplete) replaceRoute(router, hrefFor("DATE-TIME", memberId));
   }, [incomplete, memberId, router]);
 
   if (!plan || incomplete) return null;
