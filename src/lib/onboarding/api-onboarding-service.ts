@@ -42,7 +42,7 @@ const fromAttempt: Record<string, VerificationStatus> = {
 };
 
 /** An attempt's result with the backend's reason; a status this app doesn't know yet reads as still in review. */
-function fromSnapshot(data: Partial<Pick<VerificationData, "status" | "rejectReason" | "reasonCodes">>): Verification {
+export function fromSnapshot(data: Partial<Pick<VerificationData, "status" | "rejectReason" | "reasonCodes">>): Verification {
   const status = fromAttempt[String(data.status ?? "").toUpperCase()] ?? "pending";
   const reason = data.rejectReason ?? data.reasonCodes?.[0] ?? undefined;
   return status === "retry" && reason ? { status, reason } : { status };
@@ -53,6 +53,19 @@ const REVIEW_RETRY_MS = 15_000;
 
 const fromProfile = (status: string): VerificationStatus =>
   status === "VERIFIED" ? "verified" : status === "PENDING" ? "pending" : status === "REJECTED" || status === "FAILED" ? "retry" : "none";
+
+/**
+ * The review result from the profile's status (the authority for "verified") and the latest attempt
+ * (which says why one was sent back). An attempt still "in review" while the profile is no longer
+ * PENDING has been decided against.
+ */
+export function decideVerification(profileStatus: string, attempt: Partial<VerificationData> | null): Verification {
+  const profile = profileStatus.toUpperCase();
+  if (profile === "VERIFIED") return { status: "verified" };
+  if (!attempt) return { status: fromProfile(profile) };
+  const result = fromSnapshot(attempt);
+  return result.status === "pending" && profile !== "PENDING" ? { status: "retry" } : result;
+}
 
 function storedAttempt() {
   try {
@@ -251,19 +264,12 @@ export const apiOnboardingService: OnboardingService = {
       return { status: "retry" };
     }
   },
-  /**
-   * The profile's status is the authority for "verified"; the latest attempt says why one was sent
-   * back. An attempt still "in review" while the profile is no longer PENDING has been decided against.
-   */
+  /** Read fresh: the profile and the latest attempt, decided by `decideVerification`. */
   async getVerification() {
     try {
       const attempt = storedAttempt();
       const [me, snapshot] = await Promise.all([usersApi.freshMe(), attempt ? onboardingApi.verification(attempt).catch(() => null) : null]);
-      const profile = String(me.data.verificationStatus).toUpperCase();
-      if (profile === "VERIFIED") return { status: "verified" };
-      if (!snapshot) return { status: fromProfile(profile) };
-      const result = fromSnapshot(snapshot.data);
-      return result.status === "pending" && profile !== "PENDING" ? { status: "retry" } : result;
+      return decideVerification(String(me.data.verificationStatus), snapshot?.data ?? null);
     } catch {
       return { status: "none" };
     }

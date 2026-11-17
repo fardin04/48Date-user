@@ -7,6 +7,8 @@ export const nicknameStep = {
   suggestionsLabel: "Suggested nicknames",
   suggestions: ["GoldenHour", "WildRose", "CityLights", "NorthPeak"],
   invalid: "Use 3–20 letters, numbers, underscores or dots, starting with a letter.",
+  /** Shown under the saved nickname when Back returns to this step (rule D-117). */
+  locked: "Your nickname is permanent once chosen (D-117).",
   checking: {
     intro: { title: "Checking your nickname", description: "We’re checking availability before you continue." },
     note: "Checking availability…",

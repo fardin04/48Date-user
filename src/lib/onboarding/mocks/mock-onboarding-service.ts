@@ -11,6 +11,7 @@ import type { NicknameCheck, OnboardingService, VerificationStatus } from "@/lib
  * - Uploads progress over ~2.5s and fail while the browser is offline.
  * - A submitted selfie stays in review for ~6s, then is approved, or sent back for a retry
  *   when the photo is too dark to see a face. Nothing leaves the browser.
+ * - A saved nickname is locked for this tab, as the API reports it (D-117).
  */
 const LATENCY_MS = 900;
 const UPLOAD_TICK_MS = 120;
@@ -28,6 +29,7 @@ const REVIEW_MS = 6000;
 const TOO_DARK = "LOW_QUALITY";
 const MIN_BRIGHTNESS = 50;
 const REVIEW_KEY = "48date.mock.verification";
+const NICKNAME_KEY = "48date.mock.nickname";
 
 type Review = { submittedAt: number; outcome: Extract<VerificationStatus, "retry" | "verified"> };
 
@@ -74,10 +76,25 @@ export const mockOnboardingService: OnboardingService = {
     return null;
   },
   async getProgress() {
-    return null;
+    let lockedNickname: string | null = null;
+    try {
+      lockedNickname = sessionStorage.getItem(NICKNAME_KEY);
+    } catch {
+      // Blocked storage: nothing saved.
+    }
+    return lockedNickname ? { completed: false, draft: {}, lockedNickname } : null;
   },
-  // Answers stay in the session draft; nothing is sent anywhere.
-  async saveStep() {
+  // Answers stay in the session draft; nothing is sent anywhere. A saved nickname is kept, so
+  // returning to NICKNAME shows it locked like the API does.
+  async saveStep(step, { draft }) {
+    const nickname = draft.fields.nickname?.trim();
+    if (step === "nickname" && nickname) {
+      try {
+        sessionStorage.setItem(NICKNAME_KEY, nickname);
+      } catch {
+        // Blocked storage: the lock lasts only while the query cache holds it.
+      }
+    }
     return { ok: true };
   },
   async uploadPhoto(_file, onProgress, signal) {

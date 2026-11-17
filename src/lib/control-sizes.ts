@@ -115,6 +115,12 @@ export const mediaHeights = {
 
 export type MediaHeight = keyof typeof mediaHeights;
 
+/**
+ * SelfieFrame preview surface: the Figma 300px, shrinking with short viewports (200–400 % zoom) to
+ * no less than 160px so the capture row stays on screen.
+ */
+export const selfieFrameHeight = "min(18.75rem, max(10rem, calc(var(--svh) - 16rem)))";
+
 export const sectionSpacing = {
   /** 128px at desktop */
   lg: "py-16 md:py-24 xl:py-32",
