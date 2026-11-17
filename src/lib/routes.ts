@@ -104,6 +104,9 @@ export type Destination =
   | { screen: ScreenCode; section?: string; param?: string }
   | { notFunctional: string };
 
+/** A destination that is a real link (never `notFunctional`). */
+export type LinkDestination = Extract<Destination, { screen: ScreenCode }>;
+
 export function hrefFor(screen: ScreenCode, section?: string) {
   const path = screens[screen];
   if (!section) return path;
@@ -115,7 +118,7 @@ export function notFunctional(reason: string): Destination {
   return { notFunctional: reason };
 }
 
-export function to(screen: ScreenCode, section?: string): Destination {
+export function to(screen: ScreenCode, section?: string): LinkDestination {
   return { screen, section };
 }
 
