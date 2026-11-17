@@ -4,6 +4,7 @@ import { useEffect, useId, useRef, useState, type ChangeEvent } from "react";
 import { AddPhotoTile } from "@/components/pieces/media/add-photo-tile";
 import { ChoiceCard } from "@/components/pieces/forms/choice-card";
 import { ChoiceGroup } from "@/components/pieces/forms/choice-group";
+import { MediaFrame } from "@/components/pieces/media/media-frame";
 import { PhotoTile } from "@/components/pieces/media/photo-tile";
 import { SelfieFrame } from "@/components/pieces/media/selfie-frame";
 import { SetupStep } from "@/components/pieces/shells/setup-step";
@@ -13,6 +14,7 @@ import { UploadStatus } from "@/components/pieces/feedback/upload-status";
 import { Button } from "@/components/ui/button";
 import { fill } from "@/lib/format";
 import { onboardingService } from "@/lib/onboarding/onboarding-service";
+import { isAcceptedPhoto } from "@/lib/onboarding/photo-file";
 import { photoStore, usePhotos } from "@/lib/onboarding/photo-store";
 import { getOnboardingShared, getPhotosStep, getStepFlow } from "@/stores/onboarding-store";
 import { SetupBack, SetupError, SetupPrimary, SetupTextAction, useSaveStep } from "./step-actions";
@@ -47,16 +49,20 @@ export function PhotosStep() {
   const pendingUrl = useRef<string | null>(null);
   const video = useRef<HTMLVideoElement>(null);
   const stream = useRef<MediaStream | null>(null);
+  // Bumped whenever the camera is left, so a permission prompt answered afterwards can't reopen it.
+  const cameraRequest = useRef(0);
 
   const stopCamera = () => {
+    cameraRequest.current += 1;
     stream.current?.getTracks().forEach((track) => track.stop());
     stream.current = null;
   };
 
-  // Leaving the step stops an upload, the camera and frees a photo that was never added.
+  // Leaving the step stops an upload, the camera (also one still being asked for) and frees a photo that was never added.
   useEffect(
     () => () => {
       upload.current?.abort();
+      cameraRequest.current += 1;
       stream.current?.getTracks().forEach((track) => track.stop());
       if (pendingUrl.current) URL.revokeObjectURL(pendingUrl.current);
     },
@@ -69,6 +75,8 @@ export function PhotosStep() {
 
   function discardPending(next: Phase) {
     upload.current?.abort();
+    stopCamera();
+    setOpening(false);
     if (pendingUrl.current) URL.revokeObjectURL(pendingUrl.current);
     pendingUrl.current = null;
     setPending(null);
@@ -87,7 +95,7 @@ export function PhotosStep() {
   }
 
   function take(file: File) {
-    if (!copy.accept.includes(file.type) || file.size > copy.maxBytes) {
+    if (!isAcceptedPhoto(file, copy.accept, copy.maxBytes)) {
       setInvalid(true);
       return;
     }
@@ -105,15 +113,22 @@ export function PhotosStep() {
       fileInput.current?.click();
       return;
     }
+    const request = ++cameraRequest.current;
     setOpening(true);
     setCameraFailed(false);
     try {
-      stream.current = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" }, audio: false });
+      const media = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" }, audio: false });
+      if (request !== cameraRequest.current) {
+        // Left (Back or another page) while the browser was asking: release it at once.
+        media.getTracks().forEach((track) => track.stop());
+        return;
+      }
+      stream.current = media;
       setPhase("camera");
     } catch {
-      setCameraFailed(true);
+      if (request === cameraRequest.current) setCameraFailed(true);
     } finally {
-      setOpening(false);
+      if (request === cameraRequest.current) setOpening(false);
     }
   }
 
@@ -241,7 +256,8 @@ export function PhotosStep() {
         primary={<SetupPrimary label={copy.preview.primary} onClick={() => void start()} />}
         secondary={<SetupTextAction label={copy.preview.secondary} onClick={() => discardPending("source")} />}
       >
-        <PhotoTile src={pending.url} alt={copy.preview.alt} frame="preview" />
+        {/* The whole photo at its own ratio before it is uploaded (rule 50); the grid tiles crop it later. */}
+        <MediaFrame src={pending.url} alt={copy.preview.alt} maxHeight="preview" sizes="(min-width: 640px) 560px, 100vw" />
       </SetupStep>
     );
   }

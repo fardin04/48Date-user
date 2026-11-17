@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useEffect, useId, useState, useSyncExternalStore, type FormEvent } from "react";
+import { useEffect, useId, useRef, useState, useSyncExternalStore, type FormEvent } from "react";
 import { actionLinkClass, ActionLink } from "@/components/pieces/actions/action-link";
 import { ActionButton } from "@/components/pieces/actions/action-button";
 import { FormHeader } from "@/components/pieces/forms/form-header";
@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { DevOtpHint } from "@/components/sections/auth/dev-otp-hint"; // TESTING ONLY
 import type { AuthFlow } from "@/data/auth/flows";
 import type { authShared } from "@/data/auth/shared";
+import { usePrimaryInView } from "@/hooks/use-primary-in-view";
 import { authService } from "@/lib/auth/auth-service";
 import { maskPhone, phoneSession } from "@/lib/auth/phone";
 import { hrefFor, to, type ScreenCode } from "@/lib/routes";
@@ -34,6 +35,11 @@ export function VerifyStep({ copy, code: text, entry, verified }: VerifyStepProp
   const phone = phoneSession.parse(useSyncExternalStore(phoneSession.subscribe, phoneSession.snapshot, () => null));
   const [status, setStatus] = useState<Status>("code");
   const [code, setCode] = useState("");
+  const [resending, setResending] = useState(false);
+  // 300–400 % zoom: open on the code cells with Verify below them (rule 49).
+  const codeRegion = useRef<HTMLDivElement>(null);
+  const verifyButton = useRef<HTMLButtonElement>(null);
+  usePrimaryInView(codeRegion, verifyButton, Boolean(phone));
 
   // Arriving without a number (direct visit, new tab): start the flow again.
   useEffect(() => {
@@ -55,9 +61,12 @@ export function VerifyStep({ copy, code: text, entry, verified }: VerifyStepProp
   }
 
   async function resend() {
-    if (!phone) return;
+    // One request at a time: a double click would hit the API's resend cooldown (429 → OTP-LIMIT).
+    if (!phone || resending) return;
+    setResending(true);
     setCode("");
     const result = await authService.resendCode(phone);
+    setResending(false);
     setStatus(result === "sent" ? "resent" : result === "limited" ? "limited" : "failed");
   }
 
@@ -97,28 +106,30 @@ export function VerifyStep({ copy, code: text, entry, verified }: VerifyStepProp
   return (
     <form noValidate onSubmit={verify} className="flex flex-col gap-6">
       <FormHeader eyebrow={copy.eyebrow} title={heading.title} description={fill(heading.description ?? "")} revealDelay={0} />
-      <OtpField
-        label={text.label}
-        value={code}
-        onChange={changeCode}
-        state={status === "error" ? "error" : status === "expired" ? "disabled" : "default"}
-        describedBy={note ? noteId : undefined}
-        autoFocus
-        revealDelay={60}
-      />
+      <div ref={codeRegion} className="scroll-mt-4">
+        <OtpField
+          label={text.label}
+          value={code}
+          onChange={changeCode}
+          state={status === "error" ? "error" : status === "expired" ? "disabled" : "default"}
+          describedBy={note ? noteId : undefined}
+          autoFocus
+          revealDelay={60}
+        />
+      </div>
       {note && <StatusNote variant={note.variant} id={noteId} message={note.message} />}
       {status !== "expired" && <DevOtpHint />}
       {status === "expired" ? (
-        <Button type="button" variant="solid" size="pill" width="full" onClick={resend}>
+        <Button type="button" variant="solid" size="pill" width="full" onClick={resend} disabled={resending}>
           {text.sendNew}
         </Button>
       ) : (
-        <Button type="submit" variant="solid" size="pill" width="full" disabled={status === "error" || status === "banned" || code.length !== CODE_LENGTH}>
+        <Button ref={verifyButton} type="submit" variant="solid" size="pill" width="full" disabled={status === "error" || status === "banned" || code.length !== CODE_LENGTH}>
           {status === "error" ? text.editToContinue : text.verify}
         </Button>
       )}
       <div className="flex items-center justify-between gap-4">
-        <button type="button" onClick={resend} className={actionLinkClass("authRecovery")}>
+        <button type="button" onClick={resend} disabled={resending} aria-busy={resending} className={actionLinkClass("authRecovery")}>
           {text.resend}
         </button>
         <ActionLink action={{ label: text.changeNumber, to: to(entry) }} variant="authRecovery" />

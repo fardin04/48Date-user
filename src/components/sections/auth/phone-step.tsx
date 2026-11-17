@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useId, useState, useSyncExternalStore, type FormEvent } from "react";
+import { useId, useRef, useState, useSyncExternalStore, type FormEvent } from "react";
 import { FormHeader } from "@/components/pieces/forms/form-header";
 import { PhoneField } from "@/components/pieces/forms/phone-field";
 import { StatusNote } from "@/components/pieces/feedback/status-note";
@@ -9,6 +9,7 @@ import { Text } from "@/components/pieces/content/text";
 import { Button } from "@/components/ui/button";
 import type { Country } from "@/data/auth/countries";
 import type { Intro } from "@/data/types";
+import { usePrimaryInView } from "@/hooks/use-primary-in-view";
 import { authService } from "@/lib/auth/auth-service";
 import { isValidNational, phoneSession, toPhoneNumber, type PhoneDraft } from "@/lib/auth/phone";
 import { hrefFor, type ScreenCode } from "@/lib/routes";
@@ -40,6 +41,10 @@ export function PhoneStep({ intro, field, submitLabel, countries, defaultCountry
   const [invalid, setInvalid] = useState(false);
   const [pending, setPending] = useState(false);
   const [sendError, setSendError] = useState<string | null>(null);
+  // 300–400 % zoom: open on the number field with Continue below it (rule 49).
+  const fieldRegion = useRef<HTMLDivElement>(null);
+  const submitButton = useRef<HTMLButtonElement>(null);
+  usePrimaryInView(fieldRegion, submitButton, true);
 
   const value = draft ?? (stored ? { iso: stored.iso, national: stored.national } : { iso: defaultCountryIso, national: "" });
   const country = countries.find((option) => option.iso === value.iso) ?? countries[0];
@@ -68,20 +73,22 @@ export function PhoneStep({ intro, field, submitLabel, countries, defaultCountry
   return (
     <form noValidate onSubmit={submit} aria-busy={pending} className="flex flex-col gap-6">
       <FormHeader eyebrow={intro.eyebrow} title={intro.title} description={intro.description ?? ""} revealDelay={0} />
-      <PhoneField
-        id={inputId}
-        label={field.label}
-        countryLabel={field.countryLabel}
-        placeholder={field.placeholder}
-        countries={countries}
-        country={country}
-        national={value.national}
-        onCountryChange={(iso) => update({ iso })}
-        onNationalChange={(national) => update({ national })}
-        invalid={invalid || Boolean(sendError)}
-        describedBy={invalid ? `${errorId} ${hintId}` : sendError ? `${sendErrorId} ${hintId}` : hintId}
-        revealDelay={60}
-      />
+      <div ref={fieldRegion} className="scroll-mt-4">
+        <PhoneField
+          id={inputId}
+          label={field.label}
+          countryLabel={field.countryLabel}
+          placeholder={field.placeholder}
+          countries={countries}
+          country={country}
+          national={value.national}
+          onCountryChange={(iso) => update({ iso })}
+          onNationalChange={(national) => update({ national })}
+          invalid={invalid || Boolean(sendError)}
+          describedBy={invalid ? `${errorId} ${hintId}` : sendError ? `${sendErrorId} ${hintId}` : hintId}
+          revealDelay={60}
+        />
+      </div>
       {invalid && <StatusNote variant="error" id={errorId} message={field.invalid} />}
       {sendError && <StatusNote variant="error" id={sendErrorId} message={sendError} />}
       <span id={hintId}>
@@ -89,7 +96,7 @@ export function PhoneStep({ intro, field, submitLabel, countries, defaultCountry
           {field.hint}
         </Text>
       </span>
-      <Button type="submit" variant="solid" size="pill" width="full" disabled={pending}>
+      <Button ref={submitButton} type="submit" variant="solid" size="pill" width="full" disabled={pending}>
         {submitLabel}
       </Button>
     </form>

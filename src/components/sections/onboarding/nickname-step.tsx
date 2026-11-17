@@ -11,10 +11,8 @@ import { useLoaded } from "@/hooks/use-loaded";
 import { getNicknameStep, getOnboardingShared, getStepFlow } from "@/stores/onboarding-store";
 import { SetupBack, SetupError, SetupPrimary, useAdvance, useSaveStep } from "./step-actions";
 import { screenKeys } from "@/lib/screen-keys";
+import { isValidNickname, NICKNAME_MAX_LENGTH } from "@/lib/onboarding/nickname-rule";
 
-/** The API's rule (Postman `07 Save Onboarding Step — Nickname`): 3–20 characters, starts with a letter. */
-const NICKNAME = /^[A-Za-z][A-Za-z0-9_.]{2,19}$/;
-const MAX_LENGTH = 20;
 
 type Taken = Extract<NicknameCheck, { available: false }>;
 type Phase = { kind: "edit"; invalid?: boolean } | { kind: "checking" } | ({ kind: "taken" } & Pick<Taken, "suggestions" | "recommended">);
@@ -45,7 +43,7 @@ export function NicknameStep() {
   async function check(value: string) {
     const name = value.trim();
     profileDraft.setFields({ nickname: name });
-    if (!NICKNAME.test(name)) {
+    if (!isValidNickname(name)) {
       setPhase({ kind: "edit", invalid: true });
       return;
     }
@@ -66,7 +64,7 @@ export function NicknameStep() {
     if (phase.kind !== "checking" && !saving) void check(nickname);
   }
 
-  const field = { label: copy.field.label, value: nickname, onChange: edit, placeholder: copy.field.placeholder, maxLength: MAX_LENGTH, autoComplete: "nickname" };
+  const field = { label: copy.field.label, value: nickname, onChange: edit, placeholder: copy.field.placeholder, maxLength: NICKNAME_MAX_LENGTH, autoComplete: "nickname" };
   const back = <SetupBack onClick={() => edit(nickname)} />;
 
   if (lockedNickname) {
@@ -82,7 +80,7 @@ export function NicknameStep() {
         revealDelay={0}
       >
         <TextField label={copy.field.label} value={lockedNickname} onChange={() => undefined} state="disabled" describedBy={noteId} />
-        <StatusNote variant="notice" id={noteId} message="Your nickname is permanent once chosen (D-117)." />
+        <StatusNote variant="notice" id={noteId} message={copy.locked} />
       </SetupStep>
     );
   }
