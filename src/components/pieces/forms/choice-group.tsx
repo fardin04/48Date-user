@@ -20,7 +20,7 @@ export function ChoiceGroup({ legend, layout = "grid", className, revealDelay, c
       <legend className="sr-only">{legend}</legend>
       <div
         className={cn(
-          "grid gap-4",
+          "grid grid-cols-1 gap-4",
           layout === "grid" && "sm:grid-cols-2 sm:[&>*:last-child:nth-child(odd)]:col-span-2",
         )}
       >

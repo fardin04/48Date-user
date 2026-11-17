@@ -439,6 +439,7 @@ Generic acceptance (all must hold):
   [ ] The AGENTS.md Pieces registry and Decisions are updated for every new piece or design-silent choice.
   [ ] NEW_FRONTEND_QA_REPORT.md is updated (phase section and phase table). Backend/API blockers are listed separately.
   [ ] No backend code, no unrelated pages changed, no new dependency without approval, nothing committed.
+  [ ] First-screen fit (AGENTS.md rule 60, added 2026-11-17): at 100 % in 1440x900, 1280x800, 1366x768 and 1920x1080 windows every route in scope shows its whole primary composition without scrolling, with Figma type sizes (no oversized text), and looks polished at first sight; a 1440x900 screenshot of each route is checked and recorded in the QA report.
   Phase-specific:
   [ ] The trail, useBackTarget, replaceRoute and MediaFrame exist, are registered in AGENTS.md and are unit-tested.
   [ ] Every router.replace in portal sections goes through replaceRoute.
@@ -646,6 +647,7 @@ Generic acceptance (all must hold):
   [ ] The AGENTS.md Pieces registry and Decisions are updated for every new piece or design-silent choice.
   [ ] NEW_FRONTEND_QA_REPORT.md is updated (phase section and phase table). Backend/API blockers are listed separately.
   [ ] No backend code, no unrelated pages changed, no new dependency without approval, nothing committed.
+  [ ] First-screen fit (AGENTS.md rule 60, added 2026-11-17): at 100 % in 1440x900, 1280x800, 1366x768 and 1920x1080 windows every route in scope shows its whole primary composition without scrolling, with Figma type sizes (no oversized text), and looks polished at first sight; a 1440x900 screenshot of each route is checked and recorded in the QA report.
   Phase-specific:
   [ ] The 1920 composition is unchanged (compare screenshots at 100 % on a 1920 window).
   [ ] No headline overflow at 360 px.
@@ -846,6 +848,7 @@ Generic acceptance (all must hold):
   [ ] The AGENTS.md Pieces registry and Decisions are updated for every new piece or design-silent choice.
   [ ] NEW_FRONTEND_QA_REPORT.md is updated (phase section and phase table). Backend/API blockers are listed separately.
   [ ] No backend code, no unrelated pages changed, no new dependency without approval, nothing committed.
+  [ ] First-screen fit (AGENTS.md rule 60, added 2026-11-17): at 100 % in 1440x900, 1280x800, 1366x768 and 1920x1080 windows every route in scope shows its whole primary composition without scrolling, with Figma type sizes (no oversized text), and looks polished at first sight; a 1440x900 screenshot of each route is checked and recorded in the QA report.
   Phase-specific:
   [ ] Readable line length at 50 %.
   [ ] Contents usable at 400 %.
@@ -1056,6 +1059,7 @@ Generic acceptance (all must hold):
   [ ] The AGENTS.md Pieces registry and Decisions are updated for every new piece or design-silent choice.
   [ ] NEW_FRONTEND_QA_REPORT.md is updated (phase section and phase table). Backend/API blockers are listed separately.
   [ ] No backend code, no unrelated pages changed, no new dependency without approval, nothing committed.
+  [ ] First-screen fit (AGENTS.md rule 60, added 2026-11-17): at 100 % in 1440x900, 1280x800, 1366x768 and 1920x1080 windows every route in scope shows its whole primary composition without scrolling, with Figma type sizes (no oversized text), and looks polished at first sight; a 1440x900 screenshot of each route is checked and recorded in the QA report.
   Phase-specific:
   [ ] All 6 test accounts sign in cleanly through the API in isolated contexts, with no OTP or token recorded in the report.
   [ ] OTP usable at 360x225.
@@ -1265,6 +1269,7 @@ Generic acceptance (all must hold):
   [ ] The AGENTS.md Pieces registry and Decisions are updated for every new piece or design-silent choice.
   [ ] NEW_FRONTEND_QA_REPORT.md is updated (phase section and phase table). Backend/API blockers are listed separately.
   [ ] No backend code, no unrelated pages changed, no new dependency without approval, nothing committed.
+  [ ] First-screen fit (AGENTS.md rule 60, added 2026-11-17): at 100 % in 1440x900, 1280x800, 1366x768 and 1920x1080 windows every route in scope shows its whole primary composition without scrolling, with Figma type sizes (no oversized text), and looks polished at first sight; a 1440x900 screenshot of each route is checked and recorded in the QA report.
   Phase-specific:
   [ ] The full mock walk-through of steps 1-11 works at 100 % and at 400 %.
   [ ] Contract tests cover every step payload.
@@ -1476,6 +1481,7 @@ Generic acceptance (all must hold):
   [ ] The AGENTS.md Pieces registry and Decisions are updated for every new piece or design-silent choice.
   [ ] NEW_FRONTEND_QA_REPORT.md is updated (phase section and phase table). Backend/API blockers are listed separately.
   [ ] No backend code, no unrelated pages changed, no new dependency without approval, nothing committed.
+  [ ] First-screen fit (AGENTS.md rule 60, added 2026-11-17): at 100 % in 1440x900, 1280x800, 1366x768 and 1920x1080 windows every route in scope shows its whole primary composition without scrolling, with Figma type sizes (no oversized text), and looks polished at first sight; a 1440x900 screenshot of each route is checked and recorded in the QA report.
   Phase-specific:
   [ ] PHOTO-PREVIEW shows every tested ratio uncropped.
   [ ] The camera is always released.
@@ -1635,7 +1641,7 @@ C. INITIAL AUDIT
   - Preserve: the decision feedback timing (0.8 s), the drag thresholds, the announcements, the 429 message under the buttons keeping the card, deck pagination rules, background matches on MATCH-NEW.
 D. IMPLEMENTATION
   1. Replace fixed xl columns with clamp-based columns that hold the Figma sizes at 1440 but shrink between 1280 and 1440, for example grid-cols-[clamp(200px,16.7vw,240px)_clamp(360px,31vw,448px)_minmax(0,1fr)] registered as tokens; or switch the breakpoint at which the overview column drops.
-  2. Swipe card photo height: aspect 4:5, with max-h set to the viewport (calc(100dvh - header - decision row - gaps) as a token) so the decision row is always visible. At max-height 420 px, keep the decision row sticky under the card.
+  2. Swipe card photo height: aspect 4:5, with max-h set to the viewport (calc(100dvh - header - decision row - gaps) as a token) so the decision row is always visible. At 100 % in a 1440x900 window (and 1280x800 / 1366x768) the card photo, name, details and Pass / Like / Super Like are all on the first screen without scrolling (owner report 2026-11-17: today only the photo and name show); check the type sizes against Figma too (rule 60). At max-height 420 px, keep the decision row sticky under the card.
   3. Decision buttons: shrink (min-w-0 flex-1) at 360 px with icons and accessible labels kept.
   4. MATCH-NEW and the empty states: the StatusScreen actions are visible at 360x225 (dialog or page scroll).
 E. RESPONSIVENESS
@@ -1689,6 +1695,7 @@ Generic acceptance (all must hold):
   [ ] The AGENTS.md Pieces registry and Decisions are updated for every new piece or design-silent choice.
   [ ] NEW_FRONTEND_QA_REPORT.md is updated (phase section and phase table). Backend/API blockers are listed separately.
   [ ] No backend code, no unrelated pages changed, no new dependency without approval, nothing committed.
+  [ ] First-screen fit (AGENTS.md rule 60, added 2026-11-17): at 100 % in 1440x900, 1280x800, 1366x768 and 1920x1080 windows every route in scope shows its whole primary composition without scrolling, with Figma type sizes (no oversized text), and looks polished at first sight; a 1440x900 screenshot of each route is checked and recorded in the QA report.
   Phase-specific:
   [ ] Pass / Super Like / Like are reachable without scrolling at all 13 zoom levels.
   [ ] The deck position is kept after Profile -> Back.
@@ -1888,6 +1895,7 @@ Generic acceptance (all must hold):
   [ ] The AGENTS.md Pieces registry and Decisions are updated for every new piece or design-silent choice.
   [ ] NEW_FRONTEND_QA_REPORT.md is updated (phase section and phase table). Backend/API blockers are listed separately.
   [ ] No backend code, no unrelated pages changed, no new dependency without approval, nothing committed.
+  [ ] First-screen fit (AGENTS.md rule 60, added 2026-11-17): at 100 % in 1440x900, 1280x800, 1366x768 and 1920x1080 windows every route in scope shows its whole primary composition without scrolling, with Figma type sizes (no oversized text), and looks polished at first sight; a 1440x900 screenshot of each route is checked and recorded in the QA report.
   Phase-specific:
   [ ] Saved values round-trip through the API.
   [ ] Back after Save doesn't reopen the filters.
@@ -2094,6 +2102,7 @@ Generic acceptance (all must hold):
   [ ] The AGENTS.md Pieces registry and Decisions are updated for every new piece or design-silent choice.
   [ ] NEW_FRONTEND_QA_REPORT.md is updated (phase section and phase table). Backend/API blockers are listed separately.
   [ ] No backend code, no unrelated pages changed, no new dependency without approval, nothing committed.
+  [ ] First-screen fit (AGENTS.md rule 60, added 2026-11-17): at 100 % in 1440x900, 1280x800, 1366x768 and 1920x1080 windows every route in scope shows its whole primary composition without scrolling, with Figma type sizes (no oversized text), and looks polished at first sight; a 1440x900 screenshot of each route is checked and recorded in the QA report.
   Phase-specific:
   [ ] No face cropped by object-bottom.
   [ ] Back is correct from all 5 entry points.
@@ -2311,6 +2320,7 @@ Generic acceptance (all must hold):
   [ ] The AGENTS.md Pieces registry and Decisions are updated for every new piece or design-silent choice.
   [ ] NEW_FRONTEND_QA_REPORT.md is updated (phase section and phase table). Backend/API blockers are listed separately.
   [ ] No backend code, no unrelated pages changed, no new dependency without approval, nothing committed.
+  [ ] First-screen fit (AGENTS.md rule 60, added 2026-11-17): at 100 % in 1440x900, 1280x800, 1366x768 and 1920x1080 windows every route in scope shows its whole primary composition without scrolling, with Figma type sizes (no oversized text), and looks polished at first sight; a 1440x900 screenshot of each route is checked and recorded in the QA report.
   Phase-specific:
   [ ] The heart icon is left of the bell at every width and opens /likes.
   [ ] Cards show the real photo, name and distance in km.
@@ -2519,6 +2529,7 @@ Generic acceptance (all must hold):
   [ ] The AGENTS.md Pieces registry and Decisions are updated for every new piece or design-silent choice.
   [ ] NEW_FRONTEND_QA_REPORT.md is updated (phase section and phase table). Backend/API blockers are listed separately.
   [ ] No backend code, no unrelated pages changed, no new dependency without approval, nothing committed.
+  [ ] First-screen fit (AGENTS.md rule 60, added 2026-11-17): at 100 % in 1440x900, 1280x800, 1366x768 and 1920x1080 windows every route in scope shows its whole primary composition without scrolling, with Figma type sizes (no oversized text), and looks polished at first sight; a 1440x900 screenshot of each route is checked and recorded in the QA report.
   Phase-specific:
   [ ] The card grid adapts from 1 to 5+ columns.
   [ ] Countdowns match across accounts.
@@ -2736,6 +2747,7 @@ Generic acceptance (all must hold):
   [ ] The AGENTS.md Pieces registry and Decisions are updated for every new piece or design-silent choice.
   [ ] NEW_FRONTEND_QA_REPORT.md is updated (phase section and phase table). Backend/API blockers are listed separately.
   [ ] No backend code, no unrelated pages changed, no new dependency without approval, nothing committed.
+  [ ] First-screen fit (AGENTS.md rule 60, added 2026-11-17): at 100 % in 1440x900, 1280x800, 1366x768 and 1920x1080 windows every route in scope shows its whole primary composition without scrolling, with Figma type sizes (no oversized text), and looks polished at first sight; a 1440x900 screenshot of each route is checked and recorded in the QA report.
   Phase-specific:
   [ ] The composer is visible at all 13 zoom levels.
   [ ] At 100 % (1440x900) the message list shows at least 6-8 one-line messages without scrolling, and chat type is no larger than the Figma W05 sizes (owner report).
@@ -2974,6 +2986,7 @@ Generic acceptance (all must hold):
   [ ] The AGENTS.md Pieces registry and Decisions are updated for every new piece or design-silent choice.
   [ ] NEW_FRONTEND_QA_REPORT.md is updated (phase section and phase table). Backend/API blockers are listed separately.
   [ ] No backend code, no unrelated pages changed, no new dependency without approval, nothing committed.
+  [ ] First-screen fit (AGENTS.md rule 60, added 2026-11-17): at 100 % in 1440x900, 1280x800, 1366x768 and 1920x1080 windows every route in scope shows its whole primary composition without scrolling, with Figma type sizes (no oversized text), and looks polished at first sight; a 1440x900 screenshot of each route is checked and recorded in the QA report.
   Phase-specific:
   [ ] Own messages are on the right and the other person's on the left, on both accounts.
   [ ] Bubble width follows the text length and long text wraps.
@@ -3181,6 +3194,7 @@ Generic acceptance (all must hold):
   [ ] The AGENTS.md Pieces registry and Decisions are updated for every new piece or design-silent choice.
   [ ] NEW_FRONTEND_QA_REPORT.md is updated (phase section and phase table). Backend/API blockers are listed separately.
   [ ] No backend code, no unrelated pages changed, no new dependency without approval, nothing committed.
+  [ ] First-screen fit (AGENTS.md rule 60, added 2026-11-17): at 100 % in 1440x900, 1280x800, 1366x768 and 1920x1080 windows every route in scope shows its whole primary composition without scrolling, with Figma type sizes (no oversized text), and looks polished at first sight; a 1440x900 screenshot of each route is checked and recorded in the QA report.
   Phase-specific:
   [ ] The three-dot menu has the three items.
   [ ] Block / Unblock and Report work against the API.
@@ -3394,6 +3408,7 @@ Generic acceptance (all must hold):
   [ ] The AGENTS.md Pieces registry and Decisions are updated for every new piece or design-silent choice.
   [ ] NEW_FRONTEND_QA_REPORT.md is updated (phase section and phase table). Backend/API blockers are listed separately.
   [ ] No backend code, no unrelated pages changed, no new dependency without approval, nothing committed.
+  [ ] First-screen fit (AGENTS.md rule 60, added 2026-11-17): at 100 % in 1440x900, 1280x800, 1366x768 and 1920x1080 windows every route in scope shows its whole primary composition without scrolling, with Figma type sizes (no oversized text), and looks polished at first sight; a 1440x900 screenshot of each route is checked and recorded in the QA report.
   Phase-specific:
   [ ] "Change area" never opens onboarding and never changes the profile location (proved with the API).
   [ ] The selected area persists through the workflow and drives the venue ranking.
@@ -3596,6 +3611,7 @@ Generic acceptance (all must hold):
   [ ] The AGENTS.md Pieces registry and Decisions are updated for every new piece or design-silent choice.
   [ ] NEW_FRONTEND_QA_REPORT.md is updated (phase section and phase table). Backend/API blockers are listed separately.
   [ ] No backend code, no unrelated pages changed, no new dependency without approval, nothing committed.
+  [ ] First-screen fit (AGENTS.md rule 60, added 2026-11-17): at 100 % in 1440x900, 1280x800, 1366x768 and 1920x1080 windows every route in scope shows its whole primary composition without scrolling, with Figma type sizes (no oversized text), and looks polished at first sight; a 1440x900 screenshot of each route is checked and recorded in the QA report.
   Phase-specific:
   [ ] The client validation matches the server window.
   [ ] The invitation is created and seen by the partner.
@@ -3805,6 +3821,7 @@ Generic acceptance (all must hold):
   [ ] The AGENTS.md Pieces registry and Decisions are updated for every new piece or design-silent choice.
   [ ] NEW_FRONTEND_QA_REPORT.md is updated (phase section and phase table). Backend/API blockers are listed separately.
   [ ] No backend code, no unrelated pages changed, no new dependency without approval, nothing committed.
+  [ ] First-screen fit (AGENTS.md rule 60, added 2026-11-17): at 100 % in 1440x900, 1280x800, 1366x768 and 1920x1080 windows every route in scope shows its whole primary composition without scrolling, with Figma type sizes (no oversized text), and looks polished at first sight; a 1440x900 screenshot of each route is checked and recorded in the QA report.
   Phase-specific:
   [ ] Confirmed shows the venue / date / time / area first.
   [ ] Partner actions update live.
@@ -4008,6 +4025,7 @@ Generic acceptance (all must hold):
   [ ] The AGENTS.md Pieces registry and Decisions are updated for every new piece or design-silent choice.
   [ ] NEW_FRONTEND_QA_REPORT.md is updated (phase section and phase table). Backend/API blockers are listed separately.
   [ ] No backend code, no unrelated pages changed, no new dependency without approval, nothing committed.
+  [ ] First-screen fit (AGENTS.md rule 60, added 2026-11-17): at 100 % in 1440x900, 1280x800, 1366x768 and 1920x1080 windows every route in scope shows its whole primary composition without scrolling, with Figma type sizes (no oversized text), and looks polished at first sight; a 1440x900 screenshot of each route is checked and recorded in the QA report.
   Phase-specific:
   [ ] The venue / date / time / area are the primary content; "Have you met?" is secondary.
   [ ] The eligibility is unchanged.
@@ -4212,6 +4230,7 @@ Generic acceptance (all must hold):
   [ ] The AGENTS.md Pieces registry and Decisions are updated for every new piece or design-silent choice.
   [ ] NEW_FRONTEND_QA_REPORT.md is updated (phase section and phase table). Backend/API blockers are listed separately.
   [ ] No backend code, no unrelated pages changed, no new dependency without approval, nothing committed.
+  [ ] First-screen fit (AGENTS.md rule 60, added 2026-11-17): at 100 % in 1440x900, 1280x800, 1366x768 and 1920x1080 windows every route in scope shows its whole primary composition without scrolling, with Figma type sizes (no oversized text), and looks polished at first sight; a 1440x900 screenshot of each route is checked and recorded in the QA report.
   Phase-specific:
   [ ] Back returns to the conversation.
   [ ] The choices stack and keep their ratio.
@@ -4419,6 +4438,7 @@ Generic acceptance (all must hold):
   [ ] The AGENTS.md Pieces registry and Decisions are updated for every new piece or design-silent choice.
   [ ] NEW_FRONTEND_QA_REPORT.md is updated (phase section and phase table). Backend/API blockers are listed separately.
   [ ] No backend code, no unrelated pages changed, no new dependency without approval, nothing committed.
+  [ ] First-screen fit (AGENTS.md rule 60, added 2026-11-17): at 100 % in 1440x900, 1280x800, 1366x768 and 1920x1080 windows every route in scope shows its whole primary composition without scrolling, with Figma type sizes (no oversized text), and looks polished at first sight; a 1440x900 screenshot of each route is checked and recorded in the QA report.
   Phase-specific:
   [ ] Every tested ratio displays uncropped at its own ratio.
   [ ] Create story is reachable at every zoom.
@@ -4623,6 +4643,7 @@ Generic acceptance (all must hold):
   [ ] The AGENTS.md Pieces registry and Decisions are updated for every new piece or design-silent choice.
   [ ] NEW_FRONTEND_QA_REPORT.md is updated (phase section and phase table). Backend/API blockers are listed separately.
   [ ] No backend code, no unrelated pages changed, no new dependency without approval, nothing committed.
+  [ ] First-screen fit (AGENTS.md rule 60, added 2026-11-17): at 100 % in 1440x900, 1280x800, 1366x768 and 1920x1080 windows every route in scope shows its whole primary composition without scrolling, with Figma type sizes (no oversized text), and looks polished at first sight; a 1440x900 screenshot of each route is checked and recorded in the QA report.
   Phase-specific:
   [ ] The photo is never cropped.
   [ ] Comments work, including deleting own comments.
@@ -4826,6 +4847,7 @@ Generic acceptance (all must hold):
   [ ] The AGENTS.md Pieces registry and Decisions are updated for every new piece or design-silent choice.
   [ ] NEW_FRONTEND_QA_REPORT.md is updated (phase section and phase table). Backend/API blockers are listed separately.
   [ ] No backend code, no unrelated pages changed, no new dependency without approval, nothing committed.
+  [ ] First-screen fit (AGENTS.md rule 60, added 2026-11-17): at 100 % in 1440x900, 1280x800, 1366x768 and 1920x1080 windows every route in scope shows its whole primary composition without scrolling, with Figma type sizes (no oversized text), and looks polished at first sight; a 1440x900 screenshot of each route is checked and recorded in the QA report.
   Phase-specific:
   [ ] The preview and the final display keep all the tested ratios.
   [ ] The draft is never lost.
@@ -5024,6 +5046,7 @@ Generic acceptance (all must hold):
   [ ] The AGENTS.md Pieces registry and Decisions are updated for every new piece or design-silent choice.
   [ ] NEW_FRONTEND_QA_REPORT.md is updated (phase section and phase table). Backend/API blockers are listed separately.
   [ ] No backend code, no unrelated pages changed, no new dependency without approval, nothing committed.
+  [ ] First-screen fit (AGENTS.md rule 60, added 2026-11-17): at 100 % in 1440x900, 1280x800, 1366x768 and 1920x1080 windows every route in scope shows its whole primary composition without scrolling, with Figma type sizes (no oversized text), and looks polished at first sight; a 1440x900 screenshot of each route is checked and recorded in the QA report.
   Phase-specific:
   [ ] The partner can approve / decline.
   [ ] The author sees every status.
@@ -5227,6 +5250,7 @@ Generic acceptance (all must hold):
   [ ] The AGENTS.md Pieces registry and Decisions are updated for every new piece or design-silent choice.
   [ ] NEW_FRONTEND_QA_REPORT.md is updated (phase section and phase table). Backend/API blockers are listed separately.
   [ ] No backend code, no unrelated pages changed, no new dependency without approval, nothing committed.
+  [ ] First-screen fit (AGENTS.md rule 60, added 2026-11-17): at 100 % in 1440x900, 1280x800, 1366x768 and 1920x1080 windows every route in scope shows its whole primary composition without scrolling, with Figma type sizes (no oversized text), and looks polished at first sight; a 1440x900 screenshot of each route is checked and recorded in the QA report.
   Phase-specific:
   [ ] Every target maps correctly or degrades honestly.
   [ ] Back returns to the inbox.
@@ -5427,6 +5451,7 @@ Generic acceptance (all must hold):
   [ ] The AGENTS.md Pieces registry and Decisions are updated for every new piece or design-silent choice.
   [ ] NEW_FRONTEND_QA_REPORT.md is updated (phase section and phase table). Backend/API blockers are listed separately.
   [ ] No backend code, no unrelated pages changed, no new dependency without approval, nothing committed.
+  [ ] First-screen fit (AGENTS.md rule 60, added 2026-11-17): at 100 % in 1440x900, 1280x800, 1366x768 and 1920x1080 windows every route in scope shows its whole primary composition without scrolling, with Figma type sizes (no oversized text), and looks polished at first sight; a 1440x900 screenshot of each route is checked and recorded in the QA report.
   Phase-specific:
   [ ] PROFILE adapts its columns.
   [ ] Photos are face-safe.
@@ -5632,6 +5657,7 @@ Generic acceptance (all must hold):
   [ ] The AGENTS.md Pieces registry and Decisions are updated for every new piece or design-silent choice.
   [ ] NEW_FRONTEND_QA_REPORT.md is updated (phase section and phase table). Backend/API blockers are listed separately.
   [ ] No backend code, no unrelated pages changed, no new dependency without approval, nothing committed.
+  [ ] First-screen fit (AGENTS.md rule 60, added 2026-11-17): at 100 % in 1440x900, 1280x800, 1366x768 and 1920x1080 windows every route in scope shows its whole primary composition without scrolling, with Figma type sizes (no oversized text), and looks polished at first sight; a 1440x900 screenshot of each route is checked and recorded in the QA report.
   Phase-specific:
   [ ] Saves persist.
   [ ] Values are kept on error.
@@ -5831,6 +5857,7 @@ Generic acceptance (all must hold):
   [ ] The AGENTS.md Pieces registry and Decisions are updated for every new piece or design-silent choice.
   [ ] NEW_FRONTEND_QA_REPORT.md is updated (phase section and phase table). Backend/API blockers are listed separately.
   [ ] No backend code, no unrelated pages changed, no new dependency without approval, nothing committed.
+  [ ] First-screen fit (AGENTS.md rule 60, added 2026-11-17): at 100 % in 1440x900, 1280x800, 1366x768 and 1920x1080 windows every route in scope shows its whole primary composition without scrolling, with Figma type sizes (no oversized text), and looks polished at first sight; a 1440x900 screenshot of each route is checked and recorded in the QA report.
   Phase-specific:
   [ ] The settings rows fit at 360 px.
   [ ] Sign-out is a replace across tabs.
@@ -6029,6 +6056,7 @@ Generic acceptance (all must hold):
   [ ] The AGENTS.md Pieces registry and Decisions are updated for every new piece or design-silent choice.
   [ ] NEW_FRONTEND_QA_REPORT.md is updated (phase section and phase table). Backend/API blockers are listed separately.
   [ ] No backend code, no unrelated pages changed, no new dependency without approval, nothing committed.
+  [ ] First-screen fit (AGENTS.md rule 60, added 2026-11-17): at 100 % in 1440x900, 1280x800, 1366x768 and 1920x1080 windows every route in scope shows its whole primary composition without scrolling, with Figma type sizes (no oversized text), and looks polished at first sight; a 1440x900 screenshot of each route is checked and recorded in the QA report.
   Phase-specific:
   [ ] The payload is correct.
   [ ] The area is restored after the test.
@@ -6225,6 +6253,7 @@ Generic acceptance (all must hold):
   [ ] The AGENTS.md Pieces registry and Decisions are updated for every new piece or design-silent choice.
   [ ] NEW_FRONTEND_QA_REPORT.md is updated (phase section and phase table). Backend/API blockers are listed separately.
   [ ] No backend code, no unrelated pages changed, no new dependency without approval, nothing committed.
+  [ ] First-screen fit (AGENTS.md rule 60, added 2026-11-17): at 100 % in 1440x900, 1280x800, 1366x768 and 1920x1080 windows every route in scope shows its whole primary composition without scrolling, with Figma type sizes (no oversized text), and looks polished at first sight; a 1440x900 screenshot of each route is checked and recorded in the QA report.
   Phase-specific:
   [ ] The values round-trip.
   [ ] The permission is only requested from a click.
@@ -6422,6 +6451,7 @@ Generic acceptance (all must hold):
   [ ] The AGENTS.md Pieces registry and Decisions are updated for every new piece or design-silent choice.
   [ ] NEW_FRONTEND_QA_REPORT.md is updated (phase section and phase table). Backend/API blockers are listed separately.
   [ ] No backend code, no unrelated pages changed, no new dependency without approval, nothing committed.
+  [ ] First-screen fit (AGENTS.md rule 60, added 2026-11-17): at 100 % in 1440x900, 1280x800, 1366x768 and 1920x1080 windows every route in scope shows its whole primary composition without scrolling, with Figma type sizes (no oversized text), and looks polished at first sight; a 1440x900 screenshot of each route is checked and recorded in the QA report.
   Phase-specific:
   [ ] Each entry point sends the right source and ids.
   [ ] Back returns to the origin.
@@ -6617,6 +6647,7 @@ Generic acceptance (all must hold):
   [ ] The AGENTS.md Pieces registry and Decisions are updated for every new piece or design-silent choice.
   [ ] NEW_FRONTEND_QA_REPORT.md is updated (phase section and phase table). Backend/API blockers are listed separately.
   [ ] No backend code, no unrelated pages changed, no new dependency without approval, nothing committed.
+  [ ] First-screen fit (AGENTS.md rule 60, added 2026-11-17): at 100 % in 1440x900, 1280x800, 1366x768 and 1920x1080 windows every route in scope shows its whole primary composition without scrolling, with Figma type sizes (no oversized text), and looks polished at first sight; a 1440x900 screenshot of each route is checked and recorded in the QA report.
   Phase-specific:
   [ ] Unblock works and the list paginates.
   [ ] Back to Settings works.
@@ -6813,6 +6844,7 @@ Generic acceptance (all must hold):
   [ ] The AGENTS.md Pieces registry and Decisions are updated for every new piece or design-silent choice.
   [ ] NEW_FRONTEND_QA_REPORT.md is updated (phase section and phase table). Backend/API blockers are listed separately.
   [ ] No backend code, no unrelated pages changed, no new dependency without approval, nothing committed.
+  [ ] First-screen fit (AGENTS.md rule 60, added 2026-11-17): at 100 % in 1440x900, 1280x800, 1366x768 and 1920x1080 windows every route in scope shows its whole primary composition without scrolling, with Figma type sizes (no oversized text), and looks polished at first sight; a 1440x900 screenshot of each route is checked and recorded in the QA report.
   Phase-specific:
   [ ] No test account was deleted.
   [ ] The mock flow and the contract test pass.
@@ -7015,6 +7047,7 @@ Generic acceptance (all must hold):
   [ ] The AGENTS.md Pieces registry and Decisions are updated for every new piece or design-silent choice.
   [ ] NEW_FRONTEND_QA_REPORT.md is updated (phase section and phase table). Backend/API blockers are listed separately.
   [ ] No backend code, no unrelated pages changed, no new dependency without approval, nothing committed.
+  [ ] First-screen fit (AGENTS.md rule 60, added 2026-11-17): at 100 % in 1440x900, 1280x800, 1366x768 and 1920x1080 windows every route in scope shows its whole primary composition without scrolling, with Figma type sizes (no oversized text), and looks polished at first sight; a 1440x900 screenshot of each route is checked and recorded in the QA report.
   Phase-specific:
   [ ] Premium vs free is correct for M1 / M2 / M3.
   [ ] The plan cards adapt at every zoom.
@@ -7217,6 +7250,7 @@ Generic acceptance (all must hold):
   [ ] The AGENTS.md Pieces registry and Decisions are updated for every new piece or design-silent choice.
   [ ] NEW_FRONTEND_QA_REPORT.md is updated (phase section and phase table). Backend/API blockers are listed separately.
   [ ] No backend code, no unrelated pages changed, no new dependency without approval, nothing committed.
+  [ ] First-screen fit (AGENTS.md rule 60, added 2026-11-17): at 100 % in 1440x900, 1280x800, 1366x768 and 1920x1080 windows every route in scope shows its whole primary composition without scrolling, with Figma type sizes (no oversized text), and looks polished at first sight; a 1440x900 screenshot of each route is checked and recorded in the QA report.
   Phase-specific:
   [ ] No real payment and no unapproved entitlement change.
   [ ] Replace after completion.
@@ -7415,6 +7449,7 @@ Generic acceptance (all must hold):
   [ ] The AGENTS.md Pieces registry and Decisions are updated for every new piece or design-silent choice.
   [ ] NEW_FRONTEND_QA_REPORT.md is updated (phase section and phase table). Backend/API blockers are listed separately.
   [ ] No backend code, no unrelated pages changed, no new dependency without approval, nothing committed.
+  [ ] First-screen fit (AGENTS.md rule 60, added 2026-11-17): at 100 % in 1440x900, 1280x800, 1366x768 and 1920x1080 windows every route in scope shows its whole primary composition without scrolling, with Figma type sizes (no oversized text), and looks polished at first sight; a 1440x900 screenshot of each route is checked and recorded in the QA report.
   Phase-specific:
   [ ] No dead ends.
   [ ] The guards use replace.
@@ -7620,6 +7655,7 @@ Generic acceptance (all must hold):
   [ ] The AGENTS.md Pieces registry and Decisions are updated for every new piece or design-silent choice.
   [ ] NEW_FRONTEND_QA_REPORT.md is updated (phase section and phase table). Backend/API blockers are listed separately.
   [ ] No backend code, no unrelated pages changed, no new dependency without approval, nothing committed.
+  [ ] First-screen fit (AGENTS.md rule 60, added 2026-11-17): at 100 % in 1440x900, 1280x800, 1366x768 and 1920x1080 windows every route in scope shows its whole primary composition without scrolling, with Figma type sizes (no oversized text), and looks polished at first sight; a 1440x900 screenshot of each route is checked and recorded in the QA report.
   Phase-specific:
   [ ] Only the owner-approved items are built.
   [ ] Each is fully layered and tested.
@@ -7824,6 +7860,7 @@ Generic acceptance (all must hold):
   [ ] The AGENTS.md Pieces registry and Decisions are updated for every new piece or design-silent choice.
   [ ] NEW_FRONTEND_QA_REPORT.md is updated (phase section and phase table). Backend/API blockers are listed separately.
   [ ] No backend code, no unrelated pages changed, no new dependency without approval, nothing committed.
+  [ ] First-screen fit (AGENTS.md rule 60, added 2026-11-17): at 100 % in 1440x900, 1280x800, 1366x768 and 1920x1080 windows every route in scope shows its whole primary composition without scrolling, with Figma type sizes (no oversized text), and looks polished at first sight; a 1440x900 screenshot of each route is checked and recorded in the QA report.
   Phase-specific:
   [ ] The zoom matrix is complete with no open P1 / P2 issue.
   [ ] Every back-matrix line passes.

@@ -152,6 +152,7 @@ Browser zoom changes the CSS viewport. At a 1440×900 window: 50 % → 2880×180
 | R10 | The swipe card plus decision buttons may not fit a 225–360 px tall viewport, which hides Like / Pass | `discover-view.tsx`, `swipe-card.tsx` | 7 |
 | R11 | **Owner report (2026-11-16):** at 100 % the messaging section looks oversized, and the message box shows only one or two messages before scrolling | `chat-view.tsx`, `chat-bubble.tsx` | 12 (added to its audit, step D5 and acceptance) |
 | R12 | **Owner report (2026-11-16):** after sending, a second "Sending…" copy shows beside the sent message for about a second. Cause: `chat-view.tsx` `send()` keeps its separate `pending` bubble until `await refresh()` returns, while the service (and the socket's `message:new`) have already rendered the real message. | `chat-view.tsx` (`pending`), `api-chat-service.ts` | 13 (added as step D6, with a test and an acceptance line) |
+| R13 | **Owner report (2026-11-17):** at 100 % Discover shows only the photo and the name on the first screen; Pass / Like / Super Like need a scroll, and the type looks larger than in Figma. New standing rule 60 (first look fits the screen at 1440×900 / 1280×800 / 1366×768 / 1920×1080, Figma type sizes, polished at first sight) is now an acceptance line in every phase | `discover-view.tsx`, `swipe-card.tsx`; all pages | 7 (+ every phase) |
 
 ## 6. Known navigation (Back) issues
 

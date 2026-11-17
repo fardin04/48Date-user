@@ -71,6 +71,10 @@ Also binding, in full in AGENTS.md:
   AGENTS.md as a rule (plus a pointer here) and log new pieces in the
   Pieces registry, in the same change.
 - **Rule 31** — search for an existing component before building one.
+- **Rule 60** — first look fits the screen: at 100 % (1440×900 and the other
+  common desktop windows) every page shows its whole primary composition without
+  scrolling (Discover: photo, name and the decision buttons together), with the
+  Figma type sizes, and looks polished at first sight.
 
 <!--
   The project rules live in AGENTS.md and are imported above, so there is exactly
