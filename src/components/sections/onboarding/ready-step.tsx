@@ -6,6 +6,8 @@ import { SetupStep } from "@/components/pieces/shells/setup-step";
 import { usePhotos } from "@/lib/onboarding/photo-store";
 import { useProfileDraft } from "@/lib/onboarding/profile-draft";
 import { onboardingService } from "@/lib/onboarding/onboarding-service";
+import { interestChoices } from "@/lib/onboarding/options";
+import { useOnboardingOptions } from "@/hooks/use-onboarding-options";
 import { stepDestination } from "@/lib/onboarding/steps";
 import { hrefFor } from "@/lib/routes";
 import { getChoiceSteps, getReadyStep, getStepFlow } from "@/stores/onboarding-store";
@@ -24,8 +26,10 @@ export function ReadyStep() {
     onboardingService.startMatching();
     if ("screen" in next) router.push(hrefFor(next.screen, next.section ?? next.param));
   };
-  const interests = getChoiceSteps()
-    .interests.choices.filter((choice) => draft.interests.includes(choice.value))
+  const cards = getChoiceSteps().interests.choices;
+  // The draft holds the API's interest ids when the API lists them (as INTERESTS saved them).
+  const interests = interestChoices(cards, useOnboardingOptions()?.interests, cards[0].icon)
+    .filter((choice) => draft.interests.includes(choice.value))
     .slice(0, copy.shownInterests)
     .map((choice) => choice.title);
 

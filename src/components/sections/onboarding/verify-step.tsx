@@ -60,8 +60,11 @@ export function VerifyStep() {
   const video = useRef<HTMLVideoElement>(null);
   const stream = useRef<MediaStream | null>(null);
   const selfieUrl = useRef<string | null>(null);
+  // Bumped whenever the camera is left, so a permission prompt answered afterwards can't reopen it.
+  const cameraRequest = useRef(0);
 
   const stopCamera = () => {
+    cameraRequest.current += 1;
     stream.current?.getTracks().forEach((track) => track.stop());
     stream.current = null;
   };
@@ -89,6 +92,7 @@ export function VerifyStep() {
     }).catch(() => undefined);
     return () => {
       active = false;
+      cameraRequest.current += 1;
       stream.current?.getTracks().forEach((track) => track.stop());
       if (selfieUrl.current) URL.revokeObjectURL(selfieUrl.current);
     };
@@ -171,16 +175,23 @@ export function VerifyStep() {
       setPhase("denied");
       return;
     }
+    const request = ++cameraRequest.current;
     setBusy(true);
     try {
-      stream.current = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" }, audio: false });
+      const media = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" }, audio: false });
+      if (request !== cameraRequest.current) {
+        // Left (Back, "Do this later" or another page) while the browser was asking: release it at once.
+        media.getTracks().forEach((track) => track.stop());
+        return;
+      }
+      stream.current = media;
       setGuide("loading");
       setPhase("capture");
     } catch {
       // Refused, blocked or no camera: all recover through the same screen.
-      setPhase("denied");
+      if (request === cameraRequest.current) setPhase("denied");
     } finally {
-      setBusy(false);
+      if (request === cameraRequest.current) setBusy(false);
     }
   }
 
@@ -231,7 +242,15 @@ export function VerifyStep() {
         <SetupStep
           intro={copy.camera.intro}
           busy={busy}
-          back={<SetupBack onClick={() => setPhase("intro")} />}
+          back={
+            <SetupBack
+              onClick={() => {
+                stopCamera();
+                setBusy(false);
+                setPhase("intro");
+              }}
+            />
+          }
           primary={<SetupPrimary label={busy ? copy.camera.starting : copy.camera.primary} busy={busy} onClick={() => void startCamera()} />}
           secondary={<SetupTextAction label={copy.camera.secondary} onClick={advance} />}
         >

@@ -143,7 +143,7 @@ All under `src/components/`. Every composite piece also takes `revealDelay` and 
 - `pieces/layout/panel.tsx` — `Panel`: 32px-radius surface — `surface` (mist | roseLight | night | premium), `padding` (none | md | lg), `as`
 - `pieces/forms/phone-field.tsx` — `PhoneField`: labelled 56px phone control with country selector — `countries`, `country`, `national`, `onCountryChange`, `onNationalChange`, `invalid`
 - `pieces/media/photo-card.tsx` — `PhotoCard`: framed photo with caption fade — `photo`, `sizes`, `eager`
-- `pieces/media/photo-tile.tsx` — `PhotoTile`: member photo (object URL) cropped to its frame — `src`, `alt`, `frame` (tile 232 | preview fill | manage 160)
+- `pieces/media/photo-tile.tsx` — `PhotoTile`: member photo (object URL) cropped to its frame, centre-top for profile tiles — `src`, `alt`, `frame` (tile 232 | preview fill (story) | manage 160)
 - `pieces/forms/picker-button.tsx` — `PickerButton`: select-styled field that opens a picker dialog — `label`, `value`, `placeholder`, `onClick`, `size` (regular 56 | compact 48), `state`, `message`
 - `pieces/forms/picture-choice.tsx` — `PictureChoice`: This or That choice (optional 169×120 picture, label, radio) over a native radio — `name`, `value`, `label`, `image`, `checked`, `disabled`, `onSelect`
 - `pieces/cards/plan-card.tsx` — `PlanCard`: W10 Premium plan card (name, 36px rose price, billing, inclusions, Choose) — `name`, `headline`, `billing`, `features`, `featuresLabel`, `action`, `surface` (plain | featured)
@@ -162,7 +162,7 @@ All under `src/components/`. Every composite piece also takes `revealDelay` and 
 - `pieces/illustrations/quote-card.tsx` — `QuoteCard`: frosted message bubble with typing dots — `quote`
 - `pieces/illustrations/ready-card.tsx` — `ReadyCard`: the member's own profile preview — `name`, `line`, `footer`, `interests`, `interestsLabel`, `photo`
 - `pieces/layout/reveal.tsx` — `Reveal` (client): fade-up on scroll, no-JS/reduced-motion safe — `as`, `delay`
-- `pieces/media/selfie-frame.tsx` — `SelfieFrame`: 180×300 portrait on the 300px preview surface for the live camera or the captured selfie — children
+- `pieces/media/selfie-frame.tsx` — `SelfieFrame`: 180×300 portrait on the 300px preview surface (`selfieFrameHeight`: shrinks to 160px in short viewports) for the live camera or the captured selfie — children
 - `pieces/content/rich-text.tsx` — `RichText` (atom): renders `\n` breaks and `*highlight*` — `copy`
 - `pieces/layout/scroll-to-section.tsx` — `ScrollToSection` (client): scrolls the section named by the URL path into view — `id`, `focus` (also moves focus to the section, which needs `tabIndex={-1}`); also exports `bringIntoView(id, focus)`
 - `pieces/layout/section.tsx` — `Section`: full-bleed band — `id`, `labelledBy`, `surface`, `spacing` (md | lg | xl), `contained`
@@ -319,6 +319,14 @@ All under `src/components/`. Every composite piece also takes `revealDelay` and 
   - **Dialogs:** the occupation dialog uses 24px padding on phones and 16px in short viewports; its list scrolls inside the 100dvh cap and the confirm stays pinned to the bottom.
   - **Rows:** `ChoiceGroup` tracks are `minmax(0, 1fr)`; the implicit auto track had pushed LOC-MANUAL results 13px past a 360px viewport. Area result names (`OptionRow` `area`) wrap instead of truncating, so "San Francisco, California" is readable at 360px (the row grows from 64px).
   - **Copy and mock:** the D-117 notice moved into `data/onboarding/about.ts`. The mock remembers a saved nickname for the tab (`48date.mock.nickname`), so Back to NICKNAME shows it locked, as with the API.
+
+- **Onboarding photos, verification, notifications, READY (Phase 6, 2026-11-17):**
+  - **Preview:** PHOTO-PREVIEW shows the whole photo at its own ratio (`MediaFrame`, `maxHeight="preview"`), so 16:9, 9:16, 4:3, 3:4 and 1:1 uploads are checked uncropped before upload. The grid tiles stay cover, now centre-top so faces stay in frame. The Figma line "Check the crop…" is kept.
+  - **Selfie frame:** the 300px selfie surface shrinks with short viewports (`selfieFrameHeight`, never under 160px), and the sticky action row keeps "Take selfie" / "Take photo" on screen at 400 %.
+  - **Camera release:** each camera request is numbered. Leaving (Back, "Not now", another page) bumps the number, so a permission prompt answered after the member left stops the stream at once and never reopens the camera.
+  - **READY:** interests map the saved API ids back to the cards (`interestChoices`, as INTERESTS does), so the card shows the chosen interests with the API on.
+  - **Files:** the photo check is `isAcceptedPhoto` (`lib/onboarding/photo-file.ts`; JPG / PNG / WebP, 1 byte to 10 MB; an empty file is now refused). Chat, story and PHOTO-MANAGE still check inline (their phases).
+  - **Verification:** the profile-vs-attempt decision is `decideVerification` (`api-onboarding-service.ts`), unchanged in behaviour.
 
 ## Report Next.js feedback
 

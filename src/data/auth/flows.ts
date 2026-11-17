@@ -1,10 +1,12 @@
-import { to, type ScreenCode } from "@/lib/routes";
+import { to, type LinkDestination, type ScreenCode } from "@/lib/routes";
 import type { Action, Intro } from "../types";
 
 export type AuthFlowName = "signup" | "signin";
 export type AuthStep = "entry" | "verify" | "verified" | "google" | "googleError" | "session";
 
 type Title = Pick<Intro, "title" | "description">;
+/** An action that always opens a page (the verified step routes members with it). */
+type LinkAction = Action & { to: LinkDestination };
 
 export type AuthFlow = {
   /** Screen code that opens each step's URL (see lib/routes). */
@@ -20,7 +22,7 @@ export type AuthFlow = {
    * `cta` is the Figma action; `next` replaces it once the API says where this member belongs
    * (setup still to finish, or the portal), whichever flow they came through.
    */
-  verified: { intro: Intro; cta: Action; next: Record<"onboarding" | "portal", Action> };
+  verified: { intro: Intro; cta: Action; next: Record<"onboarding" | "portal", LinkAction> };
   google: { intro: Intro; primary: Action; secondary: Action };
   googleError: { intro: Intro; primary: Action; secondary: Action };
   session?: { intro: Intro; primary: Action; secondary: Action };
@@ -54,8 +56,8 @@ const processing: Title = {
 };
 const codeDescription = "Enter the six-digit code sent to {phone}.";
 const changePhone = "Change phone number";
-const setUpProfile: Action = { label: "Set up my profile", to: to("LOCATION") };
-const openPortal: Action = { label: "Open my portal", to: to("DISCOVER") };
+const setUpProfile: LinkAction = { label: "Set up my profile", to: to("LOCATION") };
+const openPortal: LinkAction = { label: "Open my portal", to: to("DISCOVER") };
 
 export const authFlows: Record<AuthFlowName, AuthFlow> = {
   signup: {
