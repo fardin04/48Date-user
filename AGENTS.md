@@ -114,7 +114,7 @@ All under `src/components/`. Every composite piece also takes `revealDelay` and 
 - `pieces/forms/checkbox-field.tsx` — `CheckboxField`: native checkbox with the Align UI mark and a 14/22 label — `label`, `checked`, `onChange`
 - `pieces/content/chip.tsx` — `Chip` (atom): `variant` (interest | badge | schedule | setup | neutral | rose)
 - `pieces/forms/choice-card.tsx` — `ChoiceCard`: selection card over a native radio / checkbox — `choice`, `type`, `name`, `checked`, `onChange`, `disabled`, `size` (compact 120 | regular 136)
-- `pieces/forms/choice-group.tsx` — `ChoiceGroup`: fieldset of cards or rows — `legend`, `layout` (grid: 2 columns, an odd last card spans | list)
+- `pieces/forms/choice-group.tsx` — `ChoiceGroup`: fieldset of cards or rows in `minmax(0, 1fr)` tracks — `legend`, `layout` (grid: 2 columns, an odd last card spans | list)
 - `pieces/forms/consent-note.tsx` — `ConsentNote`: 18+ consent line with Terms / Privacy links
 - `pieces/layout/container.tsx` — `Container` (atom): 1536px column with responsive gutters
 - `pieces/feedback/countdown.tsx` — `Countdown`: static illustrative match timer — `countdown`
@@ -129,12 +129,12 @@ All under `src/components/`. Every composite piece also takes `revealDelay` and 
 - `pieces/content/icon-badge.tsx` — `IconBadge` (atom): 52px icon tile — `icon`, `variant` (roseLight | neutral | onDark)
 - `pieces/cards/icon-row.tsx` — `IconRow`: icon + title + description row — `item`, `variant` (outline | card | glass), `as`
 - `pieces/shells/legal-contents.tsx` — `LegalContents` (client): "On this page" list, open beside the article from 1024px (sticky while it fits the viewport, scrolling inside itself otherwise, static in short viewports) and a button disclosure below that (CSS-driven, so the server render matches every width; picking a link closes it and re-scrolls an already-open section) — `label`, children
-- `pieces/brand/logo.tsx` — `Logo`: original 48Date mark + wordmark — `size` (xs | header | sm | md | lg | xl), `tone` (dark | light), `to`, `label`
+- `pieces/brand/logo.tsx` — `Logo`: original 48Date mark + wordmark — `size` (xs | header | sm | md | auth: md that shrinks to the header size in short viewports | lg | xl), `tone` (dark | light), `to`, `label`
 - `pieces/cards/match-card.tsx` — `MatchCard`: 240px photo, name, status badge, last message and three actions — `name`, `photo`, `badge`, `preview`, `primary`, `secondary`, `details`
 - `pieces/cards/member-row.tsx` — `MemberRow`: 48px photo + title + line ("You & GoldenHour") — `photo`, `title`, `description`, `meta` (time beside the title), `badge` (`text` + screen-reader `label`, unread count), `variant` (plain | list | selected), `to`, `current`
 - `pieces/illustrations/notification-preview.tsx` — `NotificationPreview`: illustrative match notification — `preview`, `help`
-- `pieces/forms/option-dialog-field.tsx` — `OptionDialogField` (client): select-styled field opening a single-choice dialog, applied on confirm — `label`, `value`, `onChange`, `options`, `placeholder`, `dialog`, `state`, `message`
-- `pieces/forms/option-row.tsx` — `OptionRow`: single-choice row over a native radio — `variant` (area | radio | choice), `name`, `value`, `label`, `meta`, `checked`, `onSelect`
+- `pieces/forms/option-dialog-field.tsx` — `OptionDialogField` (client): select-styled field opening a single-choice dialog, applied on confirm (the list scrolls inside the dialog, the confirm stays pinned) — `label`, `value`, `onChange`, `options`, `placeholder`, `dialog`, `state`, `message`
+- `pieces/forms/option-row.tsx` — `OptionRow`: single-choice row over a native radio (area names wrap; dialog and choice labels truncate) — `variant` (area | radio | choice), `name`, `value`, `label`, `meta`, `checked`, `onSelect`
 - `pieces/illustrations/message-suggestion.tsx` — `MessageSuggestion`: illustrative AI opener card — `suggestion`
 - `pieces/forms/or-divider.tsx` — `OrDivider`: hairlines around "or" — `label`
 - `pieces/forms/otp-field.tsx` — `OtpField` (client): one grouped six-digit input drawn as six cells — `label`, `value`, `onChange`, `state` (default | error | disabled), `describedBy`
@@ -167,9 +167,9 @@ All under `src/components/`. Every composite piece also takes `revealDelay` and 
 - `pieces/layout/section.tsx` — `Section`: full-bleed band — `id`, `labelledBy`, `surface`, `spacing` (md | lg | xl), `contained`
 - `pieces/forms/select-field.tsx` — `SelectField`: labelled 56px native select with arrow — `label`, `value`, `onChange`, `options`, `placeholder` (optional), `state`, `message`
 - `pieces/forms/selection-mark.tsx` — `SelectionMark` (atom): decorative 20px radio / checkbox — `type`, `checked`
-- `pieces/shells/setup-shell.tsx` — `SetupShell`: guided setup frame (sidebar ≥1280, logo header below, panel chrome ≥768) — `step`, children
+- `pieces/shells/setup-shell.tsx` — `SetupShell`: guided setup frame (sidebar ≥1280, logo header below, panel chrome ≥768; scales as one piece past 1440 with `fit-portal`, tighter padding in `short` viewports) — `step`, children
 - `pieces/shells/setup-sidebar.tsx` — `SetupSidebar`: logo, five stages (done / current / upcoming), privacy promise, back link — `step`
-- `pieces/shells/setup-step.tsx` — `SetupStep`: one onboarding screen as a form — `intro`, `align`, `headerAlign` (center centres the shell header), `placement` (top | fill), children, `secondary`, `back`, `primary`, `onSubmit`, `busy`
+- `pieces/shells/setup-step.tsx` — `SetupStep`: one onboarding screen as a form; its Back / primary row sticks to the viewport bottom while the step overflows — `intro`, `align`, `headerAlign` (center centres the shell header), `placement` (top | fill), children, `secondary`, `back`, `primary`, `onSubmit`, `busy`
 - `pieces/shells/session-gate.tsx` — `SessionGate` (client): route guard — `allow` (member | guest), `redirect` (screen code), children
 - `pieces/shells/setup-gate.tsx` — `SetupGate` (client): portal guard inside `SessionGate`; members whose setup the API reports unfinished go to the guided setup — children
 - `sections/auth/verified-step.tsx` — `VerifiedStep` (client): PHONE-VERIFIED / SIGNIN-VERIFIED with the action the API's onboarding status picks — `copy`, `image`
@@ -307,8 +307,17 @@ All under `src/components/`. Every composite piece also takes `revealDelay` and 
   - **Zoom in:** in stacked layouts the conversation opens with its header and the composer visible, and Discover opens on the card with Pass / Like / Super Like pinned. On phones the preferences column now follows the profile. Discover's xl columns are 240 / 448fr / 544fr (448 at 1440, as drawn).
 - **Landing (Phase 2, 2026-11-16):** the hero quote card is anchored from the right of the collage (`right-[4.81%]`, the same Figma geometry), so its 300px minimum grows leftwards instead of into the gutter at 1280. From 1024 to 1279 the match-window intro keeps a 420px basis, so the countdown wraps below instead of squeezing the heading to ~210px. In short viewports (300–400 % zoom) the glass nav is 64px and sits 12px from the top, and the hero starts at 96px, so the headline shows on the first screen.
 - **Legal pages (Phase 3, 2026-11-16):** past the 1920 frame the legal pages scale as one piece like the landing page (`fit-landing` on `main`). The article keeps its 1088px column, but the body text is capped at 75 characters per line (`--container-measure: 75ch`, `layout.readingMeasure`), so 50 % zoom and 1600px+ screens read like the frame instead of 94-character lines (the Figma frame draws ~94; design-silent readability choice). The solid nav is 64px tall in short viewports (300–400 % zoom), so the title shows on the first screen. A contents link moves focus to its section, and the same link clicked again brings the section back. The logo mark loads eagerly everywhere (one shared SVG; it was the LCP image in short viewports).
+- **Authentication (Phase 4, 2026-11-17):** zooming out past 1440 the auth frame scales as one piece (`fit-portal`), so the photo panel keeps the Figma 648 : 696 split instead of the form column growing alone. In short viewports (300–400 % zoom) the header logo uses the portal-header size (`Logo size="auth"`), since the 80px logo didn't fit the 56px header; from 768 down to 360 px the same 432 px column is centred and then fills the width with 16px gutters. On stacked layouts (<1024) the phone and code steps open on their field when Continue / Verify starts out of view (`usePrimaryInView`, rule 59), so the field and its button lead and the heading is a scroll above. The country selector is the native `<select>`, which the browser opens as its own scrollable list at any height. Resend is one request at a time.
 
 <!-- BEGIN:nextjs-agent-feedback -->
+
+- **Guided setup (Phase 5, 2026-11-17):**
+  - **Zoom out:** past 1440 the setup frame scales as one piece (`fit-portal`, heights in `var(--svh)`), so at 50–90 % the 304px sidebar, the panel and the centred 560px column keep the 1440 frame's proportions instead of leaving a 560px column in a 2500px panel.
+  - **Zoom in:** the Back / primary row is sticky at the bottom of the viewport (white, inside the panel) whenever the step is taller than the screen, so Continue is on the first screen at every zoom; when the step fits, the row sits where the frame draws it. Short viewports (`short`, ≤420px tall) tighten the panel padding to 12px and the heading inset to 16px.
+  - **Labels:** at 360px the primary keeps truncating its label beside the 112px Back (existing decision); its accessible name stays complete.
+  - **Dialogs:** the occupation dialog uses 24px padding on phones and 16px in short viewports; its list scrolls inside the 100dvh cap and the confirm stays pinned to the bottom.
+  - **Rows:** `ChoiceGroup` tracks are `minmax(0, 1fr)`; the implicit auto track had pushed LOC-MANUAL results 13px past a 360px viewport. Area result names (`OptionRow` `area`) wrap instead of truncating, so "San Francisco, California" is readable at 360px (the row grows from 64px).
+  - **Copy and mock:** the D-117 notice moved into `data/onboarding/about.ts`. The mock remembers a saved nickname for the tab (`48date.mock.nickname`), so Back to NICKNAME shows it locked, as with the API.
 
 ## Report Next.js feedback
 

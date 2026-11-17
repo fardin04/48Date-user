@@ -7,7 +7,7 @@ import { typeScale } from "@/lib/type-scale";
 import { ActionTarget } from "@/components/pieces/actions/action-target";
 import { Reveal } from "@/components/pieces/layout/reveal";
 
-const sizes = {
+export const logoSizes = {
   /** Onboarding header below 1280px: 29×32 logo (mark 29×23.4, 6.6px wordmark). */
   xs: { width: 29, height: 23, box: "h-[23.4px] w-[29px]", gap: "gap-[1.66px]", type: typeScale.wordmark7 },
   /** Portal web header: 43.5×48 logo (mark 43.5×35.1, 9.95px wordmark). */
@@ -16,6 +16,14 @@ const sizes = {
   sm: { width: 48, height: 38, box: "h-9.5 w-12", gap: "gap-0.75", type: typeScale.text11Bold },
   /** Auth header below 1024px: 72×80 logo (mark 72.4×58.6, 16.6px wordmark). */
   md: { width: 72, height: 59, box: "h-[58.6px] w-[72.4px]", gap: "gap-1", type: typeScale.wordmark17 },
+  /** Auth header: `md`, shrinking to the portal header size in short viewports (300–400 % zoom), where 80px won't fit the 56px header. */
+  auth: {
+    width: 72,
+    height: 59,
+    box: "h-[58.6px] w-[72.4px] short:h-[35.15px] short:w-[43.46px]",
+    gap: "gap-1 short:gap-[2.49px]",
+    type: cn(typeScale.wordmark17, "short:type-wordmark-10"),
+  },
   /** Auth photo panel card: 145×160 logo (mark 144.9×117.2, 33.2px wordmark). */
   xl: { width: 145, height: 117, box: "h-[117.2px] w-[144.9px]", gap: "gap-2", type: typeScale.wordmark33 },
   /** Closing CTA: 217×176 mark, 48/60 wordmark. */
@@ -23,7 +31,7 @@ const sizes = {
 } as const;
 
 type LogoProps = {
-  size?: keyof typeof sizes;
+  size?: keyof typeof logoSizes;
   /** Colour of the "Date" half of the wordmark. */
   tone?: "dark" | "light";
   /** Makes the logo a home link. */
@@ -37,7 +45,7 @@ type LogoProps = {
 /** The original 48Date logo: heart-shaped "48" mark over the "48 Date" wordmark. */
 export function Logo({ size = "sm", tone = "dark", to, label, className, revealDelay }: LogoProps) {
   const brand = getBrand();
-  const spec = sizes[size];
+  const spec = logoSizes[size];
   const mark = (
     <span className={cn("flex w-max flex-col items-center", spec.gap)}>
       {/* Eager: the mark heads every page (and is the LCP in short viewports); every size shares one file. */}

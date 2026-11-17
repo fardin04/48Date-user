@@ -226,8 +226,8 @@ Image inventory: about 40 `next/image` usages. Portraits, avatars, venues and ma
 | 1 | Global portal shell, layout, back-navigation and image infrastructure | P0 | **Done 2026-11-16** (see Phase 1 section) |
 | 2 | Landing page (+ portal-wide zoom fill and focus, rule 59) | P2 | **Done 2026-11-16** (see Phase 2 section) |
 | 3 | Legal pages | P3 | **Done 2026-11-16** (see Phase 3 section) |
-| 4 | Authentication | P1 | Not started |
-| 5 | Onboarding A (steps 1–11) | P2 | Not started |
+| 4 | Authentication | P1 | **Done 2026-11-17** (see Phase 4 section; Phase 3 re-checked the same day) |
+| 5 | Onboarding A (steps 1–11) | P2 | **Done 2026-11-17** (see Phase 5 section) |
 | 6 | Onboarding B (photos, verification, notifications, ready) | P2 | Not started |
 | 7 | Discover deck and match moment | P1 | Not started |
 | 8 | Discovery filters | P2 | Not started |
@@ -603,6 +603,244 @@ Production build (`next start`, port 3006). ✓ means: no horizontal overflow, n
 - At 1920 px the body text (823 px) leaves ~300 px free to the right of the article. That is the reading-measure trade-off rule 47 allows; headings keep the 1088 px column.
 - The landing nav has the same "section link to the current URL does nothing" gap that P3-5 fixed for legal contents (e.g. clicking "How it works" while on `/how-it-works` after scrolling away). `bringIntoView` is ready for it; landing is outside this phase (Phase 35 or a landing touch-up).
 - The legal pages have no footer, as in the current design; the footer exists only on the landing page.
+
+## Phase 4: Authentication (Sign up, Sign in, OTP, Google, Session ended)
+
+### Pre-change audit (2026-11-17)
+
+Method: headless Chrome over CDP from a scratch script (no project dependency). Each zoom is emulated as its CSS viewport (window ÷ zoom, `deviceScaleFactor` = zoom), as rule 46 allows. Claude in Chrome was not connected in this session, so real browser zoom wasn't available. Production builds (`next start`): API mode on port 3006 (`.env.local`), mock mode (no `NEXT_PUBLIC_API_BASE_URL`) on 3007 for the client states and SESSION. The owner's `next dev` on 3000 was left alone (a second `next dev` refuses to start beside it).
+
+Found already in the tree: earlier, unrecorded Phase 4 commits (`2d02792`, `c4cf544`, `da6b6e8`, `ca9e3ad`) had added `fit-portal` / `--svh` and short-viewport spacing to `AuthShell`, phone validation fixes and the tests `phone.test.ts`, `steps.test.ts` and `auth-contract.test.ts`. This phase audited that work and finished it.
+
+| Check | Result before |
+|---|---|
+| `npm test` / `npm run lint` | 14 files, 192 tests, all passed; lint clean |
+| `npm run build` | **failed at type check**: `src/lib/auth/steps.test.ts` reads `action.to.screen`, but `Destination` may be `{ notFunctional }` (TS2339 ×4) |
+| `/signin`, `/signin/verify`, `/signup/verified`, 13 zooms | no horizontal overflow; 50–90 % scale as one piece (`--fit` 2 / 1.33 / 1.11), photo panel 1296 / 864 / 720 px, no bands; panel switches at 1024 (shown at 110 / 125 %, 570 / 476 px; hidden from 150 %) |
+| Short viewports (250–400 %) | **header logo cut off at the top**: the 80px `md` logo in the 56px short header |
+| Primary at 400 % | Continue at 440 px and Verify at 204 px of a 225 px viewport; the heading block leads, the field is below the first screen |
+| Resend code | **no in-flight guard**: a double click sends two requests and can trip the API's cooldown (429 → OTP-LIMIT) |
+| OTP cells | 48 × 64 at 360 px; 46 × 48 at 360 × 225 (≥ 44 px tap target) |
+| Console | 0 errors |
+
+### Result
+
+| | |
+|---|---|
+| Status | **Done** (2026-11-17) |
+| Routes completed | `/signup`, `/signup/verify`, `/signup/verified`, `/signup/google`, `/signup/google/error`, `/signin`, `/signin/verify`, `/signin/verified`, `/signin/google`, `/signin/google/error`, `/signin/session-ended`, plus the client states PHONE-ERROR, OTP-FILLED, OTP-ERROR, OTP-RESEND, OTP-EXPIRED, OTP-LIMIT and VERIFY-PROCESS |
+| Tests | `npm test`: **16 files, 201 tests, 201 passed, 0 failed** (the 192 earlier tests unchanged, plus 9 new) · `npm run lint`: clean · `npm run build`: compiled, 149 pages, no warnings |
+
+**Files changed**
+- `src/lib/routes.ts`: `LinkDestination` type; `to()` returns it (runtime unchanged)
+- `src/data/auth/flows.ts`: `verified.next` / `cta` actions typed as link actions (fixes the build break without touching the test)
+- `src/components/pieces/brand/logo.tsx`: `auth` size (md that shrinks to the header logo under `short`); size table exported as `logoSizes`
+- `src/components/pieces/shells/auth-shell.tsx`: header logo `size="auth"`
+- `src/components/sections/auth/phone-step.tsx`, `verify-step.tsx`: `usePrimaryInView` on the number field / code cells; resend guarded (one request at a time, disabled while in flight)
+- New tests: `src/data/auth/flows.test.ts` (7), `src/components/pieces/brand/logo-sizes.test.ts` (2)
+- Docs: `AGENTS.md` (Logo registry entry, one Decisions entry), this report
+
+**Bugs found and fixed**
+
+| # | Bug | Fix |
+|---|---|---|
+| P4-1 | `npm run build` failed type-checking `steps.test.ts` | Link-only actions are typed as such (`LinkDestination`); the test is unchanged |
+| P4-2 | Logo clipped at the top of the auth header at 250–400 % | `Logo size="auth"`: 43 × 48 in short viewports |
+| P4-3 | At 300–400 % the form opened with the field and button below the first screen | `usePrimaryInView` (rule 59): stacked layouts open on the field when the button is out of view. At 400 %, Verify now ends at 168 px of 225 (was 204, behind the heading) and Continue at 252 (was 440). |
+| P4-4 | Resend could fire twice and trip the 429 cooldown | In-flight guard; the link and the "Send a new code" button are disabled while sending |
+
+**New tests**
+- `flows.test.ts`: for each flow, every step action (switch, limit, verified cta / next, Google, Google error, session) is a link to a known screen; the setup routing sends unfinished members to `/onboarding/location` and finished ones to `/discover`; Google error offers Google again and the phone entry; SESSION leads to `/signin`.
+- `logo-sizes.test.ts`: the auth logo keeps the md size and, under `short`, uses the header logo, which fits the 56px header.
+- Already present and passing (earlier commits, run unchanged): `phone.test.ts` (10: BD and the starter countries), `steps.test.ts` (8: verify without a stored phone → entry; setup routing labels), `auth-contract.test.ts` (7: 429 / cooldown → limited, invalid → mismatch, expired / too many → expired, banned, 5xx → failed).
+
+### Zoom matrix (after)
+
+Production build, API mode. ✓ means: no horizontal overflow, no element outside the viewport, no clipped text, the primary reachable (scrolled to and hit-tested), no console errors. **253 of 253 runs passed**: 11 routes × (13 zoom levels at 1440 × 900 + 50 / 200 / 400 % at 1920 × 1080 + the 7 rule 3 widths).
+
+| Route | 50 | 75 | 90 | 100 | 110 | 125 | 150 | 175 | 200 | 250 | 300 | 350 | 400 | Notes |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| `/signin` | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | panel 1296 / 864 / 720 / 648 / 570 / 476 px, hidden from 150 %; form column 432 px (×fit when zoomed out); 350–400 %: 16 px gutters; opens on the field from 200 % |
+| `/signin/verify` (+ OTP-ERROR / EXPIRED / LIMIT, mock) | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | cells 62 × 64 at 100 %, 48 × 64 at 360 px, 46 × 48 at 360 × 225; Verify in the first screen at 300–400 % |
+| `/signup/verified` | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | success art `max-w-full`, unstretched |
+| `/signup`, `/signup/verify`, `/signup/google`, `/signup/google/error`, `/signin/google`, `/signin/google/error`, `/signin/verified`, `/signin/session-ended` | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | every route ✓ at every level |
+| 1920 × 1080: 50 / 200 / 400 (all 11 routes) | ✓ (×2.67) | | | | | | | | ✓ | | | | ✓ (480 × 270) | |
+| Rule 3 widths 360 / 390 / 768 / 1024 / 1280 / 1440 / 1920 (all 11) | ✓ all | | | | | | | | | | | | | 1024: panel 400 px (the clamp minimum); 360: Google and Continue buttons 328 px |
+
+- **Bands and bottom gap:** none. Zoomed out, the frame scales as one piece (`fit-portal`), so photo panel and form keep the 648 : 696 split (Decisions). The shell is `min-h-[var(--svh)]`, so short pages fill to the bottom.
+- **Primary in view (zoom in):** see P4-3. At 400 %, `/signin` shows the field with Continue 27 px below the first screen (the privacy hint sits between them); the heading is one scroll up.
+- **Country picker:** the native `<select>`; the browser opens its own scrollable list inside the viewport at any height.
+- **Images:** the couple photo is `object-cover object-top` at panel widths 400–648 px and at 50 % (1296 px). The faces stay in frame in the screenshots. The BD flag is a 20 × 20 box, and the success mark has `max-w-full h-auto`.
+
+### Back navigation, states and API checks
+
+| Check | Result |
+|---|---|
+| Direct `/signin/verify` and `/signup/verify` with no number → the entry | PASS |
+| PHONE-ERROR at 400 %: announced (`role=alert`), no overflow, Continue reachable | PASS |
+| OTP-ERROR at 360 × 225 (mock `000000`): announced, "Edit code to continue" reachable | PASS |
+| OTP-EXPIRED (mock `999999`): cells disabled, "Send a new code" | PASS |
+| OTP-RESEND ×3 → "Check your messages."; 4th → OTP-LIMIT ("Please wait a little."); both actions reachable at 400 % | PASS |
+| Verify Back → `/signup` with the number kept (sessionStorage) | PASS |
+| Correct code → `/signup/verified` (`replace`); browser Back doesn't reopen verify (it reaches `/signup`, which forwards the now-signed-in member to `/discover`) | PASS |
+| Member visiting `/signin` → `/discover` | PASS |
+| SESSION: Back "Sign in" → `/signin`; the member is signed out (`/signin` stays open) | PASS (mock, by direct entry, as the prompt requires) |
+| Google error Back → entry; Google step Back → entry | PASS |
+| Google without a client ID | API mode: "Continue with Google" is `notFunctional` ("Google sign-in isn’t set up"). Mock mode: it opens the simulated Google step. No client ID is configured, so live Google wasn't tested. |
+| Auth Backs use flow targets (`AuthShell` `ActionLink`), not the portal trail | PASS (by code; `PortalBack` isn't used in auth) |
+| Console during the runs | 0 errors |
+
+**Multi-account checks (API, staging in `.env.local`).** Each account signed in once, in its own fresh Chrome profile: phone → test-code hint → verify → SIGNIN-VERIFIED. No codes or tokens were recorded.
+
+| Account | Code sent | Hint shown (fits at 360 × 225) | Verified screen action | Refresh token stored | Landed |
+|---|---|---|---|---|---|
+| M1 omar_farooq (…401) | ✓ | ✓ | Open my portal | ✓ | `/discover` |
+| M2 rohan_sen (…402) | ✓ | ✓ | Open my portal | ✓ | `/discover` |
+| M3 julian_vance (…403) | ✓ | ✓ | Open my portal | ✓ | `/discover` |
+| hannah_brooks (…301) | ✓ | ✓ | Open my portal | ✓ | `/discover` |
+| maliha_t (…302) | ✓ | ✓ | Open my portal | ✓ | `/discover` |
+| shreya_b (…303) | ✓ | ✓ | Open my portal | ✓ | `/discover` |
+
+The prompt's F5–F7 (…105–107) weren't used: the owner's current list (…301–310) replaces them. Signing out of every tab is covered by the existing `api-layer.test.ts` (unchanged, passing) and the SESSION check above.
+
+**Backend / API blockers**
+- None new for auth. `POST /auth/phone/request-otp` returns `OTP_COOLDOWN` as an error, which the frontend shows as OTP-LIMIT ("Please wait a little."). A `retryAfterSeconds` field would let the screen show a countdown instead (recommendation, not a blocker).
+
+**Remaining issues**
+- At 400 % `/signin` needs one small scroll (27 px) to reach Continue; the privacy hint sits between the field and the button. Reordering is a design change and is left for the owner.
+- An intermittent `log`-level Chrome message at 945 px: "sunset-couple.png preloaded but not used". React preloads the eager panel photo, which is hidden below 1024. It's the smallest file (`sizes` 1 px) and appeared in 2 of ~40 sub-1024 runs. Removing `eager` would bring back the ≥1024 LCP warning, so it is left as is.
+- Next.js reports a known security advisory for 16.4.3. `next build` / `next dev` stop once to show it and pass on retry. The upgrade is a dependency change and needs the owner's approval.
+- The owner's request said "NEW_FRONTEND_QA_REPORT.txt"; the project's report is this `.md` file (rules 58 and 10), so results are recorded here.
+
+### Phase 3 re-check (2026-11-17)
+
+`src/data/legal/legal-sections.test.ts` (9) passes in today's run. The legal matrix was re-run on today's build for `/terms` and `/privacy/information-you-provide` (13 levels + the 1920 spot checks + the rule 3 widths): **46 of 46 runs passed**, with no overflow, nothing outside the viewport and no console messages. Phase 3 stays Done.
+
+## Phase 5: Onboarding A (profile steps 1–11)
+
+### Pre-change audit (2026-11-17)
+
+Method: headless Chrome over CDP from a scratch script (no project dependency). Each zoom is emulated as its CSS viewport (window ÷ zoom, `deviceScaleFactor` = zoom), as rule 46 allows; Claude in Chrome was not connected in this session, so real browser zoom wasn't available. Every account in the owner's list has finished onboarding, so the step-through ran on a **mock-mode production build** (`NEXT_PUBLIC_API_BASE_URL` unset, port 3007); the API was used only for the finished-member redirect. First pass: 18 routes / states × 5 levels (50, 100, 125, 200, 400 %).
+
+| Check | Result before |
+|---|---|
+| 50–90 % zoom | **The page didn't scale** (`--fit` 1): at 50 % the 560 px column sat in a 2528 px panel, mostly empty. The shell used raw `100svh`. |
+| 110 % (1309 px) / 125 % (1152 px) | sidebar 304 px shown at 110 %, hidden at 125 %; column 560 px centred |
+| Primary at 200–400 % | **Continue below the first screen on every step**: 52 px (PRIVATE-NAME at 200 %) to 1219 px (INTERESTS at 400 %) below the fold; at 100 % INTERESTS already needed a scroll (Continue at 925 of 900) |
+| LOC-MANUAL at 400 % | **horizontal overflow**: `scrollWidth` 358 > `clientWidth` 345 (area result rows) |
+| LOC-MANUAL at 360 px | area names truncated ("San Francisco, Califo…") |
+| SELECT-OCCUPATION at 225 px height | the dialog scrolled, but the confirm was at the end of the list, out of view, with 32 px padding |
+| Back to NICKNAME (mock) | **the D-117 lock was lost**: the mock's `getProgress()` returned `null` on the re-read, which replaced the lock set on save |
+| D-117 notice | **copy hard-coded in the component** (rule 9) |
+| Back / primary at 360 px | Back 112 × 44, primary 189 × 56, no overlap; long labels truncate (existing decision) |
+| Area map pin | visible at every width (art centred on phones) |
+| Console | 0 messages |
+
+### Result
+
+| | |
+|---|---|
+| Status | **Done** (2026-11-17) |
+| Routes completed | `/onboarding/location`, `/nickname`, `/private-name`, `/birthday`, `/lifestyle`, `/identity`, `/personality`, `/communication`, `/interests`, `/details`, `/goals`, with LOC-MANUAL, LOC-NORESULT, LOC-DENIED, NICK-CHECK, NICK-TAKEN, the D-117 lock, SELECT-OCCUPATION, AGE-GATE and the required-field errors |
+| Tests | `npm test`: **22 files, 242 tests, 242 passed, 0 failed** (the 201 earlier tests unchanged, plus 41 new) · `npm run lint`: clean · `npm run build`: compiled, 149 pages, no warnings |
+
+**Files changed**
+- `src/components/pieces/shells/setup-shell.tsx`: `fit-portal` (scales as one piece past 1440), heights in `var(--svh)`, tighter padding in `short` viewports
+- `src/components/pieces/shells/setup-step.tsx`: the Back / primary row is sticky at the viewport bottom (white, inside the panel; its padding lies over the panel's, so the frame is unchanged when the step fits); `short:pt-4` heading inset
+- `src/components/pieces/forms/option-dialog-field.tsx`: 24 px padding on phones, 16 px in short viewports; the confirm is pinned while the list scrolls
+- `src/components/pieces/forms/choice-group.tsx`: `grid-cols-1` (`minmax(0, 1fr)` track)
+- `src/components/pieces/forms/option-row.tsx`: `area` names wrap (`break-anywhere`, `min-h-16`); the other variants still truncate
+- `src/components/sections/onboarding/nickname-step.tsx`: the nickname rule from `lib/onboarding/nickname-rule.ts` (new); the D-117 notice from data
+- `src/data/onboarding/about.ts`: `nicknameStep.locked`
+- `src/lib/onboarding/mocks/mock-onboarding-service.ts`: remembers a saved nickname for the tab (`48date.mock.nickname`, cleared on sign-out with every `48date.` key) and reports it as `lockedNickname`, as the API does
+- New tests: `src/lib/onboarding/step-payloads.test.ts` (5), `profile-draft.test.ts` (5), `nickname-rule.test.ts` (17), `mocks/mock-nickname-lock.test.ts` (3), `src/test/onboarding-steps-contract.test.ts` (4), `src/components/pieces/shells/setup-layout.test.ts` (7)
+- Docs: `AGENTS.md` (registry entries for SetupShell, SetupStep, OptionDialogField, ChoiceGroup and OptionRow; Decisions "Guided setup (Phase 5)"), this report
+
+**Bugs found and fixed**
+
+| # | Bug | Fix |
+|---|---|---|
+| P5-1 | 50–90 % zoom left a 560 px column in a 1500–2500 px panel; the shell used raw `svh` | `fit-portal` + `var(--svh)`. At 50 % the frame lays out at 1440 and scales ×2 (sidebar 608, panel 2176, column 1120 device px); 1920 × 1080 at 50 % scales ×2.67 |
+| P5-2 | Continue below the first screen at 200–400 % (and on INTERESTS at 100 %) | Sticky action row. Continue now ends inside the first screen on **every** route / state at **every** tested size (e.g. 213 of 225 px at 400 %) |
+| P5-3 | LOC-MANUAL scrolled sideways at 400 % (358 > 345 px) | `ChoiceGroup` track `minmax(0, 1fr)` |
+| P5-4 | Area names truncated at 360 px | `OptionRow` `area` labels wrap |
+| P5-5 | Occupation confirm out of view in short dialogs | confirm pinned; tighter dialog padding |
+| P5-6 | Mock: Back to NICKNAME lost the D-117 lock | the mock reports the saved nickname like the API |
+| P5-7 | D-117 copy in the component | moved to `data/onboarding/about.ts` |
+
+**Checked, not bugs**
+- *Interests showing 7 ticked boxes in the scripted walk:* Next 16 with `cacheComponents` keeps the previous route in the DOM, hidden (React Activity). The script was counting COMMUNICATION's hidden radio. Real mouse clicks, even rapid ones, stop at 5 with the rest disabled. The scripts now read only the visible `<main>`.
+- *API mode, Back to NICKNAME:* `saveStep` invalidates `cacheKeys.onboardingState`, so the progress read is refreshed and the lock comes from the server (`steps[nickname].state = DONE`).
+
+### Zoom matrix (after)
+
+Mock production build. After the last change (`OptionRow` wrap) the LOC-* rows (92 runs), `/settings/location` (23) and the 400 % walk were run again: all passed. ✓ means: no horizontal overflow (`scrollWidth` ≤ `clientWidth`), nothing outside the viewport, no clipped text, the primary scrolled to and hit-tested (`elementFromPoint`), Back and primary not overlapping, dialogs inside the viewport, the map pin inside its frame, and no console messages. **506 of 506 runs passed**: 20 routes / states × (13 levels at 1440 × 900 + 50 / 200 / 400 % at 1920 × 1080 + the 7 rule 3 widths), plus the two out-of-scope callers of `ChoiceGroup` (`/onboarding/photos`, `/settings/location`, overflow only).
+
+| Route / state | 50 | 75 | 90 | 100 | 110 | 125 | 150 | 175 | 200 | 250 | 300 | 350 | 400 | Notes |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| LOCATION | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | fit 2 / 1.33 / 1.11 at 50 / 75 / 90 %; sidebar 304 at 100–110 %, hidden from 125 %; column 560 → 529 / 433 / 364 / 313 px at 250–400 %, centred (offset 0); pin visible everywhere |
+| LOC-MANUAL (results "San…") | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | results wrap at 360 px; was overflowing at 400 % |
+| LOC-NORESULT, LOC-DENIED | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | LOC-DENIED at 360 px: "Choose area manually" truncates beside Back (existing decision) |
+| NICKNAME, NICK-CHECK, NICK-TAKEN, D-117 lock | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | suggestion chips wrap |
+| PRIVATE-NAME | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | first / last side by side from 640 px |
+| BIRTHDAY, AGE-GATE | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | native date input |
+| SELECT-OCCUPATION (dialog) | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | 560 × 600 at 100 %; scrolls inside from 150 % (560 × 568); 328 × 193 at 360 × 225 with the confirm pinned |
+| LIFESTYLE, IDENTITY, DETAILS (+ errors) | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | height / weight side by side from 640 px |
+| PERSONALITY, COMMUNICATION, GOALS | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | 2-column cards from 640 px, odd last spans; 1 column below |
+| INTERESTS | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | 8 compact cards; Continue pinned when the grid is taller than the screen (from 100 %) |
+| 1920 × 1080: 50 / 200 / 400 (all) | ✓ (×2.67) | | | | | | | | ✓ (960 × 540) | | | | ✓ (480 × 270) | |
+| Rule 3 widths 360 / 390 / 768 / 1024 / 1280 / 1440 / 1920 (all) | ✓ all | | | | | | | | | | | | | 360: primary 204 px beside Back 112 px; 1024: panel without sidebar; 1280: sidebar 304 + panel 928 |
+
+- **Bands and bottom gap:** none. The shell is a full-height column (`min-h-[var(--svh)]`) on every route; the only grey is the designed 24 px gutter around the panel (from 768 px, ×fit when zoomed out; 12 px in short viewports). The page height never falls short of the viewport (0 of 506 runs).
+- **Primary in view (zoom in):** the sticky row keeps Back / Continue on the first screen; the heading and fields scroll above it. The sidebar is hidden from 125 % (below 1280 px), so it never competes with the form.
+- **Focus and keyboard:** the steps are forms, so Enter continues. The sticky row stays in DOM order after the fields, so tab order is unchanged. The dialog keeps the Radix focus trap and its close button.
+- **Images:** the area map art is 480 px wide and centred on phones (`max-w-none` inside an `overflow-hidden` frame); the pin stays inside the frame at every width. Choice-card icons are `Icon` masks. Photos belong to Phase 6.
+
+### Back navigation and functional checks (mock walk-through)
+
+The same script ran the full flow by real mouse clicks on the primary, at **1440 × 900 (100 %)** and at **360 × 225 (400 %)**: **41 of 41 checks passed at each size**.
+
+| Check | Result |
+|---|---|
+| LOCATION "Use my location" with the permission refused → LOC-DENIED; Back → LOCATION | PASS |
+| LOC-MANUAL "zzzz" → LOC-NORESULT; "Search another area" clears the field | PASS |
+| "Dha" → Dhaka listed → "Use Dhaka" → NICKNAME; the draft holds the label "Dhaka" and no coordinates | PASS |
+| Nickname "1x" → the rule message; "GoldenHour" → NICK-CHECK → NICK-TAKEN with suggestions; "Sunny_1" → PRIVATE-NAME | PASS |
+| PRIVATE-NAME empty → the required-field errors; filled → BIRTHDAY | PASS |
+| SELECT-OCCUPATION inside the viewport with its confirm visible (also at 360 × 225); the choice applies on confirm | PASS |
+| Birthday 16 years ago → AGE-GATE; "Check my birthday" → field again; adult → LIFESTYLE | PASS |
+| LIFESTYLE → IDENTITY → PERSONALITY → COMMUNICATION → INTERESTS (cap of 5, the rest disabled) → DETAILS → GOALS → PHOTOS | PASS |
+| Browser Back → GOALS and DETAILS with their answers | PASS |
+| Step Back links DETAILS → … → NICKNAME follow `data/onboarding/flow.ts` (8 hops) | PASS |
+| Back on NICKNAME shows "Sunny_1" disabled with the D-117 notice; Continue moves on with no new check | PASS |
+| PRIVATE-NAME keeps its answers; a refresh keeps them (sessionStorage draft) | PASS |
+| NICKNAME Back → LOCATION; LOCATION Back targets PHONE-VERIFIED (`/signup/verified`); sidebar "Back to website" → `/` (data) | PASS |
+| Console errors during the walk | 0 |
+
+**API checks** (`npm run build` with `.env.local`, port 3006, staging API).
+
+| Check | Result |
+|---|---|
+| hannah_brooks (…301, onboarding finished) signed in through the test-code hint (code read from the page, not recorded) → SIGNIN-VERIFIED | PASS |
+| Direct `/onboarding/nickname` → `/matches` (reads `GET /onboarding`) | PASS |
+| Direct `/onboarding/location` → `/matches` | PASS |
+| Direct `/onboarding/details` → `/matches` (`GET /onboarding/options` 200) | PASS |
+| Exceptions | none |
+
+- **Contract (Postman replay):** `onboarding-steps-contract.test.ts` walks screens 1–11 in setup order against the collection and checks the PUTs per screen, in the API's order. Its first case is: location; nickname; real_name; birthday; LIFESTYLE → smoking + drinking (kids waits for gender); IDENTITY → gender + kids + interested_in; PERSONALITY / COMMUNICATION → nothing; interests; DETAILS → height + weight (languages / education / religion wait for looking_for); GOALS → looking_for + languages + education + religion. Every body uses only the collection's fields and its enum values. The location is rounded to 0.01°. A missing earlier answer is asked for ("Please go back and answer “nickname” first.") instead of being sent, and a refused step shows the API's message.
+- **Options:** with the API on, the select lists and interests come from `GET /onboarding/options` (`toStepOptions`, unchanged; covered by the existing contract tests). The starter lists show only in mock mode or when the read fails.
+- **Nickname:** checked on Continue, not while typing (one request per attempt; no debounce needed). The rule is 3–20 characters, starting with a letter, then letters / digits / `_` / `.` (`nickname-rule.test.ts`). An availability read that fails lets the save decide; a conflict comes back as the step's error.
+
+**Backend / API blockers**
+- None new for these steps.
+- *Recommendation:* `GET /onboarding/nickname-availability` returns only `available`; returning the reason (format, reserved, taken) would let the screen show the right message without a second request.
+
+**Remaining issues**
+- At 360 px the primary label truncates beside the 112 px Back when it is long ("Choose area manually", "Use San Francisco"). This is the existing phone decision, and the accessible name stays complete. Making Back icon-only on phones would be a design change for the owner.
+- Real browser zoom wasn't available (no Claude in Chrome connection); all levels were emulated as CSS viewports with `deviceScaleFactor`.
+- A first full `npm test`, run while the zoom matrix kept the machine busy, timed out the first two `api-contract.test.ts` cases (5 s default). The unchanged file passed 32 / 32 on its own, and the final full run on a quiet machine passed 242 / 242.
+- `/onboarding/nickname` asks for nickname suggestions before a finished member is redirected (one extra read). Harmless; left as is.
+- The owner asked for "NEW_FRONTEND_QA_REPORT.txt"; results are recorded in this `.md` file (rules 10 / 58), as in Phase 4.
 
 ---
 
