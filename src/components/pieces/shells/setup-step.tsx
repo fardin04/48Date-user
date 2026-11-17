@@ -9,9 +9,9 @@ const COLUMN = "w-full max-w-140";
 
 const placements = {
   /** Content anchored 72px under the header (64px below 1280px). */
-  top: "pt-12 md:pt-16 xl:pt-18",
+  top: "pt-12 md:pt-16 xl:pt-18 short:pt-4",
   /** PHOTO-PREVIEW: 48px inset, the photo takes the remaining height. */
-  fill: "justify-center py-12",
+  fill: "justify-center py-12 short:py-4",
 } as const;
 
 type SetupStepProps = {
@@ -35,7 +35,8 @@ type SetupStepProps = {
 
 /**
  * One onboarding screen inside the main panel: heading, content and the bottom action row
- * (Back left, primary right). It is a form so Enter continues.
+ * (Back left, primary right; pinned to the viewport bottom when the step overflows). It is a form
+ * so Enter continues.
  */
 export function SetupStep({ intro, align = "start", headerAlign = "split", placement = "top", children, secondary, back, primary, onSubmit, busy, className, revealDelay }: SetupStepProps) {
   const fill = placement === "fill";
@@ -48,7 +49,12 @@ export function SetupStep({ intro, align = "start", headerAlign = "split", place
           {secondary}
         </div>
       </div>
-      <Reveal delay={revealDelay === undefined ? undefined : revealDelay + 120} className="flex h-20 shrink-0 items-end justify-center pt-6">
+      {/* Sticky to the viewport bottom while the step is taller than the screen (zoom, long lists), so
+          Continue stays in view; the negative margin lays its padding over the panel's own. */}
+      <Reveal
+        delay={revealDelay === undefined ? undefined : revealDelay + 120}
+        className="sticky bottom-0 z-10 -mb-6 flex shrink-0 justify-center bg-white pt-6 pb-6 md:-mb-8 md:pb-8 short:-mb-3 short:py-3 short:md:-mb-3 short:md:pb-3"
+      >
         <div className={cn(COLUMN, "flex items-center justify-between gap-3 sm:gap-4")}>
           {back}
           {primary}

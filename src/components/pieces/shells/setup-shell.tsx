@@ -19,15 +19,16 @@ const CENTERED = "group-has-[[data-header=center]]/setup:text-center";
 /**
  * Guided setup frame. ≥1280px: 304px stage sidebar + 24px-radius main panel (1440×960 frames).
  * Below 1280px the sidebar hides and the 29×32 logo joins the context header; phones drop the
- * panel chrome and keep 16px gutters.
+ * panel chrome and keep 16px gutters. Past 1440 the frame scales as one piece (`fit-portal`, rule 59);
+ * short viewports (300–400 % zoom) tighten the padding.
  */
 export function SetupShell({ step, children }: SetupShellProps) {
   const { header, totalSteps } = getOnboardingShared();
   const stepLabel = step ? header.step.replace("{step}", String(step)).replace("{total}", String(totalSteps)) : "";
   return (
-    <div className="min-h-svh bg-white md:bg-gray-50 md:p-6 xl:grid xl:grid-cols-[304px_minmax(0,1fr)]">
-      <SetupSidebar step={step ?? 0} revealDelay={0} className="max-xl:hidden xl:sticky xl:top-6 xl:min-h-[calc(100svh-48px)] xl:self-start" />
-      <main className="group/setup flex min-h-svh flex-col bg-white px-4 py-6 md:min-h-[calc(100svh-48px)] md:rounded-24 md:border md:border-gray-200 md:px-10 md:py-8 lg:px-12">
+    <div className="fit-portal min-h-[var(--svh)] bg-white md:bg-gray-50 md:p-6 short:md:p-3 xl:grid xl:grid-cols-[304px_minmax(0,1fr)]">
+      <SetupSidebar step={step ?? 0} revealDelay={0} className="max-xl:hidden xl:sticky xl:top-6 xl:min-h-[calc(var(--svh)-48px)] xl:self-start" />
+      <main className="group/setup flex min-h-[var(--svh)] flex-col bg-white px-4 py-6 short:py-3 md:min-h-[calc(var(--svh)-48px)] md:rounded-24 md:border md:border-gray-200 md:px-10 md:py-8 short:md:min-h-[calc(var(--svh)-24px)] short:md:py-3 lg:px-12">
         <header className="flex min-h-10 items-start gap-4 xl:min-h-8">
           <Logo size="xs" to={to("L02")} className="xl:hidden" />
           <Text variant="text12Semibold" tone="sub" className={cn("flex-1", CENTERED)}>

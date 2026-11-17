@@ -31,7 +31,7 @@ export function AuthShell({ backAction, backPosition = "top", children }: AuthSh
       <AuthPhotoPanel revealDelay={0} className="max-lg:hidden lg:sticky lg:top-6 lg:h-[calc(var(--svh)-48px)] lg:min-h-160" />
       <div className="flex min-h-[var(--svh)] flex-col px-4 pb-4 md:min-h-[calc(var(--svh)-48px)] md:px-0 md:pb-0">
         <header className={cn(COLUMN, "flex h-20 shrink-0 items-center justify-between gap-6 short:h-14", backPosition === "bottom" && "lg:hidden")}>
-          <Logo size="md" to={to("L02")} className="lg:hidden" />
+          <Logo size="auth"to={to("L02")} className="lg:hidden" />
           {backPosition === "top" && back}
         </header>
         <main className={cn(COLUMN, "flex-1 pt-10 max-md:pb-10 short:pt-4 short:pb-4")}>{children}</main>
