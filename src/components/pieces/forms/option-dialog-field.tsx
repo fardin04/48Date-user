@@ -56,8 +56,8 @@ export function OptionDialogField({ label, value, onChange, options, placeholder
           <span className={cn("min-w-0 flex-1 truncate", current ? textTones.inherit : textTones.gray400)}>{current?.label ?? placeholder}</span>
           <Icon name="arrow-down-01" size={20} tone="sub" />
         </DialogTrigger>
-        <DialogContent className="flex max-w-140 flex-col gap-4 rounded-24 p-8">
-          <div className="relative flex min-h-26 flex-col justify-center gap-1 border-b border-soft-line pr-10 pb-4">
+        <DialogContent className="flex max-w-140 flex-col gap-4 rounded-24 p-8 max-sm:p-6 short:gap-3 short:p-4">
+          <div className="relative flex min-h-26 flex-col justify-center gap-1 border-b border-soft-line pr-10 pb-4 short:min-h-0 short:pb-2">
             <DialogTitle asChild>
               <Text as="h2" variant="title24" tone="gray900">
                 {dialog.title}
@@ -86,18 +86,21 @@ export function OptionDialogField({ label, value, onChange, options, placeholder
               />
             ))}
           </fieldset>
-          <Button
-            type="button"
-            variant="confirm"
-            size="pill"
-            width="full"
-            onClick={() => {
-              onChange(choice);
-              setOpen(false);
-            }}
-          >
-            {dialog.confirm}
-          </Button>
+          {/* The list scrolls inside the dialog (100dvh cap); the confirm stays pinned to its bottom edge. */}
+          <div className="sticky -bottom-8 -mb-8 bg-white pb-8 max-sm:-bottom-6 max-sm:-mb-6 max-sm:pb-6 short:-bottom-4 short:-mb-4 short:pb-4">
+            <Button
+              type="button"
+              variant="confirm"
+              size="pill"
+              width="full"
+              onClick={() => {
+                onChange(choice);
+                setOpen(false);
+              }}
+            >
+              {dialog.confirm}
+            </Button>
+          </div>
         </DialogContent>
       </Dialog>
     </FormField>

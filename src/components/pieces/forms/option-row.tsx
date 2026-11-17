@@ -4,12 +4,12 @@ import { SelectionMark } from "@/components/pieces/forms/selection-mark";
 import { Text } from "@/components/pieces/content/text";
 
 const variants = {
-  /** LOC-MANUAL result: name left, region right; selected rows turn notice-rose. */
-  area: { box: "h-16 gap-4", on: "border-rose bg-notice-bg", off: "border-gray-300 bg-white" },
+  /** LOC-MANUAL result: name left, region right; selected rows turn notice-rose. Long names wrap on phones. */
+  area: { box: "min-h-16 gap-4", on: "border-rose bg-notice-bg", off: "border-gray-300 bg-white", label: "break-anywhere" },
   /** Occupation dialog row: radio + label. */
-  radio: { box: "h-14 gap-3", on: "border-input-line bg-rose-light", off: "border-input-line bg-white" },
+  radio: { box: "h-14 gap-3", on: "border-input-line bg-rose-light", off: "border-input-line bg-white", label: "truncate" },
   /** CHAT-ATTACH choice: radio + 14/20 semibold label. */
-  choice: { box: "gap-3", on: "border-rose-mid bg-rose-light", off: "border-soft-line bg-white" },
+  choice: { box: "gap-3", on: "border-rose-mid bg-rose-light", off: "border-soft-line bg-white", label: "truncate" },
 } as const;
 
 type OptionRowProps = {
@@ -40,7 +40,7 @@ export function OptionRow({ variant, name, value, label, meta, checked, onSelect
       >
         <input type="radio" name={name} value={value} checked={checked} onChange={onSelect} className="sr-only" />
         {variant !== "area" && <SelectionMark type="radio" checked={checked} />}
-        <Text as="span" variant={variant === "radio" ? "text14Medium" : "text14Semibold"} tone={variant === "radio" ? "gray900" : "strong"} className="min-w-0 flex-1 truncate">
+        <Text as="span" variant={variant === "radio" ? "text14Medium" : "text14Semibold"} tone={variant === "radio" ? "gray900" : "strong"} className={cn("min-w-0 flex-1", style.label)}>
           {label}
         </Text>
         {meta && (

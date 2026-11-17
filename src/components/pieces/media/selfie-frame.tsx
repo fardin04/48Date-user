@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { cn } from "@/lib/cn";
+import { selfieFrameHeight } from "@/lib/control-sizes";
 import { Reveal } from "@/components/pieces/layout/reveal";
 
 type SelfieFrameProps = {
@@ -10,10 +11,10 @@ type SelfieFrameProps = {
   revealDelay?: number;
 };
 
-/** "Media / own" on the verification screens: a 180×300 portrait centred on the 300px preview surface. */
+/** "Media / own" on the verification screens: a 180×300 portrait centred on the 300px preview surface (shorter in short viewports). */
 export function SelfieFrame({ children, className, revealDelay }: SelfieFrameProps) {
   return (
-    <Reveal delay={revealDelay} className={cn("flex h-75 w-full items-center justify-center overflow-hidden rounded-16 bg-preview", className)}>
+    <Reveal delay={revealDelay} style={{ height: selfieFrameHeight }} className={cn("flex w-full items-center justify-center overflow-hidden rounded-16 bg-preview", className)}>
       {/* Portrait proportions copied from the Figma preview (180.47 × 300). */}
       <div className="relative aspect-[180.47/300] h-full overflow-hidden rounded-12 bg-gray-200">{children}</div>
     </Reveal>
