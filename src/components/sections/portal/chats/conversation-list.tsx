@@ -8,7 +8,7 @@ import type { MemberId } from "@/data/portal/types";
 import { cn } from "@/lib/cn";
 import { fill } from "@/lib/format";
 import { chatService, type ConversationSummary } from "@/lib/portal/chat-service";
-import { formatStamp } from "@/lib/portal/date-format";
+import { conversationRowStatus, openConversations } from "@/lib/portal/conversation-list";
 import { liveData } from "@/lib/portal/live";
 import { useLoaded } from "@/hooks/use-loaded";
 import { useMatchClock } from "@/hooks/use-match-clock";
@@ -19,19 +19,10 @@ import { screenKeys } from "@/lib/screen-keys";
 /**
  * The list and conversation panes fill the viewport below the 88px header and workspace padding
  * (748px at 1440×900, about the drawn 760px): shorter screens keep the composer in view, taller
- * ones (zoomed out) leave no grey band below the conversation. Floor 420px. Header 88px plus the
- * main column's vertical padding: 24px a side at 1024–1279, 32px from 1280.
+ * ones (zoomed out) leave no grey band below the conversation. Header 88px plus the main column's
+ * vertical padding: 24px a side at 1024–1279, 32px from 1280. Floor 360px (header, three messages, composer).
  */
-export const chatPaneHeight = "lg:h-[max(420px,calc(var(--svh)-136px))] xl:h-[max(420px,calc(var(--svh)-152px))]";
-
-/** A conversation row's last-message time ("2:41 PM", "Yesterday") and unread count (shared with INBOX). */
-export function conversationRowStatus(conversation: ConversationSummary, unreadCopy: string) {
-  const { at, unread } = conversation;
-  return {
-    meta: at === null ? undefined : formatStamp(at, Date.now(), false),
-    badge: unread > 0 ? { text: unread > 99 ? "99+" : String(unread), label: fill(unreadCopy, { count: unread }) } : undefined,
-  };
-}
+export const chatPaneHeight = "lg:h-[max(360px,calc(var(--svh)-136px))] xl:h-[max(360px,calc(var(--svh)-152px))]";
 
 function ConversationRow({ conversation, current }: { conversation: ConversationSummary; current: boolean }) {
   const { status, unread } = getChatPage();
@@ -69,9 +60,7 @@ export function ConversationList({ current, className }: { current: MemberId; cl
         {copy.listTitle}
       </Text>
       <ul className="flex flex-col gap-2 overflow-y-auto">
-        {conversations
-          .filter((conversation) => !conversation.blocked)
-          .map((conversation) => (
+        {openConversations(conversations).map((conversation) => (
             <ConversationRow key={conversation.member} conversation={conversation} current={conversation.member.toLowerCase() === current.toLowerCase()} />
           ))}
       </ul>

@@ -1,11 +1,9 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, type PointerEvent } from "react";
 import { ActionButton } from "@/components/pieces/actions/action-button";
 import { FormHeader } from "@/components/pieces/forms/form-header";
 import { PortalBack } from "@/components/pieces/actions/portal-back";
-import { StatusArtwork } from "@/components/pieces/feedback/status-artwork";
 import { StatusNote } from "@/components/pieces/feedback/status-note";
 import { SwipeCard } from "@/components/pieces/cards/swipe-card";
 import { Text } from "@/components/pieces/content/text";
@@ -16,13 +14,12 @@ import { usePrimaryInView } from "@/hooks/use-primary-in-view";
 import type { Decision } from "@/data/portal/discover";
 import type { MemberId } from "@/data/portal/types";
 import { fill } from "@/lib/format";
-import { toItem } from "@/lib/routes";
-import { deckIntent } from "@/lib/portal/deck-intent";
+import { deckIntent, dragDecision, matchToShow } from "@/lib/portal/deck-intent";
 import { failureReason } from "@/lib/portal/failure";
 import { portalService, type DeckStatus } from "@/lib/portal/portal-service";
 import { preferenceFacts } from "@/lib/portal/preference-facts";
 import { useMemberLocation } from "@/hooks/use-member-location";
-import { getDiscoverPage, getMemberName, getPortalShell } from "@/stores/portal-store";
+import { getDiscoverPage, getPortalShell } from "@/stores/portal-store";
 import { useLoaded } from "@/hooks/use-loaded";
 import { useMember } from "@/hooks/use-member";
 import { screenKeys } from "@/lib/screen-keys";
@@ -30,9 +27,7 @@ import { LoadFailed } from "@/components/sections/portal/shared/load-failed";
 import { DiscoverSidebar } from "@/components/sections/portal/discover/discover-sidebar";
 import { ProfileOverview } from "@/components/sections/portal/discover/profile-overview";
 import { StatusScreen } from "@/components/sections/portal/shared/status-screen";
-
-/** A drag further than this (px) decides: left passes, right likes. */
-const SWIPE_PX = 96;
+import { MatchNewScreen } from "@/components/sections/portal/discover/match-new-screen";
 
 type Drag = { pointer: number; startX: number; offset: number };
 
@@ -64,7 +59,6 @@ function screenFor(deck: DeckStatus, matched: MemberId | null, deciding: boolean
 export function DiscoverView() {
   const copy = getDiscoverPage();
   const shell = getPortalShell();
-  const router = useRouter();
   const location = useMemberLocation();
   const { value: data, error, reload } = useLoaded(screenKeys.deck, loadDiscovery);
   const [feedback, setFeedback] = useState<{ member: MemberId; decision: Decision } | null>(null);
@@ -76,13 +70,12 @@ export function DiscoverView() {
   const [drag, setDrag] = useState<Drag | null>(null);
   const intentTaken = useRef(false);
 
-  const shownMatch = matched ?? (seenUnseen ? null : (data?.unseen ?? null));
+  const shownMatch = matchToShow(matched, data?.unseen ?? null, seenUnseen);
   const memberId = data ? (feedback?.member ?? data.deck.remaining[0] ?? null) : null;
   const nextId = data?.deck.remaining.find((id) => id !== memberId) ?? null;
   const member = useMember(memberId);
   // Warm the next candidate's profile so DISCOVER-NEXT doesn't wait for it.
   useMember(nextId);
-  const matchedMember = useMember(shownMatch);
 
   const decide = async (id: MemberId, decision: Decision) => {
     setFeedback({ member: id, decision });
@@ -93,7 +86,7 @@ export function DiscoverView() {
       await reload();
       if (result.matched) setMatched(id);
     } catch (error) {
-      setFailure(failureReason(error));
+      setFailure(failureReason(error) ?? copy.card.failed);
     } finally {
       setFeedback(null);
     }
@@ -145,18 +138,7 @@ export function DiscoverView() {
       setMatched(null);
       setSeenUnseen(true);
     };
-    const name = matchedMember?.name ?? getMemberName(shownMatch);
-    return (
-      <StatusScreen
-        back={<PortalBack action={shell.back} onClick={keepDiscovering} />}
-        title={copy.matchNew.title}
-        description={fill(copy.matchNew.description, { name })}
-        primary={{ label: copy.matchNew.primary, to: toItem("CHAT-01", shownMatch) }}
-        secondary={{ label: copy.matchNew.secondary, onClick: keepDiscovering }}
-      >
-        <StatusArtwork icon={copy.matchNew.icon} timer={copy.matchNew.timer} timerLabel={copy.matchNew.timerLabel} photo={matchedMember?.photo} />
-      </StatusScreen>
-    );
+    return <MatchNewScreen member={shownMatch} onKeepDiscovering={keepDiscovering} />;
   }
 
   if (screen === "empty" || screen === "filtersEmpty") {
@@ -164,7 +146,7 @@ export function DiscoverView() {
     const secondary = screen === "empty" ? runAgain(portalService.refreshDeck) : runAgain(portalService.resetPreferences);
     return (
       <StatusScreen
-        back={<PortalBack action={shell.back} onClick={() => router.back()} />}
+        back={<PortalBack action={shell.back} />}
         title={state.title}
         description={state.description}
         summary={state.summary}
@@ -190,7 +172,8 @@ export function DiscoverView() {
   const onPointerUp = (event: PointerEvent<HTMLDivElement>) => {
     if (drag?.pointer !== event.pointerId) return;
     setDrag(null);
-    if (Math.abs(drag.offset) >= SWIPE_PX) void decide(memberId, drag.offset < 0 ? "pass" : "like");
+    const decision = dragDecision(drag.offset);
+    if (decision) void decide(memberId, decision);
   };
 
   const decisions: { decision: Decision; variant: "roseOutline" | "confirm"; width: "decision" | "superLike" }[] = [
