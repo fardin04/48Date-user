@@ -16,9 +16,24 @@ export type SaveResult<T> = { ok: true } | { ok: false; errors: FieldErrors<T>; 
 /** What a report is about: a member, a story, or nothing chosen yet (from Privacy & safety). */
 export type ReportSubject = { kind: "member" | "story"; id: string } | null;
 
+export type ReportOptions = {
+  source?: "PROFILE" | "CHAT" | "DATE";
+  conversationId?: string | null;
+  dateId?: string | null;
+  alsoBlock?: boolean;
+};
+
 /** One NOTIFICATIONS row: what happened and the screen it opens. */
 /** `at`: when it was sent (ms), null when unknown. */
-export type NotificationItem = { id: string; title: string; description: string; to: Destination; unread: boolean; at: number | null };
+export type NotificationItem = {
+  id: string;
+  title: string;
+  description: string;
+  to: Destination | null;
+  unread: boolean;
+  at: number | null;
+  avatar?: ImageAsset | null;
+};
 
 /** Linked sign-in methods: the masked phone and the Google email (null when not linked). */
 export type SignInMethods = { phone: string | null; google: string | null };
@@ -60,11 +75,13 @@ export type AccountService = {
   saveNotificationPrefs: (prefs: NotificationPrefs) => Promise<void>;
   /** Rejects when it could not be sent. */
   requestTrustReview: (event: string, explanation: string) => Promise<void>;
-  report: (subject: ReportSubject, reason: ReportReason, details: string) => Promise<void>;
+  report: (subject: ReportSubject, reason: ReportReason, details: string, options?: ReportOptions) => Promise<void>;
   /** The member's own main photo for the header (the sample avatar with the mock). */
   getAvatar: () => Promise<ImageAsset>;
   /** NOTIFICATIONS, newest first. */
   getNotifications: () => Promise<NotificationItem[]>;
+  /** Cursor-paginated NOTIFICATIONS page. */
+  getNotificationsPage: (cursor?: string | null) => Promise<{ items: NotificationItem[]; next: string | null }>;
   /** The header bell's badge. */
   getUnreadCount: () => Promise<number>;
   /** Everything in the inbox has been seen. */

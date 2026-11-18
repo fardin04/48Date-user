@@ -56,7 +56,7 @@ async function load(overrides: Record<string, unknown> = {}) {
       );
     }
 
-    return replay(input, init);
+    return replay.fetchStub(input, init);
   });
 
   const { tokenStore } = await import("@/lib/api/tokens");
@@ -109,9 +109,10 @@ describe("PATCH /users/me/location contract (Phase 28)", () => {
     expect(areaName).toBeDefined();
     const patchCall = calls.find((c) => c.path === "/users/me/location" && c.method === "PATCH");
     expect(patchCall).toBeDefined();
-    expect(patchCall?.body.source).toBe("GPS");
-    expect(patchCall?.body.permission).toBe("WHILE_IN_USE");
-    expect(patchCall?.body.region).toBeNull();
+    const body = patchCall?.body as Record<string, unknown>;
+    expect(body.source).toBe("GPS");
+    expect(body.permission).toBe("WHILE_IN_USE");
+    expect(body.region).toBeNull();
   });
 
   it("throws friendly error on 400 failure", async () => {

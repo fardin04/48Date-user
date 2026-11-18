@@ -81,7 +81,7 @@ async function load(overrides: Record<string, unknown> = {}) {
       );
     }
 
-    return replay(input, init);
+    return replay.fetchStub(input, init);
   });
 
   const { tokenStore } = await import("@/lib/api/tokens");
@@ -128,8 +128,9 @@ describe("reports contract and payload (Phase 30)", () => {
 
     const postCall = calls.find((c) => c.path === "/reports" && c.method === "POST");
     expect(postCall).toBeDefined();
-    expect(postCall?.body.reportedNickname).toBe("author_nick");
-    expect(postCall?.body.source).toBe("PROFILE");
-    expect(postCall?.body.description).toContain("First coffee date: This story contains fake information");
+    const body = postCall?.body as Record<string, unknown>;
+    expect(body.reportedNickname).toBe("author_nick");
+    expect(body.source).toBe("PROFILE");
+    expect(body.description).toContain("First coffee date: This story contains fake information");
   });
 });

@@ -11,8 +11,8 @@ export function checkProfile(profile: PublicProfile): FieldErrors<PublicProfile>
   const { edit } = getAccountPage();
   const errors: FieldErrors<PublicProfile> = {};
   if (!NICKNAME.test(profile.nickname)) errors.nickname = edit.errors.nickname;
-  if (!profile.occupation.trim()) errors.occupation = edit.errors.occupation;
-  if (profile.bio.trim().length < 10) errors.bio = edit.errors.bio;
+  if (!profile.occupation.trim() || profile.occupation.trim().length > edit.limits.occupation) errors.occupation = edit.errors.occupation;
+  if (profile.bio.trim().length < 10 || profile.bio.trim().length > edit.limits.bio) errors.bio = edit.errors.bio;
   if (profile.interests.length === 0) errors.interests = edit.errors.interests;
   return errors;
 }

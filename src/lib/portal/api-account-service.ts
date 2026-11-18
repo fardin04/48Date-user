@@ -217,7 +217,7 @@ export const apiAccountService: AccountService = {
   async saveLocation(choice) {
     try {
       const { data } = await usersApi.updateLocation(locationBody(choice));
-      invalidate(cacheKeys.me, screenKeys.location, screenKeys.profile, screenKeys.overview, screenKeys.discoveryDeck);
+      invalidate(cacheKeys.me, screenKeys.location, screenKeys.profile, screenKeys.overview, cacheKeys.discoveryRun);
       return areaOf(data) ?? getAccountPage().location.nearYou;
     } catch (error) {
       throw new Error(isApiError(error) ? error.message : getAccountPage().location.failed);
