@@ -2,6 +2,9 @@ import { to } from "@/lib/routes";
 import type { Action, IconName, ImageAsset } from "../types";
 import type { Fact, MemberId, MemberLink, StatusSummaryCopy } from "./types";
 
+/** The composer menu's actions, in menu order. */
+export type ChatMenuAction = "ai" | "safety" | "voice" | "photo" | "plan" | "game";
+
 const planDate: MemberLink = { label: "Plan a date", step: "VENUES" };
 const playGame: MemberLink = { label: "Play a game", step: "GAMES" };
 const bubble: IconName = "bubble-chat";
@@ -56,6 +59,10 @@ export const chatPage = {
   status: { open: "{hours}h left · Say hello", agreed: "Date agreed · 24 Oct", agreedLive: "Date agreed", plain: "Say hello" },
   caption: { open: "Verified · {hours}h {minutes}m left to agree on a date", agreed: "Verified · Date agreed", plain: "Verified" },
   messagesLabel: "Messages",
+  /** Single-pane widths (<1024): Back to where the member came from, INBOX on direct entry. */
+  back: { label: "Back", icon: "arrow-left-02", to: to("INBOX") } satisfies Action,
+  /** Below 1280 the "Your connection" card opens in a dialog from the conversation header (design-silent). */
+  contextButton: { label: "About {name}", close: "Close", icon: "user-circle" as IconName },
   sample: { incoming, reply, replyMeta: "Sent · 2:41 PM" },
   firstHello: {
     title: "Your first hello",
@@ -84,7 +91,35 @@ export const chatPage = {
   suggestions: { title: "A little help with your hello", description: "Inspired by your shared interests.", use: "Use", useLabel: "Use “{text}”" },
   generating: "Generating conversation ideas…",
   aiError: "We couldn’t load suggestions. Your conversation is unaffected.",
-  tools: { label: "Conversation tools", ai: "AI help", photo: "Photo", voice: "Voice", safety: "Safety" },
+  /**
+   * The composer's "+" menu: the six conversation actions in one place (replaces the four header
+   * pills and the CHAT-ATTACH chooser, Phase 13). Plan date / Play game open the member's pages.
+   */
+  menu: {
+    label: "Conversation actions",
+    icon: "add-01" as IconName,
+    items: [
+      { id: "ai", label: "AI help", icon: "sparkles" },
+      { id: "safety", label: "Safety", icon: "shield-01" },
+      { id: "voice", label: "Voice", icon: "music-note-01" },
+      { id: "photo", label: "Photo", icon: "image-add-01" },
+      { id: "plan", label: "Plan date", icon: "calendar-03" },
+      { id: "game", label: "Play game", icon: "game-controller-03" },
+    ] satisfies { id: ChatMenuAction; label: string; icon: IconName }[],
+    plan: planDate,
+    game: playGame,
+  },
+  /** The conversation header's three-dot menu (Phase 14, design-silent copy). */
+  options: {
+    label: "Conversation options",
+    icon: "more-vertical" as IconName,
+    unmatch: "Unmatch",
+    /** No unmatch endpoint exists yet (backend blocker N12). */
+    unmatchReason: "Unmatch needs a backend endpoint",
+    block: "Block {name}",
+    unblock: "Unblock {name}",
+    report: { label: "Report a problem", step: "REPORT-DETAIL" } satisfies MemberLink,
+  },
   composer: { label: "Message", placeholder: "Write a message…", send: "Send", maxLength: 1000 },
   /** `{time}` is the local send time: "2:41 PM" today, "Yesterday, 2:41 PM" / "24 Oct, 2:41 PM" before. */
   sent: "Sent · {time}",
@@ -123,18 +158,6 @@ export const chatPage = {
       secondary: playGame,
     },
   },
-  attach: {
-    legend: "Choose what you’d like to add to your conversation.",
-    options: [
-      { value: "game", label: "Play a game" },
-      { value: "photo", label: "Photo" },
-      { value: "voice", label: "Voice message" },
-      { value: "plan", label: "Plan a date" },
-    ],
-    /** Primary label per choice; Figma draws "Choose a photo". */
-    primary: { game: "Play a game", photo: "Choose a photo", voice: "Record a voice message", plan: "Plan a date" },
-    game: playGame,
-  },
   context: {
     title: "Your connection",
     description: "A shared interest is a good place to start.",
@@ -171,6 +194,8 @@ export const chatPage = {
     summary: { icon: shield, title: "Your boundaries are protected", description: "This member can no longer contact you or view your profile." } satisfies StatusSummaryCopy,
     primary: { label: "Back to matches", to: to("MATCHES") } satisfies Action,
     secondary: { label: "Report a concern", step: "REPORT-DETAIL" } satisfies MemberLink,
+    /** After a block, Back opens INBOX (the blocked conversation can't be reopened by Back). */
+    back: { label: "Back", icon: "arrow-left-02", to: to("INBOX"), back: "fixed" } satisfies Action,
   },
   photo: {
     title: "Share a photo",

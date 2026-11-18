@@ -20,6 +20,8 @@ export const buttonSizes = {
   portalPill: `${typeScale.text16Bold} h-14 px-8 max-sm:px-4 rounded-full`,
   /** Align UI "Buttons [1.1]" small (PHOTO-MANAGE "Upload", "Replace"): 32px, 14/20 medium. */
   compact: `${typeScale.text14Medium} h-8 px-2.5 rounded-8`,
+  /** Round 44px icon button (LIKES Pass / Like); the label is its aria-label. */
+  icon: "size-11 shrink-0 rounded-full p-0",
 } as const;
 
 export type ButtonSize = keyof typeof buttonSizes;
@@ -115,11 +117,45 @@ export const mediaHeights = {
 
 export type MediaHeight = keyof typeof mediaHeights;
 
+/** Chat bubbles (Phase 13): as wide as their text up to 80 % of the pane (36rem at most); a 20px capsule with a 6px tail toward the sender. */
+export const chatBubble = {
+  width: "max-w-[min(80%,36rem)]",
+  own: "rounded-20 rounded-br-6",
+  incoming: "rounded-20 rounded-bl-6",
+} as const;
+
+/** The conversation composer: the 56px control grows with the message to about five 24px lines, then scrolls. */
+export const chatComposer = {
+  control: "h-auto min-h-14 py-4",
+  input: "h-6 max-h-30 resize-none overflow-y-auto leading-6",
+} as const;
+
 /**
  * SelfieFrame preview surface: the Figma 300px, shrinking with short viewports (200–400 % zoom) to
  * no less than 160px so the capture row stays on screen.
  */
 export const selfieFrameHeight = "min(18.75rem, max(10rem, calc(var(--svh) - 16rem)))";
+
+/**
+ * Swipe card photo (rule 60): the Figma 448:464 frame, capped by the viewport so the name, details
+ * and Pass / Like / Super Like share the first screen at 1440×900, 1280×800 and 1366×768. From
+ * 1024px everything below the photo (31rem) stays on screen; stacked layouts pin the decision row
+ * (`layout.stickyActions`), so the cap there only keeps the name close (21.5rem incl. the tab bar).
+ */
+/**
+ * LIKES card photo (rule 60): 4:5, capped by the viewport so the first row's Pass / Like show on the
+ * first screen at 1280×800 and 1366×768 (27rem: the header, heading and the card's name and buttons).
+ */
+export const likePhotoFrame = "max-h-[max(12rem,calc(var(--svh)-27rem))]";
+
+export const swipePhotoFrame = "max-h-[min(29rem,max(10rem,calc(var(--svh)-21.5rem)))] lg:max-h-[min(29rem,max(14rem,calc(var(--svh)-31rem)))]";
+
+/**
+ * MATCHES card photo (rule 60): 4:5, capped by the viewport (43rem: the header, heading, tabs and the
+ * card's name, badge, preview and three actions), so a whole card fits the first screen at 1440×900,
+ * where the cap gives about the Figma 240px. Never under 7rem (so 1280×800 also fits).
+ */
+export const matchPhotoFrame = "max-h-[max(7rem,calc(var(--svh)-43rem))]";
 
 export const sectionSpacing = {
   /** 128px at desktop */
@@ -154,5 +190,9 @@ export const layout = {
    * A page's primary controls (chat composer, Like / Pass) pinned to the bottom of the viewport below
    * 1024px, above the phone tab bar (64px, 44px when short), so they show at 200–400 % zoom (rule 49).
    */
+  /** LIKES grid: 256px cards, 1 column at 360px, 2 from ~560px, 4 in the 1440 frame (wider zooms scale as one piece, rule 59). */
+  likesGrid: "grid w-full grid-cols-[repeat(auto-fill,minmax(min(100%,16rem),1fr))] gap-4",
+  /** MATCHES cards: as many 240px-plus columns as fit, one at 360px (the Figma frame shows three in 856px). */
+  matchesGrid: "grid w-full grid-cols-[repeat(auto-fill,minmax(min(100%,15rem),1fr))] gap-6",
   stickyActions: "max-lg:sticky max-lg:bottom-0 max-sm:bottom-16 max-sm:short:bottom-11 max-lg:z-10 max-lg:bg-white max-lg:py-3 max-lg:short:py-1.5",
 } as const;

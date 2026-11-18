@@ -54,7 +54,7 @@ export const matchesPage = {
   },
   findMore: { label: "Find more connections", to: to("DISCOVER") } satisfies Action,
   /** Live outcomes: `{name}`, then the date's day and venue when known (design-silent; for owner approval). */
-  outcome: { meta: "{name}", when: "{meta} · {when}", venue: "{meta} · {venue}", empty: "Nothing here yet." },
+  outcome: { meta: "{name}", when: "{meta} · {when}", venue: "{meta} · {venue}", empty: "Nothing here yet.", more: "Show more", loadingMore: "Loading…" },
   cancelled: {
     photoOf: cancelledMember,
     title: "This plan was cancelled",
