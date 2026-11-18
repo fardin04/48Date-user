@@ -182,6 +182,10 @@ export const mockAccountService: AccountService = {
   async getNotifications() {
     return getAccountPage().notifications.items.map((item, index) => ({ id: String(index), title: item.title, description: item.description, to: item.to, unread: false, at: null }));
   },
+  async getNotificationsPage() {
+    const items = await this.getNotifications();
+    return { items, next: null };
+  },
   async getUnreadCount() {
     return 0;
   },

@@ -17,7 +17,11 @@ const LATENCY_MS = 800;
 const CONTACT = /[^\s@]+@[^\s@]+\.[^\s@]+|\+?\d[\d\s().-]{6,}\d/;
 
 /** The mock stores a submission as its draft plus status; label and photo are derived. */
-type StoredSubmission = StoryDraft & { status: Submission["status"] };
+type StoredSubmission = StoryDraft & {
+  status: Submission["status"];
+  subStatus?: Submission["subStatus"];
+  rejectionReason?: string | null;
+};
 type Stored = { comments: Record<string, StoryComment[]>; draft: StoryDraft | null; submission: StoredSubmission | null };
 
 /** The last `count` months, newest first, as `YYYY-MM` options ("June 2026"). */
@@ -29,11 +33,33 @@ function recentMonths(count: number) {
   });
 }
 
-const shown = (submission: StoredSubmission): Submission => ({
-  ...submission,
-  metLabel: /^\d{4}-\d{2}$/.test(submission.met) ? formatMonth(`${submission.met}-01`) : submission.met,
-  photo: getStoriesPage().create.photo,
-});
+const shown = (submission: StoredSubmission): Submission => {
+  const mineCopy = getStoriesPage().mine;
+  const subStatus = submission.subStatus ?? (submission.status === "rejected" ? "REJECTED" : "PENDING_PARTNER");
+  let statusBadge: string | undefined;
+  let statusNote: string | undefined;
+  if (subStatus === "PENDING_PARTNER") {
+    statusBadge = mineCopy.waitingPartnerBadge;
+    statusNote = mineCopy.waitingPartnerNote;
+  } else if (subStatus === "PENDING_REVIEW") {
+    statusBadge = mineCopy.waitingAdminBadge;
+    statusNote = mineCopy.waitingAdminNote;
+  } else if (subStatus === "DECLINED") {
+    statusBadge = mineCopy.declinedBadge;
+    statusNote = mineCopy.declinedNote;
+  } else if (subStatus === "REJECTED") {
+    statusBadge = mineCopy.rejectedBadge;
+    statusNote = submission.rejectionReason ?? mineCopy.rejectedNote;
+  }
+  return {
+    ...submission,
+    subStatus,
+    statusBadge: submission.status === "rejected" ? undefined : statusBadge,
+    statusNote: submission.status === "rejected" ? undefined : statusNote,
+    metLabel: /^\d{4}-\d{2}$/.test(submission.met) ? formatMonth(`${submission.met}-01`) : submission.met,
+    photo: getStoriesPage().create.photo,
+  };
+};
 
 const isRecord = (value: unknown): value is Record<string, unknown> => typeof value === "object" && value !== null && !Array.isArray(value);
 
@@ -89,7 +115,19 @@ export const mockStoryService: StoryService = {
     const count = getStories().find((story) => story.id === id)?.likes?.count ?? 0;
     return { count: liked ? count : count + 1, liked: !liked };
   },
-  async respond() {},
+  async respond(_id, accept) {
+    await wait();
+    const { submission } = read();
+    if (submission) {
+      write({
+        submission: {
+          ...submission,
+          subStatus: accept ? "PENDING_REVIEW" : "DECLINED",
+          status: accept ? "pending" : "rejected",
+        },
+      });
+    }
+  },
   async getStories() {
     return getStories();
   },
@@ -131,10 +169,18 @@ export const mockStoryService: StoryService = {
   async saveDraft(draft) {
     write({ draft });
   },
-  async submit(draft) {
+  async submit(draft, _photo, onProgress) {
     write({ draft });
-    await wait();
-    if (!navigator.onLine) throw new Error("Offline");
+    if (onProgress) {
+      onProgress(30);
+      await wait();
+      onProgress(80);
+      await wait();
+      onProgress(100);
+    } else {
+      await wait();
+    }
+    if (typeof navigator !== "undefined" && !navigator.onLine) throw new Error("Offline");
     const submission: StoredSubmission = { ...draft, status: CONTACT.test(`${draft.title} ${draft.body}`) ? "rejected" : "pending" };
     write({ submission, draft: null });
     return shown(submission);
@@ -146,5 +192,8 @@ export const mockStoryService: StoryService = {
   async removeSubmission() {
     await wait();
     write({ submission: null });
+  },
+  async getPendingPartnerStories() {
+    return [];
   },
 };

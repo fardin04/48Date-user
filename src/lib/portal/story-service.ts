@@ -11,6 +11,10 @@ export type StoryDraft = { title: string; met: string; body: string; consent: bo
 /** The member's own submission: waiting for consent or moderation, or sent back for an edit. */
 export type Submission = StoryDraft & {
   status: "pending" | "rejected";
+  subStatus?: "PENDING_PARTNER" | "PENDING_REVIEW" | "APPROVED" | "REJECTED" | "DECLINED";
+  statusNote?: string;
+  statusBadge?: string;
+  rejectionReason?: string | null;
   /** How "When did you meet?" reads ("June 2026", "18 Oct · Cafe Nero"). */
   metLabel: string;
   photo: ImageAsset | null;
@@ -45,9 +49,11 @@ export type StoryService = {
   getDraft: () => Promise<StoryDraft | null>;
   saveDraft: (draft: StoryDraft) => Promise<void>;
   /** Resolves with the submission, or rejects when it could not be sent (STORY-ERROR). */
-  submit: (draft: StoryDraft, photo: File | null) => Promise<Submission>;
+  submit: (draft: StoryDraft, photo: File | null, onProgress?: (percent: number) => void) => Promise<Submission>;
   getSubmission: () => Promise<Submission | null>;
   removeSubmission: () => Promise<void>;
+  /** Stories waiting for the current user's approval as a date partner. */
+  getPendingPartnerStories: () => Promise<Story[]>;
 };
 
 /** The API (`NEXT_PUBLIC_API_BASE_URL` set) or the marked mock. */
