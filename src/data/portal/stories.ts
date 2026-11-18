@@ -23,6 +23,10 @@ export type Story = {
   likes?: { count: number; liked: boolean };
   /** The member is the partner asked to consent before the story is reviewed; `author` asked. */
   consent?: { author: string };
+  /** Submission lifecycle stage. */
+  stage?: "PENDING_PARTNER" | "PENDING_REVIEW" | "APPROVED" | "REJECTED" | "DECLINED";
+  /** Moderation rejection feedback when rejected. */
+  rejectionReason?: string | null;
 };
 
 export const stories: Story[] = [
@@ -72,6 +76,9 @@ export const storiesPage = {
     more: "Show more stories",
     loadingMore: "Loading…",
     empty: "No stories have been shared yet. Yours could be the first.",
+    waitingConsentTitle: "Stories waiting for your approval",
+    waitingConsentDescription: "{name} shared a story about your date. Review it before it’s published.",
+    waitingConsentAction: "Review story",
   },
   context: {
     title: "Your story, your choice",
@@ -122,6 +129,14 @@ export const storiesPage = {
       approved: "Thanks. The story is now with our team for review.",
       declined: "The story won’t be shared.",
     },
+    declineDialog: {
+      title: "Decline this story?",
+      description: "The story won’t be shared with the community or sent for review.",
+      confirm: "Decline story",
+      declining: "Declining…",
+      keep: "Keep reviewing",
+      close: "Close",
+    },
   },
   create: {
     title: "Tell your story",
@@ -138,6 +153,14 @@ export const storiesPage = {
       body: "Write at least 20 characters.",
       consent: "Confirm that the other person agrees to appear.",
     },
+    editWarning: "Editing your story will ask your partner to approve it again before review.",
+    editTitle: "Edit your story",
+    editDescription: "Update your shared memory before it is reviewed.",
+    editSubmit: "Save changes",
+    editingSubmit: "Saving changes…",
+    uploading: "Uploading photo…",
+    uploaded: "Photo uploaded",
+    uploadProgress: "Photo upload progress",
     submit: "Submit story",
     submitting: "Submitting…",
     error: { title: "Your draft is still here", description: "We couldn’t submit your story. Your writing has been kept.", note: "Check your connection, then try again.", retry: "Retry submission" },
@@ -153,6 +176,14 @@ export const storiesPage = {
   mine: {
     title: "Your shared story",
     description: "Your submission · Pending review",
+    waitingPartnerBadge: "Waiting for partner",
+    waitingAdminBadge: "Pending review",
+    declinedBadge: "Declined by partner",
+    rejectedBadge: "Changes requested",
+    waitingPartnerNote: "Your partner needs to approve this story before our team reviews it.",
+    waitingAdminNote: "Your partner approved. We’re reviewing your story before publishing.",
+    declinedNote: "Your partner chose not to share this story.",
+    rejectedNote: "Remove personal contact details before sharing your story with the community.",
     edit: { label: "Edit story", to: to("STORY-CREATE") } satisfies Action,
     remove: "Remove submission",
   },
@@ -163,6 +194,12 @@ export const storiesPage = {
     removing: "Removing…",
     keep: "Keep story",
     close: "Close",
+  },
+  declined: {
+    title: "Your partner chose not to share this story",
+    description: "Your date preferred not to make this story public with the community.",
+    summary: { icon: book, title: "Story not approved by partner", description: "You can remove this draft or write another story about an eligible date." } satisfies StatusSummaryCopy,
+    primary: { label: "Back to stories", to: to("STORIES") } satisfies Action,
   },
   reject: {
     title: "Your story needs a small update",

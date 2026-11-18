@@ -1,6 +1,7 @@
 "use client";
 
 import { useQueryClient } from "@tanstack/react-query";
+import { useRouter } from "next/navigation";
 import { useEffect, useId, useRef, useState, type FormEvent } from "react";
 import { ActionRow } from "@/components/pieces/actions/action-row";
 import { ChoiceGroup } from "@/components/pieces/forms/choice-group";
@@ -14,8 +15,12 @@ import { TextField } from "@/components/pieces/forms/text-field";
 import { Button } from "@/components/ui/button";
 import type { Area } from "@/data/onboarding/types";
 import { useLoaded } from "@/hooks/use-loaded";
+import { layout } from "@/lib/control-sizes";
 import { fill } from "@/lib/format";
+import { readTrail, resolveBack } from "@/lib/navigation/nav-trail";
+import { replaceRoute } from "@/lib/navigation/replace-route";
 import { accountService, type LocationChoice } from "@/lib/portal/account-service";
+import { hrefFor } from "@/lib/routes";
 import { screenKeys } from "@/lib/screen-keys";
 import { getAccountPage } from "@/stores/portal-store";
 import { ProfileContext } from "@/components/sections/portal/profile/profile-context";
@@ -34,6 +39,7 @@ type Note = { variant: "success" | "notice" | "alert"; message: string };
  */
 export function LocationView() {
   const page = getAccountPage().location;
+  const router = useRouter();
   const queryClient = useQueryClient();
   const name = useId();
   const current = useLoaded(screenKeys.location, accountService.getLocation);
@@ -68,6 +74,9 @@ export function LocationView() {
       setNote({ variant: "success", message: fill(page.saved, { area }) });
       setQuery("");
       setSearched("");
+      const fallbackHref = hrefFor("SETTINGS");
+      const target = typeof window !== "undefined" ? resolveBack(readTrail(), window.location.pathname, fallbackHref).href : fallbackHref;
+      replaceRoute(router, target);
     } catch (error) {
       setNote({ variant: "alert", message: error instanceof Error && error.message ? error.message : page.failed });
     }
@@ -138,7 +147,7 @@ export function LocationView() {
         )}
         {note && <StatusNote variant={note.variant} message={note.message} />}
         {chosen && (
-          <ActionRow>
+          <ActionRow className={layout.stickyActions}>
             <Button type="submit" variant="confirm" size="portalPill" width="actionSlot" disabled={busy !== null} aria-busy={busy === "area" || undefined}>
               {busy === "area" ? page.saving : fill(page.save, { area: chosen.name })}
             </Button>

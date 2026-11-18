@@ -8,6 +8,7 @@ import { StatusNote } from "@/components/pieces/feedback/status-note";
 import { SwitchRow } from "@/components/pieces/forms/switch-row";
 import { Button } from "@/components/ui/button";
 import { notificationKeys, type NotificationPrefs } from "@/data/portal/account";
+import { layout } from "@/lib/control-sizes";
 import { accountService } from "@/lib/portal/account-service";
 import { useLoaded } from "@/hooks/use-loaded";
 import { getAccountPage } from "@/stores/portal-store";
@@ -82,7 +83,15 @@ function PrefsForm({ initial }: { initial: NotificationPrefs }) {
   if (phase === "saved") {
     const { saved } = page;
     return (
-      <StatusScreen back={back} title={saved.title} description={saved.description} summary={saved.summary} primary={saved.primary} aside={<ProfileContext />} actionWidth="actionSlot" />
+      <StatusScreen
+        back={<PortalBack action={{ ...page.back, back: "fixed" }} />}
+        title={saved.title}
+        description={saved.description}
+        summary={saved.summary}
+        primary={saved.primary}
+        aside={<ProfileContext />}
+        actionWidth="actionSlot"
+      />
     );
   }
 
@@ -97,7 +106,7 @@ function PrefsForm({ initial }: { initial: NotificationPrefs }) {
         ))}
       </fieldset>
       {failed && <StatusNote variant="alert" message={copy.account.failed} />}
-      <ActionRow>
+      <ActionRow className={layout.stickyActions}>
         <Button type="button" variant="confirm" size="portalPill" width="actionSlot" disabled={busy} aria-busy={busy || undefined} onClick={() => void save()}>
           {busy ? page.saving : page.save}
         </Button>
