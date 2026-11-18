@@ -21,7 +21,8 @@ export const chatApi = {
       .then((result) => ({ data: result.data, meta: result.meta as CursorMeta | undefined })),
   async send(id: string, body: SendMessageBody) {
     const result = await api.post<ApiMessage | ApiMessage[]>(endpoints.conversations.messages(id), { body });
-    invalidate([...cacheKeys.conversations, "raw"]);
+    // The match cards show the last message too.
+    invalidate([...cacheKeys.conversations, "raw"], cacheKeys.matches);
     return result;
   },
   seen: (id: string, upToSeq: number) => api.post<{ seenUpToSeq: number }>(endpoints.conversations.seen(id), { body: { upToSeq } }),

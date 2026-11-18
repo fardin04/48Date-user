@@ -45,6 +45,21 @@ export type MemberSummary = {
   verified: boolean;
 };
 
+/** Someone who liked the member (LIKES). A locked item (paywall mode) is masked and blurred by the API. */
+export type LikeReceived = {
+  id: MemberId;
+  name: string;
+  age: number | null;
+  photo: ImageAsset;
+  verified: boolean;
+  superLike: boolean;
+  distanceKm: number | null;
+  locked: boolean;
+};
+
+/** One page of likes received. */
+export type LikesPage = { items: LikeReceived[]; page: number; hasMore: boolean; total: number };
+
 /** A member shown in discovery and matches (samples with the mocks, profiles with the API). */
 export type Member = {
   id: MemberId;

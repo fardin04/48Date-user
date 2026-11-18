@@ -75,6 +75,9 @@ export const endpoints = deepFreeze({
     cards: (id: string) => `/discovery/runs/${at(id)}/cards`,
     profile: (nickname: string) => `/discovery/profile/${at(nickname)}`,
     swipes: "/discovery/swipes",
+    likesReceived: "/discovery/likes-received",
+    likesReceivedMatch: (nickname: string) => `/discovery/likes-received/${at(nickname)}/match`,
+    likesReceivedPass: (nickname: string) => `/discovery/likes-received/${at(nickname)}/pass`,
   },
   conversations: {
     list: "/conversations",

@@ -85,6 +85,7 @@ export const screens = {
   BLOCKED: "/settings/blocked",
   "DELETE-ACCOUNT": "/settings/delete",
   NOTIFICATIONS: "/notifications",
+  LIKES: "/likes",
   "REPORT-DETAIL": "/report",
   MEMBERSHIP: "/membership",
   PLANS: "/membership/plans",

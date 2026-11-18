@@ -14,6 +14,7 @@ export const screenKeys = {
   preferences: [...cacheKeys.preferences, "screen"],
   deck: [...cacheKeys.discoveryRun, "deck"],
   member: (member: string) => [...cacheKeys.discoveryProfile, member],
+  likesReceived: [...cacheKeys.likesReceived, "screen"],
   matches: [...cacheKeys.matches, "list"],
   match: (member: string) => [...cacheKeys.matches, "member", member],
   // Under the raw list key: a new message refreshes the inbox without re-reading an open chat.
