@@ -13,7 +13,8 @@ import { Text } from "@/components/pieces/content/text";
 import type { MemberId } from "@/data/portal/types";
 import { fill } from "@/lib/format";
 import { forMember } from "@/lib/portal/member-link";
-import { getDiscoverPage, getProfilePage } from "@/stores/portal-store";
+import { getDiscoverPage, getPortalShell, getProfilePage } from "@/stores/portal-store";
+import { PortalBack } from "@/components/pieces/actions/portal-back";
 import { useMember } from "@/hooks/use-member";
 import { sharedInterestsText } from "@/lib/portal/shared-interests";
 import { MemberUnavailable } from "@/components/sections/portal/shared/member-unavailable";
@@ -29,7 +30,8 @@ export function ProfileView({ memberId }: { memberId: MemberId }) {
   if (!member) return null;
   return (
     <Workspace>
-      <ActionButton action={copy.back} variant="roseOutline" size="pillCompact" width="portalAction" revealDelay={0} />
+      {/* History-first (rule 51): back to Discover, Likes, Compat, the conversation or the match, whichever opened the profile. */}
+      <PortalBack action={getPortalShell().back} revealDelay={0} />
       <Text as="h1" variant="portalTitle28" tone="strong" revealDelay={0}>
         {copy.title}
       </Text>
@@ -48,8 +50,8 @@ export function ProfileView({ memberId }: { memberId: MemberId }) {
         {copy.description}
       </Text>
       <div className="grid w-full gap-8 lg:grid-cols-2">
-        <div className="relative aspect-[600/660] w-full overflow-hidden rounded-16 lg:aspect-auto">
-          <Image src={member.photo.src} unoptimized={isRawImage(member.photo.src)} alt={member.photo.alt} fill loading="eager" sizes="(min-width: 1024px) 600px, 100vw" className="object-cover" />
+        <div className="relative aspect-[600/660] w-full self-start overflow-hidden rounded-16">
+          <Image src={member.photo.src} unoptimized={isRawImage(member.photo.src)} alt={member.photo.alt} fill loading="eager" sizes="(min-width: 1024px) 600px, 100vw" className="object-cover object-top" />
         </div>
         <div className="flex min-w-0 flex-col items-start gap-5">
           {member.verified && <StatusBadge variant="success" label={copy.verified} live={false} />}
@@ -97,10 +99,10 @@ export function ProfileView({ memberId }: { memberId: MemberId }) {
       {member.morePhotos.length > 0 && (
         <PortalCard as="section" surface="outline" padding="sm" revealDelay={0} aria-labelledby="photos-title" className="flex w-full flex-col gap-4">
           <CardHeading id="photos-title" size={14} title={copy.photos} />
-          <ul className="grid gap-6 md:grid-cols-2">
+          <ul className="grid w-full grid-cols-[repeat(auto-fill,minmax(min(100%,18rem),1fr))] gap-6">
             {member.morePhotos.map((photo) => (
-              <li key={photo.src} className="relative h-80 overflow-hidden rounded-16">
-                <Image src={photo.src} unoptimized={isRawImage(photo.src)} alt={photo.alt} fill sizes="(min-width: 768px) 600px, 100vw" className="object-cover object-bottom" />
+              <li key={photo.src} className="relative aspect-[600/320] overflow-hidden rounded-16">
+                <Image src={photo.src} unoptimized={isRawImage(photo.src)} alt={photo.alt} fill sizes="(min-width: 768px) 600px, 100vw" className="object-cover object-top" />
                 <span aria-hidden="true" className="absolute inset-0 bg-photo-tint mix-blend-screen" />
               </li>
             ))}

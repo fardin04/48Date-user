@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useEffectEvent } from "react";
+import { useInfiniteQuery } from "@tanstack/react-query";
 import { ActionButton } from "@/components/pieces/actions/action-button";
 import { FormHeader } from "@/components/pieces/forms/form-header";
 import { MatchCard } from "@/components/pieces/cards/match-card";
@@ -22,6 +23,8 @@ import { LoadFailed } from "@/components/sections/portal/shared/load-failed";
 import { StatusScreen } from "@/components/sections/portal/shared/status-screen";
 import { Workspace } from "@/components/sections/portal/shared/workspace";
 import { screenKeys } from "@/lib/screen-keys";
+import { layout } from "@/lib/control-sizes";
+import { Button } from "@/components/ui/button";
 
 /** Time-left badge of a card: urgent under two hours, success otherwise, "Date confirmed" once agreed. */
 function MatchBadge({ match, now }: { match: Match; now: number }) {
@@ -42,9 +45,15 @@ export function MatchesView({ tab }: { tab: MatchTab }) {
   const copy = getMatchesPage();
   const { value: loaded, error, reload } = useLoaded(screenKeys.matches, portalService.getMatches, { refetchOnWindowFocus: true });
   const outcomeTab = tab === "all" ? null : tab;
-  const outcomes = useLoaded([...screenKeys.matches, "outcomes", tab], () => portalService.getOutcomes(outcomeTab ?? "cancelled"), {
+  // Outcome tabs page by cursor; the pages stay cached, so Back from a date keeps what was loaded (rule 53).
+  const outcomePages = useInfiniteQuery({
+    queryKey: [...screenKeys.matches, "outcomes", tab],
+    queryFn: ({ pageParam }) => portalService.getOutcomes(outcomeTab ?? "cancelled", pageParam ?? undefined),
+    initialPageParam: null as string | null,
+    getNextPageParam: (page) => page.next,
     enabled: outcomeTab !== null,
-  }).value;
+  });
+  const outcomes = outcomePages.data?.pages.flatMap((page) => page.outcomes);
   const now = useNow();
   const finding = useServiceAction(getAccountPage().profile.loadFailed);
   const find = () => void finding.run(() => portalService.findMatches()).then(() => reload());
@@ -81,12 +90,12 @@ export function MatchesView({ tab }: { tab: MatchTab }) {
       <FormHeader variant="portalStatus" title={copy.title} description={copy.description} />
       <StatusTabs label={copy.tabsLabel} tabs={tabs} active={tab} />
       {tab === "all" && (
-        <ul className="grid w-full gap-6 sm:grid-cols-2 lg:grid-cols-3">
+        <ul className={layout.matchesGrid}>
           {open.map((match, index) => {
             const member = match.summary;
             const agreed = match.confirmed;
             return (
-              <li key={match.member} className="flex">
+              <li key={match.member} className="flex min-w-0">
                 <MatchCard
                   name={member.name}
                   photo={member.photo}
@@ -103,14 +112,18 @@ export function MatchesView({ tab }: { tab: MatchTab }) {
           })}
         </ul>
       )}
+      {outcomeTab && outcomePages.error && !outcomes && <LoadFailed onRetry={() => void outcomePages.refetch()} error={outcomePages.error} />}
       {outcomeTab && outcomes?.length === 0 && (
         <Text variant="text16" tone="sub">
           {copy.outcome.empty}
         </Text>
       )}
       {outcomeTab &&
-        outcomes?.map((outcome) => {
+        outcomes?.map((outcome, index) => {
           const state = outcomeTab === "cancelled" ? copy.cancelled : copy.complete;
+          const view = { ...copy.complete.secondary, to: toItem("DATE-COMPLETE", outcome.member) };
+          // Feedback already sent: the API refuses a second one, so the completed date is the only action.
+          const primary = outcomeTab === "cancelled" ? copy.cancelled.primary : outcome.rated ? view : { ...copy.complete.primary, to: toItem("FEEDBACK", outcome.member) };
           return (
             <OutcomeCard
               key={outcome.member}
@@ -118,11 +131,25 @@ export function MatchesView({ tab }: { tab: MatchTab }) {
               title={state.title}
               meta={outcome.meta}
               description={state.description}
-              primary={outcomeTab === "cancelled" ? copy.cancelled.primary : { ...copy.complete.primary, to: toItem("FEEDBACK", outcome.member) }}
-              secondary={outcomeTab === "complete" ? { ...copy.complete.secondary, to: toItem("DATE-COMPLETE", outcome.member) } : undefined}
+              primary={primary}
+              secondary={outcomeTab === "complete" && !outcome.rated ? view : undefined}
+              revealDelay={Math.min(index, 8) * 40}
             />
           );
         })}
+      {outcomeTab && outcomePages.hasNextPage && (
+        <Button
+          type="button"
+          variant="roseOutline"
+          size="pillCompact"
+          width="portalAction"
+          disabled={outcomePages.isFetchingNextPage}
+          aria-busy={outcomePages.isFetchingNextPage || undefined}
+          onClick={() => void outcomePages.fetchNextPage()}
+        >
+          {outcomePages.isFetchingNextPage ? copy.outcome.loadingMore : copy.outcome.more}
+        </Button>
+      )}
       <ActionButton
         action={copy.findMore}
         variant="confirm"
