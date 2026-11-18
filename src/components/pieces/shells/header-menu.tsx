@@ -8,7 +8,7 @@ import { screenKeys } from "@/lib/screen-keys";
 import { textTones } from "@/lib/tones";
 import { useLoaded } from "@/hooks/use-loaded";
 import { useSession } from "@/hooks/use-session";
-import { getMemberAvatar, getMemberCopy, getPortalShell } from "@/stores/portal-store";
+import { getLikesPage, getMemberAvatar, getMemberCopy, getPortalShell } from "@/stores/portal-store";
 import { ActionTarget } from "@/components/pieces/actions/action-target";
 import { Avatar } from "@/components/pieces/media/avatar";
 import { Icon } from "@/components/pieces/content/icon";
@@ -17,11 +17,12 @@ import { Icon } from "@/components/pieces/content/icon";
 const CONTROL = "focus-ring relative flex size-11 items-center justify-center rounded-full";
 
 /**
- * The header's notifications bell (with an unread dot, read again when the tab regains focus) and
- * the member's own photo opening PROFILE.
+ * The header's Likes received heart (LIKES), the notifications bell (with an unread dot, read again
+ * when the tab regains focus) and the member's own photo opening PROFILE, in that order at every width.
  */
 export function HeaderMenu() {
   const shell = getPortalShell();
+  const likes = getLikesPage().heart;
   // The header shows before the session is confirmed; its reads wait for one.
   const enabled = useSession() === true;
   const unread = useLoaded(screenKeys.unreadCount, accountService.getUnreadCount, { refetchOnWindowFocus: true, enabled }).value ?? 0;
@@ -29,6 +30,9 @@ export function HeaderMenu() {
   return (
     // Intrinsic width: a third 44px control (Likes received) fits at 360px.
     <div className="flex shrink-0 items-center justify-end gap-2">
+      <ActionTarget to={likes.to} aria-label={likes.label} className={cn(CONTROL, textTones.black)}>
+        {likes.icon && <Icon name={likes.icon} size={24} />}
+      </ActionTarget>
       <ActionTarget
         to={shell.notifications.to}
         aria-label={unread > 0 ? fill(shell.unread, { count: unread }) : shell.notifications.label}
