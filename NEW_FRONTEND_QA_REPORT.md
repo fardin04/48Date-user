@@ -198,6 +198,10 @@ Image inventory: about 40 `next/image` usages. Portraits, avatars, venues and ma
 | X7 | ACCOUNT private details, TRUST-HELP | No endpoints | Stay on the mock | 25, 27 |
 | X8 | Past and completed dates for testing | Dates must be 1 h–14 d ahead | Needs seeded past dates for attendance, feedback and story tests | 18, 22, 23 |
 | X9 | Demo photos on `cdn.48date.app` don't resolve (known) | Seed data | Placeholder image | all |
+| X10 | **Match card last message** | `GET /matches` returns `lastMessagePreview: null` on every match (seen live for tahmid_hasan, 10 matches whose conversations have messages) | Cards read the preview from `GET /conversations` (one cached request). Needed: fill `lastMessagePreview` (and `lastActivityAt`) from the conversation | 11 |
+| X11 | Open matches with a running clock for testing | All seed matches have stopped clocks (completed dates); `meta.activeCount` 0 | Countdown parity across two accounts can't be checked until a new match is made (A5 of the test prompt) | 11 |
+| X12 | Profile city for seed accounts | `useMemberLocation` gets no city for tahmid_hasan, so the Discover preferences card shows an empty "Location" row | Shown empty. Needed: seed `city` (or the area label) on the profiles | 7, 11 |
+| X13 | **Session lost when a refresh response never arrives** | `POST /auth/refresh` rotates the refresh token, and a second use of the old one revokes every session of the account (`REFRESH_TOKEN_REUSED`). The web app keeps the access token only in memory (rule 41), so every page load, reload and new tab spends one refresh. If the page is reloaded or closed while that request is in flight, or the browser is force-closed before it saves localStorage, the server has rotated but the browser still holds the old token; the next visit is signed out ("signed out on another device"). Reproduced 2026-11-18 by force-closing headless Chrome right after a page load (3 times); a normal close never lost the session | Frontend can't close this: the new token is lost with the response. Needed: accept the previous refresh token for a short grace window (e.g. 30 s) and return the same new pair, instead of revoking the session. Optional frontend mitigation, needs owner approval because it changes rule 41: keep the 15-minute access token in sessionStorage so a reload doesn't refresh | all |
 
 ## 9. API dependencies (from the Postman User folder vs `src/lib/api/endpoints.ts`)
 
@@ -229,22 +233,22 @@ Image inventory: about 40 `next/image` usages. Portraits, avatars, venues and ma
 | 3 | Legal pages | P3 | **Done 2026-11-16** (see Phase 3 section) |
 | 4 | Authentication | P1 | **Done 2026-11-17** (see Phase 4 section; Phase 3 re-checked the same day) |
 | 5 | Onboarding A (steps 1–11) | P2 | **Done 2026-11-17** (see Phase 5 section) |
-| 6 | Onboarding B (photos, verification, notifications, ready) | P2 | Not started |
-| 7 | Discover deck and match moment | P1 | Not started |
-| 8 | Discovery filters | P2 | Not started |
-| 9 | Member profile and compatibility | P2 | Not started |
-| 10 | Likes Received (new) | P1 | Not started |
-| 11 | Matches, outcomes and match details | P1 | Not started |
-| 12 | Messaging A: inbox and three-panel layout | P1 | Not started |
-| 13 | Messaging B: conversation, bubbles, composer, "+" menu | P1 | Not started |
-| 14 | Messaging C: conversation menu (unmatch, block, report) | P1 | Not started |
-| 15 | Date venues, place details, date-specific area | P1 | Not started |
-| 16 | Date time, review, invitation | P1 | Not started |
-| 17 | Date plan states and manage | P1 | Not started |
-| 18 | Accepted date details, attendance, feedback, completion | P1 | Not started |
-| 19 | Games | P2 | Not started |
-| 20 | Stories feed | P1 | Not started |
-| 21 | Story details, comments, likes | P2 | Not started |
+| 6 | Onboarding B (photos, verification, notifications, ready) | P2 | **Done 2026-11-18** (see Phase 6 section; M1 API re-check handed to the browser tester) |
+| 7 | Discover deck and match moment | P1 | **Done 2026-11-18** (see Phase 7 section; real-browser zoom and live multi-account checks not run, see the section) |
+| 8 | Discovery filters | P2 | **Done 2026-11-18** (see Phase 8 section; real-browser zoom and live multi-account checks not run, see the section) |
+| 9 | Member profile and compatibility | P2 | **Done 2026-11-18** (see Phase 9 section; real-browser zoom and live multi-account checks not run, see the section) |
+| 10 | Likes Received (new) | P1 | **Done 2026-11-18** (see Phase 10 section; real-browser zoom and live multi-account checks not run, see the section) |
+| 11 | Matches, outcomes and match details | P1 | **Done 2026-11-18** (see Phase 11 section; real-browser zoom and the countdown-parity check handed to the browser tester, `PHASE11_12_TEST_PROMPT.md`) |
+| 12 | Messaging A: inbox and three-panel layout | P1 | **Done 2026-11-18** (see Phase 12 section; real-browser zoom and the two-account live-row check handed to the browser tester) |
+| 13 | Messaging B: conversation, bubbles, composer, "+" menu | P1 | **Done 2026-11-18** (code verified; browser-tested by the owner's tester, see Phase 13 section) |
+| 14 | Messaging C: conversation menu (unmatch, block, report) | P1 | **Done 2026-11-18** (code verified; browser-tested by the owner's tester; Unmatch blocked on N12) |
+| 15 | Date venues, place details, date-specific area | P1 | **Done 2026-11-18** (code + unit tests; browser-tested by the owner's tester, results not written into this report) |
+| 16 | Date time, review, invitation | P1 | **Done 2026-11-18** (code + unit tests; browser checks with the tester) |
+| 17 | Date plan states and manage | P1 | **Done 2026-11-18** (code + unit tests; live two-account checks with the tester) |
+| 18 | Accepted date details, attendance, feedback, completion | P1 | **Done 2026-11-18** (code + unit tests; past-date check with the tester) |
+| 19 | Games | P2 | **Done 2026-11-18** (code + unit tests; browser checks in `PHASE19_21_TEST_PROMPT.md`) |
+| 20 | Stories feed | P1 | **Done 2026-11-18** (code + unit / contract tests; browser checks with the tester) |
+| 21 | Story details, comments, likes | P2 | **Done 2026-11-18** (code + unit / contract tests; browser checks with the tester) |
 | 22 | Story creation and My story | P2 | Not started |
 | 23 | Story partner consent | P2 | Not started |
 | 24 | Notifications | P1 | Not started |
@@ -844,6 +848,727 @@ The same script ran the full flow by real mouse clicks on the primary, at **1440
 - The owner asked for "NEW_FRONTEND_QA_REPORT.txt"; results are recorded in this `.md` file (rules 10 / 58), as in Phase 4.
 
 ---
+
+## Phase 6: Onboarding B (photos, selfie verification, notifications, READY)
+
+### Pre-change audit (2026-11-17)
+
+Method: as in Phase 5, headless Chrome over CDP with each zoom emulated as its CSS viewport (`deviceScaleFactor` = zoom). Claude in Chrome was not connected, so real browser zoom wasn't available. Chrome's fake camera (`--use-fake-device-for-media-stream`) stood in for a webcam. Test photos were generated in the page at 16:9 (JPG), 9:16 (JPG), 4:3 (PNG), 3:4 (WebP) and 1:1 (JPG), plus a 10 MB + 4 KB file. The flow ran on the mock-mode production build; the API was used for the verified-member check. The audit was done by reading the four steps and their pieces, then confirmed on the first run.
+
+| Check | Result before |
+|---|---|
+| PHOTO-PREVIEW | **Cropped**: `PhotoTile frame="preview"` is `object-cover`, so a 16:9 or 9:16 photo was cut to the frame before the member confirmed it |
+| Grid tiles (232 px) | cover, centred (`object-position: 50% 50%`); faces in tall photos could be cut at the top |
+| SelfieFrame | fixed 300 px surface. At 360 × 225 (400 %) the frame was taller than the screen; the capture button sat below it (the sticky row from Phase 5 now keeps it reachable) |
+| Camera release | **Leak**: if the member left (Back, "Not now", another page) while the browser was still asking for the camera, the stream granted afterwards was stored and never stopped. On VERIFY it also reopened VERIFY-CAPTURE after the member had gone back (PHOTOS and VERIFY). |
+| READY interests | **Empty with the API on**: the card matched the draft's interest ids (API UUIDs) against the Figma card keys |
+| File check | inline in the component, untested; a 0-byte file passed |
+| 50–90 % zoom, the action row | already covered by Phase 5's `SetupShell` / `SetupStep` fixes (fit-portal, sticky row) |
+| Console | MediaPipe prints its own `W…` / `I…` log lines (OpenGL, "CPU only ops") on VERIFY-CAPTURE; library diagnostics, not app errors |
+
+### Result
+
+| | |
+|---|---|
+| Status | **Done** (2026-11-17) |
+| Routes completed | `/onboarding/photos` (empty grid, PHOTO-SOURCE, PHOTO-PREVIEW, PHOTO-UPLOAD, PHOTO-ERROR, PHOTO-READY, live camera), `/onboarding/verify` (INTRO, CAMERA, DENIED, CAPTURE auto / by hand, REVIEW, PENDING, RETRY, DONE, STATUS), `/onboarding/notifications` (NOTIFY, NOTIFY-DENIED), `/onboarding/ready` |
+| Tests | `npm test` → 27 files, 277 tests: **277 passed** (2026-11-18). A first full run while the machine was busy failed 2 / 277: `api-contract.test.ts` › auth › "requests and verifies a code" timed out at 5 s, and its late `POST /auth/phone/verify` landed in the next case ("signs in with Google"), which then saw the wrong call. The unchanged file passed 32 / 32 alone and the full suite 277 / 277 on the rerun; `signInWithGoogle` does call `POST /auth/google` with `{ idToken, device }`, so no code changed. `npm run lint`: clean. `npm run build` (mock): clean on the second attempt; the first compiled and generated all 149 pages, then exited 1 at Next's security-advisory lookup. |
+
+**Files changed**
+- `src/components/sections/onboarding/photos-step.tsx`: PHOTO-PREVIEW uses `MediaFrame` (whole photo, its own ratio); the file check uses `isAcceptedPhoto`; camera requests are numbered so a late grant is released
+- `src/components/sections/onboarding/verify-step.tsx`: the same camera guard; Back on VERIFY-CAMERA cancels a pending request
+- `src/components/sections/onboarding/ready-step.tsx`: interests through `interestChoices` (API ids → cards)
+- `src/components/pieces/media/photo-tile.tsx`: `tile` / `manage` frames are centre-top (`object-top`); `preview` (story) unchanged
+- `src/components/pieces/media/selfie-frame.tsx`: height `selfieFrameHeight` (300 px, shrinking to no less than 160 px in short viewports)
+- `src/lib/control-sizes.ts`: `selfieFrameHeight`
+- `src/lib/onboarding/photo-file.ts` (new): `isAcceptedPhoto`
+- `src/lib/onboarding/api-onboarding-service.ts`: `decideVerification` extracted (and `fromSnapshot` exported) for tests; behaviour unchanged
+- New tests: `src/lib/onboarding/photo-store.test.ts` (5), `photo-file.test.ts` (11), `verification-decision.test.ts` (6), `src/test/onboarding-media-contract.test.ts` (7), `src/components/sections/onboarding/onboarding-media.test.ts` (6)
+- Docs: `AGENTS.md` (PhotoTile and SelfieFrame entries; Decisions "Onboarding photos, verification, notifications, READY (Phase 6)"), this report
+
+**Bugs found and fixed**
+
+| # | Bug | Fix |
+|---|---|---|
+| P6-1 | PHOTO-PREVIEW cropped the photo | `MediaFrame`: each tested ratio is framed at its own ratio (16:9 → 1.778, 9:16 → 0.563, 4:3 → 1.333, 3:4 → 0.75, 1:1 → 1.000), `object-fit: contain`, capped by height |
+| P6-2 | A camera granted after the member left stayed on (and VERIFY reopened the capture) | numbered requests: the late stream is stopped at once, and the screen stays where the member went |
+| P6-3 | READY showed no interests with the API on | API ids mapped back to the cards |
+| P6-4 | Tiles centred, cutting faces | centre-top |
+| P6-5 | The selfie surface was taller than a 225 px viewport | `selfieFrameHeight`: 300 → 194 px at 200 %, 160 px at 400 % |
+| P6-6 | A 0-byte file passed the photo check | `isAcceptedPhoto` refuses it (same copy) |
+
+### Zoom matrix (after)
+
+Mock production build (2026-11-18 rerun). VERIFY-CAPTURE (auto check) logged MediaPipe's own "INFO: Created TensorFlow Lite XNNPACK delegate" line at all 23 sizes; it is a library diagnostic, so those runs count as passes (strictly, 460 / 483 had no console line at all). ✓ means: no horizontal overflow, nothing outside the viewport, no clipped text, the primary scrolled to and hit-tested, Back and primary not overlapping, previews at their own ratio and contained, and no app console messages. **483 / 483 passed**: 21 routes / states × (13 levels at 1440 × 900 + 50 / 200 / 400 % at 1920 × 1080 + the 7 rule 3 widths).
+
+| Route / state | 50 | 75 | 90 | 100 | 110 | 125 | 150 | 175 | 200 | 250 | 300 | 350 | 400 | Notes |
+| PHOTOS (empty grid) | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | 1920 / rule-3 widths: 10/10 |
+| PHOTO-SOURCE | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | 1920 / rule-3 widths: 10/10 |
+| PHOTO-PREVIEW portrait 9:16 | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | frame 0.563 = photo 0.563, contain, 512 px tall at 100 %, 135 px at 400 %; 1920 / rule-3 widths: 10/10 |
+| PHOTO-PREVIEW landscape 16:9 | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | frame 1.778 = photo 1.778, contain, 315 px tall at 100 %, 135 px at 400 %; 1920 / rule-3 widths: 10/10 |
+| PHOTO-UPLOAD | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | 1920 / rule-3 widths: 10/10 |
+| PHOTO-ERROR (offline) | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | 1920 / rule-3 widths: 10/10 |
+| PHOTO-READY (2 photos) | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | tiles cover/50% 0%; 1920 / rule-3 widths: 10/10 |
+| PHOTOS camera view | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | selfie surface 300 / 194 / 160 px at 100 / 200 / 400 %; 1920 / rule-3 widths: 10/10 |
+| VERIFY-INTRO | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | 1920 / rule-3 widths: 10/10 |
+| VERIFY-CAMERA | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | 360 px: "Allow camera & continue" truncates (phone decision); 1920 / rule-3 widths: 10/10 |
+| VERIFY-DENIED | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | 360 px: "Open browser settings" truncates (phone decision); 1920 / rule-3 widths: 10/10 |
+| VERIFY-CAPTURE (auto check) | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | selfie surface 300 / 194 / 160 px at 100 / 200 / 400 %; 360 px: "Capturing automatically" truncates (phone decision); 1920 / rule-3 widths: 10/10 |
+| VERIFY-CAPTURE (Take selfie by hand) | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | selfie surface 300 / 194 / 160 px at 100 / 200 / 400 %; 1920 / rule-3 widths: 10/10 |
+| VERIFY-REVIEW | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | selfie surface 300 / 194 / 160 px at 100 / 200 / 400 %; 1920 / rule-3 widths: 10/10 |
+| VERIFY-PENDING | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | 1920 / rule-3 widths: 10/10 |
+| VERIFY-RETRY | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | 1920 / rule-3 widths: 10/10 |
+| VERIFY-DONE | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | 1920 / rule-3 widths: 10/10 |
+| VERIFY-STATUS | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | 1920 / rule-3 widths: 10/10 |
+| NOTIFY | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | 1920 / rule-3 widths: 10/10 |
+| NOTIFY-DENIED | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | 1920 / rule-3 widths: 10/10 |
+| READY | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | 1920 / rule-3 widths: 10/10 |
+| 1920 × 1080: 50 / 200 / 400 (all) | ✓ (×2.67) | | | | | | | | ✓ (960 × 540) | | | | ✓ (480 × 270) | |
+| Rule 3 widths 360 / 390 / 768 / 1024 / 1280 / 1440 / 1920 (all) | ✓ all | | | | | | | | | | | | | |
+
+- **Bands and bottom gap:** none; the frame scales as one piece below 100 % (fit 2 / 1.33 / 1.11) and fills the viewport height on every state.
+- **Primary in view:** the sticky row keeps Use photo, Take photo, Take selfie, Submit selfie, Enable notifications and See my matches on the first screen at every size. "Capturing automatically" truncates beside Back at 360 px (the existing phone decision).
+- **Images:** previews uncropped at their own ratio (see P6-1). Tiles are cover, centre-top (`50% 0%`). The selfie is a 180 : 300 portrait, mirrored as seen. The upload thumbnail is 64 × 80 cover.
+
+### Back navigation and functional checks (mock walk-through)
+
+Real mouse clicks on each primary, at **1440 × 900 (100 %)** and **360 × 225 (400 %)**: **45 / 45 at 1440 × 900 (100 %) and 45 / 45 at 360 × 225 (400 %)**.
+
+| Check | Result |
+|---|---|
+| Empty grid: Continue disabled ("Add 2 more photos"); one photo: "Add 1 more photo" | PASS |
+| Over 10 MB → the existing copy ("Choose a JPG, PNG or WebP photo under 10 MB.") | PASS |
+| PHOTO-PREVIEW: JPG 16:9, JPG 9:16, PNG 4:3, WebP 3:4 and JPG 1:1, each uncropped at its own ratio | PASS |
+| PHOTO-UPLOAD shows progress; offline → PHOTO-ERROR; Retry online → added | PASS |
+| Make main reorders; Remove drops below the minimum and disables Continue | PASS |
+| Camera: live view; Take photo → PHOTO-PREVIEW with the camera released; Back from the camera releases it | PASS |
+| Back while the browser is still asking (1.5 s delayed grant): the stream is stopped, the camera doesn't reopen, the grid keeps its photos | PASS |
+| PHOTO-READY Back → GOALS (`/onboarding/goals`); Continue saves → VERIFY-INTRO | PASS |
+| VERIFY: delayed grant + Back → stream stopped, intro shown | PASS |
+| VERIFY-CAPTURE (check blocked → "Take selfie" by hand) reachable at 400 % (selfie surface 160 px); Back → camera step with the camera released | PASS |
+| Take selfie → VERIFY-REVIEW (camera released) → Submit → VERIFY-PENDING → decided: DONE at 100 %, RETRY with the "too dark" reason at 400 % (the mock judges brightness; Chrome's fake frame landed on both sides) | PASS |
+| Refresh / direct entry shows the stored result (DONE); DONE Back → VERIFY-STATUS ("Verified") | PASS |
+| "Skip for now" → NOTIFY; NOTIFY Back → `/onboarding/verify` | PASS |
+| Notification permission not asked on load; asked once from the click; refused → NOTIFY-DENIED; its Back → NOTIFY; granted → saved → READY | PASS |
+| READY shows the nickname and the chosen interests; Back → `/onboarding/notifications`; "See my matches" → `/matches` | PASS |
+| No camera left live at the end; no app console errors | PASS |
+
+**API checks** (staging API, `npm run build` with `.env.local`, port 3006)
+
+- **M1 omar_farooq on `/onboarding/verify` (expect VERIFY-DONE, Back → VERIFY-STATUS "Verified"):** not re-run on 2026-11-18; handed to the browser tester (`PHASE7_TEST_HANDOFF.md`, section D). The same check passed in the Phase 6 session of 2026-11-17, and no Phase 6 code changed since.
+
+- **Contract (Postman replay, `onboarding-media-contract.test.ts`):**
+  - `POST /files` sends a multipart body with `file` and `purpose` `PROFILE_PHOTO` / `VERIFICATION_SELFIE` and the bearer token. It reports progress (50 % while sending, 100 % once confirmed) and returns `fileId`; a 413 is `failed`, never uploaded.
+  - `PUT /onboarding/steps/photos` sends `{ photos: [{ fileId, isMain }] }` with the first photo main, and leaves out photos without a file id.
+  - `POST /verification` sends `{ selfieFileId }`. QUEUED is "pending" and the attempt id is remembered. The snapshot `PASSED` reads as verified. A refused selfie upload goes to RETRY without starting a review.
+- **Verification decision (`verification-decision.test.ts`):** attempt statuses map to pending / verified / retry, and unknown ones read as still in review. The profile's VERIFIED wins. An attempt still in review once the profile has left PENDING counts as decided against. The reason is the reviewer's note or the first code.
+- **READY / matching:** `startMatching()` sends one `POST /matching/runs` (a second start joins the same run) and follows it live through `/matching/runs/:id/events` (new contract test). MATCHES then shows "Looking for matches…" (Phase 11 owns that screen).
+
+**Backend / API blockers**
+- None new.
+- *Recommendation:* `POST /verification` accepts `accessibilityRequested` (for members who can't make the hand sign). The web app doesn't offer it: when the on-device check can't load, "Take selfie" is pressed by hand without a V sign. An owner decision is needed on whether to send `accessibilityRequested: true` on that path.
+
+**Remaining issues**
+- Chat, story and PHOTO-MANAGE still check files inline (same rule as `isAcceptedPhoto`); to be switched in Phases 13, 22 and 26.
+- STORY-CREATE's photo preview still uses the cropping `PhotoTile frame="preview"` (Phase 22).
+- MediaPipe's own `W…` / `I…` console lines on VERIFY-CAPTURE come from the library's wasm and can't be silenced without patching it; they're not app errors.
+- In-memory photos are gone after a refresh (existing decision, rule 34), so READY then shows the placeholder.
+- Real browser zoom wasn't available; all levels were emulated as CSS viewports with `deviceScaleFactor`.
+- The owner asked for "NEW_FRONTEND_QA_REPORT.txt"; results are recorded in this `.md` file (rules 10 / 58).
+
+---
+
+## Phase 7: Discover deck and match moment
+
+### Pre-change audit (2026-11-18)
+
+Method: headless Chrome over CDP, each zoom emulated as its CSS viewport (`deviceScaleFactor` = zoom). No browser tool (Claude in Chrome, the built-in browser) was connected, so real browser zoom wasn't available; the real-zoom and multi-account checks are handed to the browser tester (`PHASE7_TEST_HANDOFF.md`). The matrix ran on the mock production build, first on the build without the Phase 7 changes ("before"), then with them ("after"). Figma: W / DISCOVER (21727:4800) is 1440 × 974; its decision row sits at y 856–912, so even the frame puts Pass / Like / Super Like below a 900 px screen.
+
+| Check | Before |
+|---|---|
+| First screen at 100 % (1440 × 900, 1280 × 800, 1366 × 768, 1920 × 1080) | **Fail**: the 448 × 464 photo pushed the decision row to 854–910 px at 1440 × 900 (owner report 2026-11-17: only the photo and name show) |
+| Zoom 50–125 %, 1280 / 1440 / 1920 widths | **Fail**: the same row started below the first screen (39 of 156 checks) |
+| 150–400 %, 360–1024 widths | pass: the row is sticky above the tab bar (Phase 1 / 2), the deck leads (`usePrimaryInView`) |
+| MATCH-NEW, DISCOVER-EMPTY, FILTERS-EMPTY | pass at every size (actions reachable by scrolling, none under the tab bar) |
+| Matrix total | **117 / 156** |
+| MATCH-NEW timer | **Rule 3 bug**: a fixed "48:00:00", also for a background match made hours earlier |
+| Weekly Super Like limit (429) | **Bug**: the member was marked decided before the swipe, so the next deck read dropped the refused card |
+| A decision failing offline / 5xx | **Bug**: no message (`failureReason` is null for non-4xx) |
+| DISCOVER-EMPTY / FILTERS-EMPTY Back | `router.back()` directly; direct entry could leave the app |
+| xl columns at 110 % (1309 px) | third column 413 px; fits, no change needed |
+| Decision buttons at 360 px | already `min-w-0` flex shares (136 : 136 : 152); no change needed |
+
+### Result
+
+| | |
+|---|---|
+| Status | **Code done, automated checks done** (2026-11-18). Real-zoom and multi-account API checks handed to the browser tester. |
+| Routes | `/discover` (DISCOVER, DISCOVER-NEXT, SWIPE-PASS / LIKE / SUPER, MATCH-NEW, DISCOVER-EMPTY, FILTERS-EMPTY) |
+| Tests | `npm test` → 33 files, 311 tests: **311 passed** (277 existing, unchanged; 16 Phase 7; 18 Phase 8). `npm run lint`: clean. `npm run build` (API, `.env.local`): clean, 149 pages; the mock build for the matrix: clean. |
+
+**Files changed**
+- `src/components/pieces/cards/swipe-card.tsx`: photo capped by `swipePhotoFrame`, cropped centre-top
+- `src/lib/control-sizes.ts`: `swipePhotoFrame` (464 px at most; from 1024 px it leaves 31rem below the photo, stacked layouts 21.5rem)
+- `src/components/sections/portal/discover/match-new-screen.tsx` (new): MATCH-NEW with the live server deadline
+- `src/components/sections/portal/discover/discover-view.tsx`: uses `MatchNewScreen`, the deck rules from `deck-intent`, the shared Back on the empty states, fallback copy for a failed decision
+- `src/lib/portal/deck-intent.ts`: `SWIPE_PX`, `dragDecision`, `swipeAction`, `LOW_WATER`, `needsNextPage`, `matchToShow`
+- `src/lib/portal/api-portal-service.ts`: a refused swipe is no longer kept as decided; uses the deck rules
+- `src/data/portal/discover.ts`: `matchNew.timerLive` / `timerLiveLabel`, `card.failed` (design-silent)
+- New tests: `src/lib/portal/deck-intent.test.ts` (6), `src/test/discovery-swipes-contract.test.ts` (4), `src/components/sections/portal/discover/discover-deck.test.ts` (6)
+- Docs: `AGENTS.md` (SwipeCard, MatchNewScreen, Decisions "Phase 7")
+
+**Bugs found and fixed**
+
+| # | Bug | Fix |
+|---|---|---|
+| P7-1 | Pass / Like / Super Like below the first screen at 100 % (and 50–125 %) | photo capped by the viewport: at 1440 × 900 the card ends at 784 px and the row at 796–852 px |
+| P7-2 | MATCH-NEW showed a fixed 48:00:00 (rule 3) | counts down to the match's `expiresAt` through `useMatchClock` ("hours:minutes") |
+| P7-3 | A Super Like refused by the weekly limit (429) dropped the card on the next read | the member leaves `decided` when the swipe isn't recorded (contract test proves it failed before) |
+| P7-4 | A decision failing offline / 5xx showed nothing | "That didn’t go through. Try again." under the buttons; the card stays |
+| P7-5 | Empty-state Back called `router.back()` | shared history-first `PortalBack` (fallback DISCOVER) |
+
+### Zoom matrix (after)
+
+Mock production build, emulated zoom. ✓ = no horizontal overflow, nothing outside the viewport, no clipped text, no side bands, no bottom gap, the decisions (deck) or every action (status screens) reachable, no console messages; at 100 % in the four desktop windows the whole card and the decision row are on the first screen. **156 / 156 passed** (before: 117 / 156).
+
+| Route / state | 50 | 75 | 90 | 100 | 110 | 125 | 150 | 175 | 200 | 250 | 300 | 350 | 400 | 1920 × 1080 50 / 200 / 400 | Rule 3 widths | Desktop windows (rule 60) | Notes |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| DISCOVER (Wildflower) | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | 3/3 | 10/10 | 3/3 | photo 446x404 at 100 %, 311x160 at 400 % (sticky row); cover 50% 0% |
+| DISCOVER-NEXT (GoldenHour) | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | 3/3 | 10/10 | 3/3 | photo 446x404 at 100 %, 311x160 at 400 % (sticky row); cover 50% 0% |
+| SWIPE-PASS feedback | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | 3/3 | 10/10 | 3/3 | photo 446x404 at 100 %, 311x160 at 400 % (sticky row); cover 50% 0% |
+| MATCH-NEW | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | 3/3 | 10/10 | 3/3 | every action reachable |
+| DISCOVER-EMPTY | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | 3/3 | 10/10 | 3/3 | every action reachable |
+| FILTERS-EMPTY | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | 3/3 | 10/10 | 3/3 | every action reachable |
+
+- **First screen (rule 60):** at 100 % the card ends / the decision row ends at 784 / 852 px (1440 × 900), 684 / 752 (1280 × 800), 652 / 720 (1366 × 768) and 925 / 1015 (1920 × 1080, fit 1.33); photo 446 × 404, 304, 272 and 595 × 419. Type sizes unchanged from the Figma node (20 px name, 14 px details, 14 px button labels).
+- **Bands / bottom:** none at any size; 50–90 % scale as one piece (fit 2 / 1.33 / 1.11).
+- **Images:** the card photo is `object-cover` centre-top (`50% 0%`) in its 448-wide frame, never stretched (the drag is a transform on the whole card). The match-moment photo is the 96 px round `Avatar` (1:1). The placeholder is used for a missing API photo (unchanged).
+
+### Back navigation
+
+| Path | Result |
+|---|---|
+| DISCOVER main state | no Back (hub) — PASS (source) |
+| MATCH-NEW → Back | keeps discovering (client state) — PASS (source test) |
+| DISCOVER-EMPTY / FILTERS-EMPTY → Back | history-first, fallback `/discover` — PASS (source test); real-browser check handed over |
+| Discover → profile → Back keeps the card; Filters → Save → replace | handed to the browser tester (Save is now a replace, Phase 8) |
+
+### API checks
+
+Handed to the browser tester (`PHASE7_TEST_HANDOFF.md`, section C): deck on 402 rohan_sen, drag and buttons, the weekly Super Like limit, a mutual like with a FREE female from the owner's list (MATCH-NEW for her at once, for him from `/matches/unseen`), paging. The contract tests cover the request shapes, the 429 and the unseen / seen calls.
+
+**Backend / API blockers**
+- None found in this phase's contract.
+
+**Remaining issues**
+- The left preferences column (680 px as drawn) runs below the first screen at 1280 × 800 and 1366 × 768; it is secondary, and the card and decisions fit.
+- MATCH-NEW shows "hours:minutes" (design-silent); Figma draws "48:00:00".
+- Real browser zoom and the multi-account checks are pending with the browser tester.
+
+---
+
+## Phase 8: Discovery filters
+
+### Pre-change audit (2026-11-18)
+
+Method as in Phase 7 (headless Chrome, emulated zoom; real-zoom and multi-account checks handed to the browser tester). The audit read `filters-view.tsx`, `preference-facts.ts`, the API service and the Postman examples of `GET` / `PUT /discovery/preferences`.
+
+| Check | Before |
+|---|---|
+| Save → DISCOVER | `router.push`: Back from the deck reopened the saved form (rule 51) |
+| Save refused by the API | **Bug**: `catch {}` swallowed it; nothing was shown |
+| Reset refused by the API | **Bug**: no error handling; the buttons stayed "busy" for good and the rejection went unhandled. The collection's `PUT` answers **403 ENTITLEMENT_REQUIRED** for verified-only on a free plan, and the defaults Reset restores have verified-only on, so Reset could hang for every FREE member |
+| `GET /discovery/preferences` failing | **Bug**: only the heading showed, no error state or Retry |
+| Show matches at 200–400 % | the row wasn't pinned; at 225 px tall it sat below the form |
+| Age validation 18–80, "Saving…", defaults, miles ↔ km | correct; kept |
+| Images | N/A (the screen has only icon masks) |
+
+### Result
+
+| | |
+|---|---|
+| Status | **Code done, automated checks done** (2026-11-18). Real-zoom and multi-account API checks handed to the browser tester. |
+| Routes | `/discover/filters` (FILTERS, with the age error, with a save failure); saving opens DISCOVER |
+| Tests | `npm test` → 33 files, 311 tests: **311 passed** (277 existing, unchanged; 16 Phase 7; 18 Phase 8). `npm run lint`: clean. `npm run build` (API, `.env.local`): clean, 149 pages; the mock build for the matrix: clean. |
+
+**Files changed**
+- `src/components/sections/portal/discover/filters-view.tsx`: Save / Reset through one guarded path with `replaceRoute`, the failure note (`failureReason` or `copy.failed`), the load-failed state, the pinned side-by-side action row
+- `src/lib/portal/preference-facts.ts`: `parseAge`, `distanceFromKm`, `distanceToKm` (moved from the view and the API service, unchanged behaviour)
+- `src/lib/portal/api-portal-service.ts`: uses them
+- `src/data/portal/discover.ts`: `filters.failed` (design-silent)
+- New tests: `src/lib/portal/preference-facts.test.ts` (7), `src/test/discovery-preferences-contract.test.ts` (6), `src/components/sections/portal/discover/discovery-filters.test.ts` (5)
+- Docs: `AGENTS.md` (Decisions "Phase 8")
+
+**Bugs found and fixed**
+
+| # | Bug | Fix |
+|---|---|---|
+| P8-1 | Save / Reset used `router.push` | `replaceRoute` to DISCOVER |
+| P8-2 | A refused save showed nothing | the API's reason (or the form's own copy) under the form; every value kept |
+| P8-3 | A refused reset stayed busy for good (403 for FREE members) | same guarded path; the buttons come back with the message |
+| P8-4 | A failed read showed an empty page | load-failed state with Retry |
+| P8-5 | Show matches below the form at 200–400 % | pinned above the tab bar below 1024px, side by side on phones |
+
+### Zoom matrix
+
+Mock production build, emulated zoom, FILTERS and FILTERS with the age error shown (min 17, max 90). ✓ = no overflow, nothing outside, no clipping, no bands, no bottom gap, Show matches and Reset filters on screen at open and hit-testable, no console messages; at 100 % in the desktop windows the form and both actions are on the first screen. **52 / 52 passed**.
+
+| Route / state | 50 | 75 | 90 | 100 | 110 | 125 | 150 | 175 | 200 | 250 | 300 | 350 | 400 | 1920 × 1080 50 / 200 / 400 | Rule 3 widths | Desktop windows (rule 60) | Notes |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| FILTERS | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | 3/3 | 10/10 | 3/3 | both actions on screen at open |
+| FILTERS (age error shown) | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | 3/3 | 10/10 | 3/3 | both actions on screen at open; age errors shown |
+
+### Back navigation
+
+| Path | Result |
+|---|---|
+| FILTERS Back | history-first `PortalBack`, fallback DISCOVER (unchanged) |
+| Save / Reset | replace to DISCOVER — PASS (source test); real-browser check handed over |
+| Refresh on `/discover/filters` | values re-read from `GET` (TanStack `useLoaded`) |
+
+### API checks
+
+- **Contract (`discovery-preferences-contract.test.ts`):** GET maps `maxDistanceKm: null` to Any distance and saved interests to "Share one of my interests"; PUT sends miles as whole km (Any = `null`) and the member's interest ids; the saved values are re-read from the 202 answer without a second GET; the next deck starts a new run; Reset sends the defaults; the 403 `ENTITLEMENT_REQUIRED` and 400 `VALIDATION_FAILED` reach the form as the API worded them.
+- **Live (handed to the browser tester):** change 402 rohan_sen's distance and age, confirm the deck changes, then restore them; don't change 403 julian_vance's `interestedIn EVERYONE`.
+
+**Backend / API blockers**
+- None new. Note for the owner: the API makes verified-only a Premium filter (`ADVANCED_FILTERS`) while the app's defaults turn it on, so Reset filters on a FREE account is refused (now with the API's message). A product decision is needed: default verified-only off for FREE members, or hide / lock the box for them.
+
+**Remaining issues**
+- A distance saved elsewhere (the app) above 80 km reads as 50 miles and is saved back as 80 km if the member presses Show matches.
+- A saved age above 80 (the API allows 18–100) fails the form's 18–80 check until the member changes it.
+
+---
+
+## Phase 9: Member profile details and compatibility
+
+### Pre-change audit (2026-11-18)
+
+Method: headless Chrome over CDP, zoom emulated as CSS viewports (`deviceScaleFactor` = zoom); no browser tool was connected. Real-zoom, Back-from-every-entry and multi-account checks are handed to the browser tester (`PHASE9_10_TEST_PROMPT.md`). The audit read `profile-view.tsx`, `profile-decisions.tsx`, `compat-view.tsx`, `shared-interests.ts`, `api-members.ts` and the Postman examples of `GET /discovery/profile/:nickname`.
+
+| Check | Before |
+|---|---|
+| Back | **Bug**: an `ActionButton` link "Back to discovery" to DISCOVER, so Back from Likes, Compat, a conversation or match details all opened Discover (rule 51) |
+| Main photo | `lg:aspect-auto`: from 1024px the frame stretched to the text column's height and cropped from the centre |
+| More photos | **Bug**: fixed 320px height, `object-bottom` (faces cut off at the top) |
+| Decisions | `router.push` to DISCOVER (Back reopened the decided profile); not pinned at 200–400 % |
+| Shared interests | inline intersection by id only, untested |
+| COMPAT signal bars, MEMBER-UNAVAILABLE | correct (samples / `availability` and 404 → MEMBER-UNAVAILABLE) |
+
+### Result
+
+| | |
+|---|---|
+| Status | **Code done, automated checks done** (2026-11-18). Real-zoom, Back-from-every-entry and API checks with the browser tester. |
+| Routes | `/discover/profile/<nickname>` (DISCOVER-PROFILE, MEMBER-UNAVAILABLE), `/discover/compatibility/<nickname>` (COMPAT, COMPAT-PENDING) |
+| Tests | `npm test` (2026-11-18): 39 files, 343 tests; the last completed run passed 342 / 343, and its one failure was this phase's own new `member-profile.test.ts` asserting the pre-Phase-10 line (fixed to the LIKES-aware line; final run 343 / 343). `npm run lint`: clean (240 warnings seen once came from two stray build copies, `.next-mock/` and `.next-api/`, now deleted and git-ignored). `npm run build` (mock): clean on retry (Next's security-vulnerability stop on the first attempt), 151 pages incl. `/likes`. |
+
+**Files changed**
+- `src/components/sections/portal/discover/profile-view.tsx`: shared history-first `PortalBack`; main photo 600:660 at every width, `object-top`; "More photos" 600:320 frames in an auto-fill grid, `object-top`
+- `src/components/sections/portal/discover/profile-decisions.tsx`: `replaceRoute`; Like / Pass pinned (`layout.stickyActions`) and side by side on phones; from LIKES the decision goes back to LIKES (Phase 10)
+- `src/lib/portal/shared-interests.ts`: `sharedInterestLabels` (by id or label); `src/lib/portal/api-members.ts` uses it
+- `src/data/portal/discover.ts`: `profilePage.back` removed (unused)
+- New tests: `src/lib/portal/shared-interests.test.ts` (4), `src/test/discovery-profile-contract.test.ts` (4), `src/components/sections/portal/discover/member-profile.test.ts` (6)
+
+**Bugs found and fixed**
+
+| # | Bug | Fix |
+|---|---|---|
+| P9-1 | Back always opened Discover | shared history-first Back (fallback DISCOVER) |
+| P9-2 | "More photos" cropped from the bottom | 600:320 frames, centre-top |
+| P9-3 | Main photo stretched to the text column from 1024px | 600:660 at every width, centre-top |
+| P9-4 | A decision left the profile in history | replace to DISCOVER / LIKES |
+| P9-5 | Like / Pass below the fold at 200–400 % | pinned above the tab bar |
+
+### Zoom matrix
+
+Mock production build, emulated zoom (a first attempt was void: another build replaced `.next` mid-run). ✓ = no overflow, nothing outside, no clipping, no bands, no bottom gap, no photo cropped from the bottom, the decisions (profile) or every action (status screens) reachable, no console messages. **77 / 78 passed.**
+
+| Route / state | 50 | 75 | 90 | 100 | 110 | 125 | 150 | 175 | 200 | 250 | 300 | 350 | 400 | 1920 × 1080 50 / 200 / 400 | Rule 3 widths | Desktop windows (rule 60) |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| DISCOVER-PROFILE | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | 3/3 | 6/7 | 3/3 |
+| COMPAT | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | 3/3 | 7/7 | 3/3 |
+| COMPAT-PENDING | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | 3/3 | 7/7 | 3/3 |
+
+- The one ✗ is DISCOVER-PROFILE at 1920 × 900 (a rule 3 width, not a rule 60 window): the 1.33 fit puts the main photo's top at 568 px of 900, below the harness's 60 % mark; it passes at 1920 × 1080. The page is long by design (Figma 2174 px): its heading, notification card and description lead.
+- Photos: main and more photos `object-cover` at `50% 0%`; no `object-bottom` anywhere.
+
+### Back navigation
+
+| Entry → Profile → Back | Result |
+|---|---|
+| Discover (same card) / Likes / Compat / conversation / match details | history-first `PortalBack` — PASS (source test); real-browser check from all five handed over |
+| Direct entry | fallback DISCOVER |
+| After Like / Pass | replace — PASS (source test) |
+
+### API checks
+- **Contract (`discovery-profile-contract.test.ts`):** an active profile maps from the API only, shared interests are a subset of the profile's interests; `availability: UNAVAILABLE` (200) and 404 `USER_NOT_FOUND` both give MEMBER-UNAVAILABLE.
+- **Live (handed over):** 403 julian_vance viewing a female's profile and compatibility; shared interests checked against both profiles.
+
+**Backend / API blockers:** none.
+
+**Remaining issues**
+- The page's "Back" label replaces the drawn "Back to discovery" pill (design-silent).
+- Real zoom and the five-entry Back checks are with the browser tester.
+
+---
+
+## Phase 10: Likes received (new heart icon and page)
+
+### Pre-change audit (2026-11-18)
+
+The collection documents `GET /discovery/likes-received?page&limit` (items with `nickname`, `age`, `mainPhotoUrl`, `isVerified`, `isSuperLike`, `distanceKm`, `isLocked`; `mode` `ALL_UNBLURRED` | `PAYWALL_BLURRED`; `meta` page / limit / total / totalPages / hasMore / nextCursor) and `POST …/:nickname/match` (`match` with `conversationId`, `expiresAt`) / `…/pass` (`match: null`). No live call was made from this session (the multi-account check is with the browser tester, who records any "Live API vs the collection" difference). MATCH-NEW (`MatchNewScreen`, Phase 7) is reused for the match confirmation.
+
+### Result
+
+| | |
+|---|---|
+| Status | **Code done, automated checks done** (2026-11-18). Real-zoom and multi-account API checks with the browser tester. |
+| Routes | `/likes` (LIKES: cards, empty, match confirmation, paywall mode); the header heart on every portal page |
+| Tests | `npm test` (2026-11-18): 39 files, 343 tests; the last completed run passed 342 / 343, and its one failure was this phase's own new `member-profile.test.ts` asserting the pre-Phase-10 line (fixed to the LIKES-aware line; final run 343 / 343). `npm run lint`: clean (240 warnings seen once came from two stray build copies, `.next-mock/` and `.next-api/`, now deleted and git-ignored). `npm run build` (mock): clean on retry (Next's security-vulnerability stop on the first attempt), 151 pages incl. `/likes`. |
+
+**Files added / changed**
+- New: `src/app/likes/[[...view]]/page.tsx`, `src/components/sections/portal/likes/likes-view.tsx`, `src/components/pieces/cards/like-card.tsx`, `src/data/portal/likes.ts`, `src/lib/portal/likes.ts`
+- `src/lib/routes.ts` (`LIKES: "/likes"`), `src/lib/portal/views.ts` (area / view `likes`), `src/components/sections/portal/shared/portal-page.tsx`, `src/stores/portal-store.ts` (`getLikesPage`)
+- `src/lib/api/endpoints.ts`, `src/lib/api/types/discovery.ts` (`LikeReceivedItem`, `LikesReceivedData`, `LikeDecisionData`), `src/lib/api/modules/discovery-api.ts` (`likesReceived`, `matchLike`, `passLike` with cache refreshes), `src/lib/api/modules/cache-keys.ts`, `src/lib/screen-keys.ts`
+- `src/lib/portal/portal-service.ts` (`getLikesReceived`, `matchLike`, `passLike`), `api-portal-service.ts`, `mocks/mock-portal-service.ts` (marked mock: three likes)
+- `src/components/pieces/shells/header-menu.tsx` (heart before the bell), `src/components/sections/portal/discover/match-new-screen.tsx` (`keepLabel`), `src/lib/portal/deck-intent.ts` (`likesIntent`), `src/lib/control-sizes.ts` (`icon` button size, `layout.likesGrid`), `src/data/portal/types.ts` (`LikeReceived`, `LikesPage`)
+- New tests: `src/test/likes-received.contract.test.ts` (6), `src/lib/portal/likes.test.ts` (7), `src/components/sections/portal/likes/likes-entry.test.ts` (6)
+- Docs: `AGENTS.md` (rule 7 folder list, LikeCard and LikesView in the registry, Decisions "Phase 9" and "Phase 10")
+
+### Zoom matrix
+
+Mock production build, emulated zoom, LIKES with three cards, empty, and the match screen after Like. ✓ also means Pass and Like are visible inside every card and clickable, and at 100 % in the desktop windows the first card's buttons are on the first screen. **78 / 78 passed** (after P10-1 below; before it, 1280 × 800 and 1920 × 900 failed with the first card's buttons at 844 px of 800).
+
+| Route / state | 50 | 75 | 90 | 100 | 110 | 125 | 150 | 175 | 200 | 250 | 300 | 350 | 400 | 1920 × 1080 50 / 200 / 400 | Rule 3 widths | Desktop windows (rule 60) |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| LIKES (3 cards) | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | 3/3 | 7/7 | 3/3 |
+| LIKES empty | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | 3/3 | 7/7 | 3/3 |
+| LIKES match (MATCH-NEW) | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | 3/3 | 7/7 | 3/3 |
+
+- Grid: 3 columns in the 1440 frame with three cards (auto-fill 16rem tracks), 1 column at 360 px.
+- First card's buttons end at 787 px (1440 × 900), 787 (1280 × 800), 755 (1366 × 768), 1044 (1920 × 1080).
+- **P10-1 (fixed):** the 4:5 card photo pushed Pass / Like below the first screen at 1280 × 800; `likePhotoFrame` caps it by the viewport (`max(12rem, var(--svh) − 27rem)`), cropping from the top.
+
+### Back navigation
+
+| Path | Result |
+|---|---|
+| Heart → Likes → Back | history-first, fallback DISCOVER |
+| Likes → profile → Back | Likes, pages kept in the TanStack cache |
+| Likes → Like → match → Say hello → conversation → Back | Likes (handed over) |
+| Direct entry / refresh of /likes | loads; Back falls back to DISCOVER |
+
+### API checks
+- **Contract (`likes-received.contract.test.ts`):** the list maps photo, name, age, km, verified, Super Like and `meta` (page 2 / limit 20 in the query); paywall mode keeps the masked name and blurred photo; a like back returns the match and refreshes likes, matches and conversations; a pass refreshes likes; 409 / 404 count as a gone card, 429 doesn't.
+- **Live (handed over):** 302 maliha_t → 402 rohan_sen like and like back (match for both, conversation opens), 303 shreya_b → 401 omar_farooq pass (gone after refresh), 403 julian_vance receiving likes from both genders, paywall mode, paging, network shapes.
+
+**Backend / API blockers:** none known yet (the live check records any difference from the collection).
+
+**Remaining issues**
+- No count badge on the heart (it would add a request on every portal page); design-silent.
+- All LIKES copy is design-silent (no Figma frame), for owner approval.
+- Real zoom and the multi-account checks are with the browser tester.
+
+---
+
+## Phase 11: Matches, outcomes and match details
+
+Method: headless Chrome over CDP, zoom emulated as CSS viewports (`deviceScaleFactor` = zoom); no real-browser tool was connected, so real zoom is handed to the browser tester (`PHASE11_12_TEST_PROMPT.md`). Production build in **API mode** (staging) on port 3001, signed in as 404 tahmid_hasan (10 matches, all with completed dates). The owner's `next dev` on 3000 was stuck on a stale Turbopack error ("Export LikeCard doesn't exist", from an old `profile-decisions.tsx`) and was left alone.
+
+| | |
+|---|---|
+| Status | **Code done, automated checks done** (2026-11-18). Real-zoom and countdown-parity checks with the browser tester. |
+| Routes | `/matches`, `/matches/cancelled`, `/matches/complete`, `/matches/match/<nickname>` |
+
+**Audit (before changes)**
+- Grid fixed at `sm:2 / lg:3` columns; card photo a fixed 240px height (`h-60`), cropped centre.
+- Outcome tabs read only the first page and **showed nothing on a failed read**; the match detail **stayed blank on a failed read**.
+- Complete tab showed "Leave date feedback" on dates already rated (the API refuses a second rating).
+- Live: every card read "Say hello and make a plan." (sample copy) although the conversations had messages: `GET /matches` sends `lastMessagePreview: null` (blocker X10).
+- Sending / receiving a message never invalidated the matches cache, so previews stayed stale.
+- At 1440×900 the first card ended at 924px and the detail's "Plan a date" at 933px (rule 60 fail).
+- Already fine: countdown not a live region (`live={false}`), `expiresAt: null` → "Active match" without a timer, server-time correction, history-first Back (Phase 1), tabs are URLs.
+
+**Fixed**
+1. Grid `layout.matchesGrid` (auto-fill, 240px minimum); cards `min-w-0`, names / previews wrap (`break-anywhere`, preview 2 lines).
+2. Card photo 4:5 centre-top capped by `matchPhotoFrame` (7rem floor); outcome photos centre-top; detail venue image as the Figma 860×260 ratio capped by the viewport.
+3. Outcome tabs: cursor paging (`getOutcomes(tab, cursor)` → `{ outcomes, next }`, TanStack infinite query, "Show more"), load-failed state; detail load-failed state.
+4. Rated dates: only "View completed date" (`MatchOutcome.rated` from `latestDate.myRatingDone`).
+5. Card previews from the cached `GET /conversations` list (one request); a confirmed match without a message shows no line; `chatApi.send`, the inbox socket refresh and incoming messages invalidate `cacheKeys.matches`.
+6. Detail actions pinned above the tab bar below 1024px (`layout.stickyActions`); urgent badge `live={false}`.
+
+**Files:** `lib/control-sizes.ts`, `pieces/cards/match-card.tsx`, `pieces/cards/outcome-card.tsx`, `sections/portal/matches/matches-view.tsx`, `match-detail-view.tsx`, `data/portal/matches.ts`, `lib/api/modules/matches-api.ts`, `lib/api/modules/chat-api.ts`, `lib/portal/portal-service.ts`, `api-portal-service.ts`, `mocks/mock-portal-service.ts`, `api-chat-service.ts`; tests `lib/portal/server-clock.test.ts`, `test/matches.contract.test.ts`.
+
+**First screen (rule 60), 100 %, after:** first card bottom / detail "Plan a date" bottom — 1440×900: 892 / 870 ✓; 1280×800: 792 / 770 ✓; 1366×768: 792 (24px past the fold: three stacked 56px actions don't fit 768 with a photo) / 754 ✓; 1920×1080: 1068 / 1038 ✓. Screenshot at 1440×900 checked: four cards, real previews, aligned edges.
+
+**Zoom matrix (1440 window, after; API data, 10 cards)**
+
+| Zoom | CSS vp | `/matches` cols | overflow | `/matches/complete` | detail primary |
+|---|---|---|---|---|---|
+| 50 | 2880×1800 | 4 (scaled ×2) | none | 1 col, photo 480 | visible |
+| 75 | 1920×1200 | 4 | none | ✓ | visible |
+| 90 | 1600×1000 | 4 | none | ✓ | visible |
+| 100 | 1440×900 | 4 | none | ✓ | visible (870) |
+| 110 | 1309×818 | 4 | none | ✓ | visible |
+| 125 | 1152×720 | 4 | none | ✓ | scroll (≥1024, not sticky) |
+| 150 | 960×600 | 3 | none | ✓ | pinned |
+| 175 | 823×514 | 2 | none | ✓ | pinned |
+| 200 | 720×450 | 2 | none | ✓ | pinned |
+| 250 | 576×360 | 2 | none | ✓ | pinned |
+| 300 | 480×300 | 1 | none | ✓ | pinned |
+| 350 | 411×257 | 1 | none | ✓ | pinned |
+| 400 | 360×225 | 1 | none | ✓ (photo 264) | pinned |
+
+Tabs stay on one row at every level (`max-sm:flex-1`). No horizontal overflow and no element past the right edge anywhere. Zooming out keeps four columns and scales them (rule 59) rather than adding a fifth.
+
+**Back (client-side clicks, real trail)**
+
+| Path | Result |
+|---|---|
+| `/matches` → View match details → Back | `/matches` PASS |
+| `/matches` → Open chat → Back (400 %) | `/matches` PASS |
+| detail → Open conversation → Back (400 %) | detail PASS |
+| detail direct entry → Back | fallback `/matches` (data, unchanged) |
+
+**Tests:** `server-clock.test.ts` 5/5, `matches.contract.test.ts` 7/7.
+
+**Remaining:** countdown parity across two accounts needs an open match with a running clock (none in the seed data, X11). "View date" on a completed match opens DATE-PENDING (Phase 17). The Discover preferences card beside the detail shows an empty "Location" for tahmid_hasan (X12) and the sample defaults while loading (shared Phase 7 piece, not changed here).
+
+## Phase 12: Messaging A: inbox and the three-panel layout
+
+Method as Phase 11 (API mode, 404 tahmid_hasan, conversation with sadia_rahman: 6 messages).
+
+| | |
+|---|---|
+| Status | **Code done, automated checks done** (2026-11-18). Real zoom and the two-account live-row check with the browser tester. |
+| Routes | `/chats`, `/chats/<nickname>` (layout) |
+
+**Owner report, measured before changes (pane / message list / messages fully visible):** 1440×900: 748 / **386** / 4; 1309×818: 666 / 304 / 3; 1152×720: 584 / 222 / 2. Around the list: header 50, tools row 56, composer 86 (label + 56 input), action row 56, 24px padding, 16px gaps. Figma W05 CHAT-01 draws the same (400px list in a 760px pane); type matched Figma (16px messages, 20px name), so the space went to chrome, not type.
+
+**Fixed**
+1. Tools moved into the conversation header as 44px pills (wrap under the name when narrow); composer label screen-reader only (`FormField hideLabel`); pane padding 20, gaps 12, list padding 12, bubble padding 12/16.
+2. Columns: xl `clamp(240px,20%,320px) | 1fr | clamp(260px,22%,360px)`, lg `clamp(240px,24%,320px) | 1fr`.
+3. Context reachable at every width: below 1280 a member button in the header opens "Your connection" in `PortalDialog` (was hidden 768–1279 with no way to open it).
+4. Back above the conversation on single-pane widths (history-first, fallback INBOX).
+5. Pane floor 420 → 360px.
+6. INBOX and the side list ordered by the newest message on the client (`lib/portal/conversation-list.ts`).
+
+**After (pane / list / visible):** 1440×900: 748 / **508** / 6 ✓ (owner target 6–8); 1309×818: 666 / 426 / 4–5; 1152×720: 584 / 344 / 4.
+
+**Zoom matrix, `/chats/sadia_rahman` (composer + Send position, CSS px)**
+
+| Zoom | CSS vp | overflow | Send top–bottom | visible | layout |
+|---|---|---|---|---|---|
+| 50 | 2880×1800 | none | 1446–1558 | ✓ | 3 columns ×2, no bottom gap |
+| 75 | 1920×1200 | none | 964–1039 | ✓ | 3 columns |
+| 90 | 1600×1000 | none | 803–866 | ✓ | 3 columns |
+| 100 | 1440×900 | none | 723–779 | ✓ | 3 columns |
+| 110 | 1309×818 | none | 641–697 | ✓ | 3 columns |
+| 125 | 1152×720 | none | 551–607 | ✓ | list + chat, context in dialog |
+| 150 | 960×600 | none | 532–588 | ✓ | single pane, Back |
+| 175 | 823×514 | none | 446–502 | ✓ | single pane |
+| 200 | 720×450 | none | 382–438 | ✓ | single pane |
+| 250 | 576×360 | none | 254–310 | ✓ | phone, tab bar |
+| 300 | 480×300 | none | 194–250 | ✓ | phone |
+| 350 | 411×257 | none | 151–207 | ✓ | phone |
+| 400 | 360×225 | none | 131–187 | ✓ | phone, composer above the tab bar |
+
+`/chats` (INBOX) at 100 % and 400 %: no overflow, rows truncate names (`min-w-0 truncate`) and previews (2 lines).
+
+**Back:** `/chats/sadia_rahman` direct entry → Back = `/chats` PASS; `/chats` → row → Back = `/chats` PASS; `/matches` → Open chat → Back = `/matches` PASS.
+
+**Tests:** `lib/portal/conversation-list.test.ts` 6/6, `test/conversations.contract.test.ts` 3/3.
+
+**Not done / remaining:** live row update with two accounts (F sends to 404 while on `/chats`) handed to the browser tester. Conversations list reads one page of 50 without "Show more" (open matches are few); add cursor paging if the API ever returns more. Closed (read-only) conversations still list, so their history stays readable; the inbox drops only blocked ones.
+
+**Full run (2026-11-18, after both phases):** `npm test` 43 files / 365 tests passed (4 new files, 21 new tests; no existing test changed); `npm run lint` clean; `tsc --noEmit` clean; `next build` compiled with no warnings, then stopped on Next.js's security-upgrade notice (`SecurityFatalError`, the known 16.4.3 advisory; the output was complete and served).
+
+## Phases 7–14: status check (2026-11-18)
+
+The owner's tester (Antigravity) ran the browser checks for phases 7–14. Before marking them, the code was checked against each phase's deliverables:
+
+| Phase | Deliverables found in the code | Status |
+|---|---|---|
+| 7–10 | Sections above; `deck-intent`, `preference-facts`, `shared-interests`, `likes` with tests | **Done** |
+| 11 | Matches grid / paging / previews (Phase 11 section) | **Done** |
+| 12 | Three-panel chat, context dialog, conversation order (Phase 12 section) | **Done** |
+| 13 | `pieces/overlays/action-menu.tsx` + `action-menu.logic.ts` (+ test), `lib/portal/chat-optimistic.ts` (one bubble per message, + test), `chat-bubble-layout.ts` (+ test), bubbles on `MediaFrame` with tap-to-reveal time, the six-item "+" menu with icons | **Done.** One deviation: Voice uses `music-note-01`, since no `mic` glyph was exported |
+| 14 | `more-vertical` icon, `lib/portal/conversation-menu.ts` (+ test), block / unblock dialogs in `chat-view.tsx`, `/blocks` covered in `api-contract.test.ts` | **Done.** Unmatch is `notFunctional` (X1) |
+
+Whole suite at this point: 47 files / 383 tests passed. One first run had a single failure in the Google sign-in contract test that didn't happen again (a timing flake; noted, not changed).
+
+## Phases 15–18: date planning (venues, area, time, review, plan states, attendance, feedback)
+
+| | |
+|---|---|
+| Status | **Code done, unit tests done** (2026-11-18). The zoom matrix, Back walk-throughs and two-account checks are handed to the browser tester: `PHASE15_18_TEST_PROMPT.md`. |
+| Routes | `/dates/venues/<n>` (VENUES, VENUES-EMPTY, the new VENUES-AREA dialog), `/dates/place/<n>`, `/dates/time/<n>`, `/dates/review/<n>`, `/dates/plan/<n>` (all plan and attendance states), `/dates/manage/<n>`, `/dates/feedback/<n>`, `/dates/complete/<n>` |
+
+**Audit (before changes)**
+- **N2:** both "Change area" actions opened `/onboarding/location`, the onboarding step that `PATCH`es the profile location.
+- The VENUES map was a fixed `h-123` (492px) / `h-90`. The list column was taller than the first screen at 1440×900.
+- The place card kept a 112px photo beside the text at 360px (text column under 130px).
+- Direct entry to `/dates/place/<n>` with no chosen place rendered an empty page. `/dates/review/<n>` checked only for a date and time, not for a place.
+- The date picker allowed any future day, and the time list allowed times under an hour away. The API takes dates 1 hour to 14 days ahead, so the only error the user saw came after Send.
+- Send, Cancel and Skip feedback used `router.push`, so Back could reopen a review that had already been sent, or the cancel screen. The mock's returned plan wasn't put in the cache, so the next screen could read a stale plan.
+- DATE-CONFIRMED / plan screens: the member row came first, and the place was only a "Where" row.
+- **N3:** ATTENDANCE showed only the question (h1 "Did you meet…?"), without the date details. ATTENDANCE-WAIT and ATTENDANCE-REVIEW didn't show the details either.
+
+**Fixed**
+1. **Date-specific area (rule 55).** "Change area" opens **VENUES-AREA**, a `PortalDialog` client state on the VENUES URL (`sections/portal/dates/area-dialog.tsx`). It offers:
+   - "Use my current location", asked only from the click and rounded to 0.01°, or named after the nearest starter area;
+   - an area search over the starter list (`dateService.searchAreas`, which reuses `lib/onboarding/area-search.ts`);
+   - "Use the area around both of you", which clears the area.
+
+   `dateService.setPlanArea` saves `{ label, lat, lng }` in the plan draft only (`48date.dates.drafts` with the API, `48date.mock.dates` with the mock). The draft is validated on read and kept after the plan is sent. VENUES shows "Area: {label}". DateSummary shows an "Area" row on review, plan, manage, complete and attendance.
+2. **Venue ranking by area.** The API takes no location (X2). Suggestions are requested as before, from one cached run per match. Then they are ranked by haversine distance from the area centre and filtered to 15 km. Each card says "{x} km from {area}". With nothing in range, VENUES-EMPTY says "No suggested public places are within 15 km of {area}." The mock's sample places sit in San Francisco, so a Dhaka area shows the empty state.
+3. **Dhaka neighbourhoods** added to the starter area list (Gulshan, Banani, Baridhara, Bashundhara, Uttara, Mirpur, Mohakhali, Dhanmondi, Lalmatia, Mohammadpur). All test accounts live there, and the list only had "Dhaka". The list is shared with onboarding LOCATION and SETTINGS-LOCATION, which can now offer these too.
+4. **Map and list layout.** The map is the Figma 672:492 ratio, capped by the viewport (`venueMapFrame`). From 1024px the list scrolls inside the same height (`venueListFrame`). Pins are positioned in %.
+5. **Place card.** A container query keeps the 112×128 photo beside the text only when the text column keeps at least 160px; otherwise the photo stacks on top at 16:9. The place detail hero uses the Figma 860:260 ratio.
+6. **Direct entry.** `/dates/place/<n>` with no place, and `/dates/review/<n>` with no place, date or time, now open the missing step with `replaceRoute`.
+7. **Date window.** `DatePicker` takes `max` (today + 14). TIME-PICKER lists only slots 1 hour to 14 days ahead in the plan's timezone (`dateWindowError` in `lib/portal/date-format.ts`), with a "No times are left on this day" note when none are left. Submit shows "at least an hour from now" or "within the next 14 days". The API's own 4xx reason still shows through `failureReason`.
+8. **Navigating away after a finished step.** Send invitation, Cancel date and Skip feedback put the returned plan in the cache, then use `replaceRoute`, so Back can't reopen the finished step.
+9. **Details first (requirement 7.4).** `DateSummary` is now a details card: the place as an h2, then When, Timezone, Area and Meeting place (plus Weather on review). The partner row comes after it. This applies to review, pending, received, confirmed, manage, complete and every after-date state.
+10. **Attendance (N3).**
+    - The page h1 is "Your date with {name}".
+    - The details card comes first, then a secondary "Have you met?" section (h2, 14px scale).
+    - The two radios now drive one primary button: "We met" records attendance, "We didn't meet" opens NO-SHOW.
+    - ATTENDANCE-WAIT and ATTENDANCE-REVIEW show the details first too, then their summary and actions.
+    - The order comes from `attendanceSections()` and is unit-tested.
+11. The plan-state mapping (`statusOf`, `attendanceOf`) moved out of the API service into `lib/portal/date-plan-state.ts`, with `planScreen()` for PlanView's branching. Its behaviour is unchanged and covered by the existing contract tests.
+
+**Checked and unchanged:**
+- Back is already history-first everywhere through `PortalBack`. Its fallbacks are: VENUES → conversation, PLACE → VENUES, TIME → PLACE, REVIEW → TIME, plan → conversation, manage → plan, feedback → plan, complete → MATCHES-COMPLETE.
+- Live plan updates come through `dateService.watch` (socket `date:*`). The mock still polls a pending plan every 2s, as before (mock only).
+- Weather on review, and one open plan per match (withdraw or decline before the new invitation).
+
+**Files:**
+- `data/portal/dates.ts`, `data/onboarding/location.ts`;
+- `lib/portal/date-area.ts` (new), `date-plan-state.ts` (new), `date-format.ts`, `date-service.ts`, `api-date-service.ts`, `mocks/mock-date-service.ts`;
+- `lib/onboarding/area-search.ts` (exports `distanceKm`), `lib/control-sizes.ts`, `lib/screen-keys.ts`;
+- `pieces/cards/place-card.tsx`, `pieces/forms/date-picker.tsx`;
+- `sections/portal/dates/area-dialog.tsx` (new), `venues-view.tsx`, `place-view.tsx`, `time-view.tsx`, `review-view.tsx`, `plan-view.tsx`, `manage-view.tsx`, `feedback-view.tsx`, `date-summary.tsx`.
+
+**New tests (all pass):**
+
+| File | Tests | Covers |
+|---|---|---|
+| `lib/portal/date-area.test.ts` | 9 | Ranking, radius, validation, device naming; the guard that the dates data never links LOCATION / SETTINGS-LOCATION and the date screens never call `saveLocation` / `accountService` / `onboardingService`; the API service stores the area in the draft, re-ranks without a second suggestions run, never `PATCH`es, and drops a tampered draft |
+| `lib/portal/date-format.test.ts` | 4 | `scheduledAt` incl. the London DST change; the 1 h / 14 d window; the plan's timezone |
+| `lib/portal/date-plan-state.test.ts` | 5 | Every API status, incl. CANCELLED + DECLINED; expiry; attendance |
+| `lib/portal/attendance.test.ts` | 2 | Section order; a skipped feedback sends no rating |
+
+The confirm, rating, venue-run and plan contracts were already covered in `test/api-contract.test.ts` (the "live API shapes" and "dates" blocks), so no new contract file was needed.
+
+**Full run (2026-11-18):** `npm test` 51 files / 403 tests passed (20 new tests; no existing test changed). `npm run lint` and `tsc --noEmit` clean. `next build`: the first run stopped on Next.js's security-upgrade notice; the retry compiled with no warnings, exit 0.
+
+**Not run here (handed to the tester, `PHASE15_18_TEST_PROMPT.md`):**
+- the 13-level zoom matrix and the rule 3 widths on every date route and dialog;
+- the 1440×900 first-screen screenshots;
+- the Back walk-throughs;
+- M1 ↔ F5 area / invitation / accept / postpone live checks, and the `GET /users/me` location before / after proof.
+
+**Backend / API blockers:**
+- X1 (Unmatch).
+- X2 (venue suggestions take no area; asked for `{ latitude, longitude, radiusKm }` or `{ areaLabel }` on `POST /matches/:id/venue-suggestions`).
+- X8 (ATTENDANCE needs a date that is SET and past, or AWAITING_CONFIRMATION; the seed's dates are COMPLETED, so they show DATE-COMPLETE / FEEDBACK-DONE only).
+
+**Remaining / design-silent (for owner approval):**
+- The area dialog copy and the 15 km radius.
+- One primary attendance button driven by the radios (Figma drew two buttons).
+- The details card heading uses the 20px card scale.
+- No "open in maps" link: it would be an external link, and none exists in data.
+
+**Right-side blank band (owner report, 2026-11-18):**
+- In the screenshot the page's own scrollbar sits about 1440px from the left inside a 1920px Chrome window marked "controlled by automated test software".
+- A page can't draw past its own scrollbar, so the page viewport was about 1440px wide. That points to the test tool's leftover viewport emulation (`Emulation.setDeviceMetricsOverride`), not a CSS gap.
+- The fix on the tester's side: clear the override, or use a fresh window. This is step 0 of `PHASE15_18_TEST_PROMPT.md`.
+- **Checked:** the production build, rendered headless at a 1904px viewport, fills the full width on `/signin` (auth frame, `fit-portal` scale) and `/terms` (`fit-landing`). Headers reach the right edge and the scrollbar sits at the true edge, with no band. The signed-in portal wasn't rendered here; it uses the same body zoom-fit.
+- If the band still shows in a fresh normal Chrome window at 100 %, report it with the window size, and it gets fixed in CSS.
+
+## Phases 7–18: status re-check (2026-11-18, second pass)
+
+- The owner reports that the tester (Antigravity) browser-tested phases 15–18.
+- Since the last pass, no code in scope changed. The tester didn't append results to this report, and `PHASE15_18_TEST_PROMPT.md` has been removed from the repo.
+- Phases 7–18 are **Done**. For phases 15–18 the browser matrix figures aren't recorded here; they stay with the tester.
+
+## Phases 19–21: games, stories feed, story details
+
+| | |
+|---|---|
+| Status | **Code done, unit and contract tests done** (2026-11-18). The zoom matrix, Back walk-throughs and two-account checks are handed to the browser tester: `PHASE19_21_TEST_PROMPT.md`. |
+| Routes | `/games/<n>` (GAMES, GAME-QUESTION, GAME-WAIT, GAME-RESULT, GAME-LEFT, GAME-LEAVE), `/stories`, `/stories/story/<id>` (STORY-DETAIL, COMMENT-SENT, the consent view, the new unavailable state); STORY-MINE shares the story body |
+
+**Audit (before changes)**
+- Games:
+  - GAMES (the intro) had no Back control.
+  - The art box was a fixed `h-129` / `h-70`.
+  - The picture choice was a fixed 169×120px.
+  - The choices sat in a fixed `sm:grid-cols-2` grid.
+  - Next / Continue wasn't pinned at short heights.
+  - The data Back fallback is INBOX, but the view already overrides it with the member's conversation.
+- **Stories feed:**
+  - Photos were cropped (`object-cover`, fixed `h-75` / `h-56`).
+  - Only the first 20 stories were read, with no "Show more", loading, empty or error state.
+  - "Share your story" was only at the bottom of the column, and in the aside that is hidden from 768 to 1279 (**N7**).
+- **Story detail:**
+  - The photo was cropped to 350px (**N6**).
+  - An unknown or unpublished id rendered a blank page.
+  - A failed comment post threw and left the button stuck on "Posting…".
+  - Comments couldn't be paged or deleted.
+  - **Like could never be undone:** `toggleLike` always sent `POST /like`. The API unlikes with `DELETE /like`, and its response names the count `likeCount`, not `likesCount`.
+
+**Fixed**
+1. **Games.**
+   - Back on every game state is history-first, with the member's conversation as the fallback. During a question or wait it still opens GAME-LEAVE.
+   - The art is the 856:515 ratio, capped by the viewport (`gameArtFrame`).
+   - Choices use `layout.choicesGrid` (`repeat(auto-fit, minmax(min(100%, 10rem), 1fr))`), so they stack when narrow. The picture is `aspect-[169/120]` up to 169px, cover.
+   - The question / wait action row is pinned above the tab bar below 1024px (`layout.stickyActions`).
+   - The resume / count / gating logic moved into `lib/portal/game-progress.ts`. Its behaviour is unchanged: ten rounds, resume at the first unanswered question, nothing revealed before GAME-RESULT.
+2. **Feed.**
+   - Cursor paging: `storyService.getStoryPage`, an infinite query, "Show more stories".
+   - Load-failed and empty states.
+   - Cards in `layout.storiesGrid` (auto-fill 20rem columns, `items-start`).
+   - Photos through `MediaFrame` at their own ratio, capped by the `card` height (9:16 never makes a giant card).
+   - "Share your story" and "My shared story" sit in the header below 1280px (`xl:hidden`). From 1280 the aside carries them, so they aren't duplicated. The bottom duplicate was removed.
+3. **Story detail.**
+   - The photo is shown through `MediaFrame` (its own ratio, measured on load, `story` height cap). This also applies to STORY-MINE.
+   - An unknown id shows "This story isn't available" with "Back to stories".
+   - Load errors show `LoadFailed`.
+   - Comments are paged (`getComments`, "Show earlier comments", no duplicates across pages). The member's own comments show as "You" with Delete behind a confirmation dialog (`DELETE /success-stories/:id/comments/:commentId`).
+   - A failed post keeps the text and shows the reason.
+   - Like / unlike sends POST or DELETE by the current state and shows the server's count. A failure shows a note.
+4. Media height tokens: `story` 45 % of the viewport (max 28rem) and `card` 36 % (max 20rem), for the first-screen fit (rule 60). Neither was used anywhere before.
+
+**Files:**
+- `data/portal/stories.ts`;
+- `lib/api/modules/stories-api.ts` (paged feed and comments, `unlike`, `deleteComment`), `lib/portal/story-service.ts`, `api-story-service.ts`, `mocks/mock-story-service.ts`, `lib/portal/story-comments.ts` (new), `lib/portal/game-progress.ts` (new);
+- `lib/media/aspect.ts` (`frameStyle`), `lib/control-sizes.ts`;
+- `pieces/media/media-frame.tsx`, `pieces/forms/picture-choice.tsx`;
+- `sections/portal/games/game-view.tsx`, `sections/portal/stories/stories-view.tsx`, `story-view.tsx`, `story-body.tsx`.
+
+**New tests (all pass):**
+
+| File | Tests | Covers |
+|---|---|---|
+| `lib/portal/game-progress.test.ts` | 5 | Resume index; the result count; Next gated on the partner's answer |
+| `lib/portal/story-image.test.ts` | 9 | 16:9 / 9:16 / 4:3 / 3:4 / 1:1 / 21:9 at their own ratio; 1:3 letterboxed in 9:21; the 4:3 placeholder; the height cap narrows the width by the same ratio |
+| `lib/portal/story-comments.test.ts` | 2 | Pages merged without duplicates; removal after delete |
+| `test/stories.contract.test.ts` | 5 | Feed cursor; like POST / unlike DELETE (`likeCount`); comments paged with own comments marked; post; delete |
+
+Games endpoints were already covered in `api-contract.test.ts`.
+
+**Full run:** `npm test` 55 files / 424 tests passed (21 new tests; no existing test changed). `npm run lint` and `tsc --noEmit` clean. `next build` compiled with no warnings (exit 0).
+
+**Backend / API blockers:**
+- X3: story photos have no width / height, so the frame shows 4:3 until the photo loads.
+- The unlike response names the count `likeCount`, while the like response says `likesCount`. Both are read; the backend should use one name.
+
+**Remaining / design-silent (for owner approval):**
+- The feed / comment / unavailable / delete copy.
+- Delete shown only on the member's own comments. "Own" is matched by nickname against `/users/me`, since comments have no author id or `isMine` flag; the backend could add `isMine`.
+- The feed has no like button; the like toggle stays on the detail page, as drawn.
 
 ## Phase section template (copy for each phase)
 

@@ -28,3 +28,9 @@ export function frameRatio(width?: number | null, height?: number | null): numbe
   const ratio = ratioOf(width, height);
   return ratio === null ? PLACEHOLDER_RATIO : clampRatio(ratio);
 }
+
+/** The frame's CSS box: its ratio, at most `maxHeight` tall, and narrowed so a capped photo keeps that ratio. */
+export function frameStyle(ratio: number, maxHeight: string) {
+  const aspect = cssAspect(ratio);
+  return { aspectRatio: aspect, maxHeight, maxWidth: `calc(${maxHeight} * ${aspect})` };
+}

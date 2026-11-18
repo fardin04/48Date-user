@@ -5,7 +5,7 @@ import { useState } from "react";
 import { cn } from "@/lib/cn";
 import { mediaHeights, type MediaHeight } from "@/lib/control-sizes";
 import { isRawImage } from "@/lib/image";
-import { cssAspect, frameRatio } from "@/lib/media/aspect";
+import { frameRatio, frameStyle } from "@/lib/media/aspect";
 import { surfaces } from "@/lib/tones";
 import { Reveal } from "@/components/pieces/layout/reveal";
 
@@ -40,7 +40,7 @@ export function MediaFrame({ src, alt, width, height, maxHeight, sizes, rounded 
     <Reveal delay={revealDelay} className={cn("w-full", className)}>
       <div
         className={cn("relative mx-auto w-full overflow-hidden", radii[rounded], surfaces.media)}
-        style={{ aspectRatio: cssAspect(ratio), maxHeight: max, maxWidth: `calc(${max} * ${cssAspect(ratio)})` }}
+        style={frameStyle(ratio, max)}
       >
         <Image
           src={src}

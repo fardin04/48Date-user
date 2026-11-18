@@ -16,7 +16,10 @@ import { Text } from "@/components/pieces/content/text";
 import { Button } from "@/components/ui/button";
 import type { ImageAsset } from "@/data/types";
 import type { MemberId } from "@/data/portal/types";
+import { cn } from "@/lib/cn";
+import { gameArtFrame, layout } from "@/lib/control-sizes";
 import { fill } from "@/lib/format";
+import { answersInCommon, partnerAnswered, resumePoint } from "@/lib/portal/game-progress";
 import { gameService, type GameState } from "@/lib/portal/game-service";
 import { failureReason } from "@/lib/portal/failure";
 import { forMember } from "@/lib/portal/member-link";
@@ -28,10 +31,10 @@ import { Workspace } from "@/components/sections/portal/shared/workspace";
 
 type Phase = "intro" | "question" | "wait" | "result" | "left";
 
-/** 856×515 "Media / game" art on GAMES and GAME-RESULT. */
+/** 856×515 "Media / game" art on GAMES and GAME-RESULT: the frame's ratio, capped by the viewport so the actions share the first screen. */
 function GameArt({ art }: { art: ImageAsset }) {
   return (
-    <div className="relative h-129 w-full overflow-hidden rounded-16 max-md:h-70">
+    <div className={cn("relative w-full overflow-hidden rounded-16", gameArtFrame)}>
       <Image src={art.src} alt={art.alt} fill sizes="(min-width: 1280px) 860px, 100vw" className="object-contain" />
     </div>
   );
@@ -107,14 +110,10 @@ export function GameView({ memberId }: { memberId: MemberId }) {
       setGame(state);
       setAnswers(state.answers);
       setPartner(state.partner);
-      const count = state.questions.length;
-      if (state.answers.length >= count && state.partner.length >= count) return setPhase("result");
-      if (state.answers.length > state.partner.length) {
-        const at = state.answers.length - 1;
-        setRound(at);
-        return void sendRound(at, state.answers[at]);
-      }
-      setRound(state.answers.length);
+      const next = resumePoint(state);
+      setRound(next.round);
+      if (next.phase === "result") return setPhase("result");
+      if (next.phase === "wait") return void sendRound(next.round, state.answers[next.round]);
       setChoice("");
       setPhase("question");
     } catch (error) {
@@ -141,7 +140,7 @@ export function GameView({ memberId }: { memberId: MemberId }) {
   const back = <PortalBack action={{ ...copy.back, to: toItem("CHAT-01", memberId) }} onClick={phase === "question" || phase === "wait" ? () => setLeaving(true) : undefined} />;
   const question = questions[round];
   const prompt = fill(copy.question.prompt, { round: roundNumber, total, prompt: question.prompt });
-  const answered = partner.length > round;
+  const answered = partnerAnswered(partner, round);
 
   const leaveDialog = (
     <PortalDialog
@@ -184,6 +183,7 @@ export function GameView({ memberId }: { memberId: MemberId }) {
     const { intro } = copy;
     return (
       <Workspace aside={aside}>
+        {back}
         <FormHeader variant="portal" title={intro.title} description={intro.description} />
         <GameArt art={intro.art} />
         <GameCard title={intro.card.title} description={intro.card.description} body={intro.body} />
@@ -199,7 +199,7 @@ export function GameView({ memberId }: { memberId: MemberId }) {
 
   if (phase === "result") {
     const { result } = copy;
-    const common = answers.filter((answer, index) => answer === partner[index]).length;
+    const common = answersInCommon(answers, partner);
     const first = questions[0].choices.find((option) => option.value === answers[0]);
     const description = first && answers[0] === partner[0] ? fill(result.matched, { choice: first.noun ?? first.label }) : result.general;
     return (
@@ -226,7 +226,7 @@ export function GameView({ memberId }: { memberId: MemberId }) {
         description={waiting ? fill(copy.wait.description, { name }) : fill(copy.question.description, { round: roundNumber, total })}
       />
       <StatusNote variant="highlight" message={prompt} />
-      <fieldset className="grid w-full gap-3 sm:grid-cols-2 lg:max-w-178">
+      <fieldset className={layout.choicesGrid}>
         <legend className="sr-only">{copy.question.legend}</legend>
         {question.choices.map((option) => (
           <PictureChoice
@@ -242,7 +242,8 @@ export function GameView({ memberId }: { memberId: MemberId }) {
         ))}
       </fieldset>
       {waiting && <StatusNote variant="highlight" message={fill(answered ? copy.wait.answered : copy.wait.waiting, { name })} />}
-      <ActionRow>
+      {/* Pinned above the tab bar on narrow / zoomed screens, so Next stays reachable (rule 49). */}
+      <ActionRow className={layout.stickyActions}>
         {waiting ? (
           <>
             <Button type="button" variant="confirm" size="portalPill" width="actionSlot" disabled={!answered} aria-busy={!answered || undefined} onClick={advance}>

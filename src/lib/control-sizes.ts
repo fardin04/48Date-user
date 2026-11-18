@@ -105,10 +105,10 @@ export type IconSize = keyof typeof iconSizes;
  * narrows to keep its ratio, so a 9:16 story never fills more than this of the screen.
  */
 export const mediaHeights = {
-  /** Story photo on STORY-DETAIL / STORY-MINE. */
-  story: "min(calc(var(--svh) * 0.7), 40rem)",
-  /** Story card in the feed. */
-  card: "min(calc(var(--svh) * 0.5), 26rem)",
+  /** Story photo on STORY-DETAIL / STORY-MINE: under half the viewport, so the story card starts on the first screen (rule 60). */
+  story: "min(calc(var(--svh) * 0.45), 28rem)",
+  /** Story card in the feed: a 9:16 photo never makes a card taller than about a third of the screen. */
+  card: "min(calc(var(--svh) * 0.36), 20rem)",
   /** Photo sent in a conversation. */
   attachment: "min(calc(var(--svh) * 0.5), 20rem)",
   /** Preview before uploading or sending. */
@@ -162,6 +162,8 @@ export const matchPhotoFrame = "max-h-[max(7rem,calc(var(--svh)-43rem))]";
  * heading, recommendation, area line, map note and actions) so the whole composition fits 1440×900.
  * Beside it (≥1024) the place list scrolls inside the same height.
  */
+/** GAMES / GAME-RESULT art: the 856×515 frame as a ratio, capped (30rem: header, heading, card and actions) so the actions fit 1440×900. */
+export const gameArtFrame = "aspect-[856/515] max-h-[min(32.25rem,max(10rem,calc(var(--svh)-30rem)))]";
 export const venueMapFrame = "aspect-[672/492] max-h-[min(30.75rem,max(12rem,calc(var(--svh)-32rem)))]";
 export const venueListFrame = "lg:max-h-[min(34.5rem,max(16rem,calc(var(--svh)-28.25rem)))] lg:overflow-y-auto";
 
@@ -202,5 +204,9 @@ export const layout = {
   likesGrid: "grid w-full grid-cols-[repeat(auto-fill,minmax(min(100%,16rem),1fr))] gap-4",
   /** MATCHES cards: as many 240px-plus columns as fit, one at 360px (the Figma frame shows three in 856px). */
   matchesGrid: "grid w-full grid-cols-[repeat(auto-fill,minmax(min(100%,15rem),1fr))] gap-6",
+  /** STORIES feed: 320px-plus columns (two in the 904 workspace, one at 360px); cards keep their own heights (photos at their own ratio). */
+  storiesGrid: "grid w-full grid-cols-[repeat(auto-fill,minmax(min(100%,20rem),1fr))] items-start gap-6",
+  /** GAME-QUESTION choices: side by side while each keeps 10rem, stacked below that. */
+  choicesGrid: "grid w-full grid-cols-[repeat(auto-fit,minmax(min(100%,10rem),1fr))] gap-3 lg:max-w-178",
   stickyActions: "max-lg:sticky max-lg:bottom-0 max-sm:bottom-16 max-sm:short:bottom-11 max-lg:z-10 max-lg:bg-white max-lg:py-3 max-lg:short:py-1.5",
 } as const;

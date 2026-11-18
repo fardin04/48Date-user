@@ -1,26 +1,44 @@
 import { cached, invalidate } from "../cache";
 import { api } from "../client";
 import { endpoints } from "../endpoints";
+import type { CursorMeta } from "../types/envelope";
 import type { ApiStory, ApiStoryComment, EligibleDate, StoryBody } from "../types/stories";
 import { cacheKeys } from "./cache-keys";
 
 const MINUTE = 60_000;
+const PAGE = 20;
+const commentKey = (id: string) => [...cacheKeys.stories, "raw", "comments", id];
+const paged = <T>(result: { data: T; meta?: unknown }) => ({ data: result.data, meta: result.meta as CursorMeta | undefined });
 
 /** User / 14 - Success Stories. */
 export const storiesApi = {
-  /** Approved stories, newest first (first page). */
-  feed: () => cached([...cacheKeys.stories, "raw", "feed"], MINUTE, () => api.get<ApiStory[]>(endpoints.stories.feed, { query: { limit: 20 } })),
+  /** Approved stories, newest first: the page from `cursor` (the first without). */
+  feed: (cursor?: string) =>
+    cached([...cacheKeys.stories, "raw", "feed", cursor ?? ""], MINUTE, async () => paged(await api.get<ApiStory[]>(endpoints.stories.feed, { query: { limit: PAGE, cursor } }))),
   detail: (id: string) => cached([...cacheKeys.stories, "raw", "detail", id], MINUTE, () => api.get<ApiStory>(endpoints.stories.detail(id))),
-  comments: (id: string) => api.get<ApiStoryComment[]>(endpoints.stories.comments(id), { query: { limit: 50 } }),
+  /** A story's comments, a page from `cursor` (the first without). */
+  comments: (id: string, cursor?: string) =>
+    cached([...commentKey(id), cursor ?? ""], MINUTE, async () => paged(await api.get<ApiStoryComment[]>(endpoints.stories.comments(id), { query: { limit: PAGE, cursor } }))),
   async addComment(id: string, body: string) {
     const result = await api.post<ApiStoryComment>(endpoints.stories.comments(id), { body: { body } });
-    invalidate([...cacheKeys.stories, "raw", "detail", id], [...cacheKeys.stories, "detail", id]);
+    invalidate([...cacheKeys.stories, "raw", "detail", id], [...cacheKeys.stories, "detail", id], commentKey(id));
+    return result;
+  },
+  async deleteComment(id: string, commentId: string) {
+    const result = await api.delete<{ deleted: boolean; commentId: string }>(endpoints.stories.comment(id, commentId));
+    invalidate([...cacheKeys.stories, "raw", "detail", id], [...cacheKeys.stories, "detail", id], commentKey(id));
     return result;
   },
   mine: () => cached([...cacheKeys.myStories, "raw"], 30_000, () => api.get<ApiStory[]>(endpoints.users.stories)),
   eligibleDates: () => cached([...cacheKeys.myStories, "raw", "eligible"], MINUTE, () => api.get<EligibleDate[]>(endpoints.users.storyEligibleDates)),
   async like(id: string) {
     const result = await api.post<{ isLiked: boolean; likesCount: number }>(endpoints.stories.like(id));
+    invalidate([...cacheKeys.stories, "raw"]);
+    return result;
+  },
+  /** The unlike response names the count `likeCount` (the like response says `likesCount`). */
+  async unlike(id: string) {
+    const result = await api.delete<{ isLiked: boolean; likeCount?: number; likesCount?: number }>(endpoints.stories.like(id));
     invalidate([...cacheKeys.stories, "raw"]);
     return result;
   },

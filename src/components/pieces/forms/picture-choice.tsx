@@ -30,8 +30,8 @@ export function PictureChoice({ name, value, label, image, checked, disabled, on
       >
         <input type="radio" name={name} value={value} checked={checked} disabled={disabled} onChange={onSelect} className="sr-only" />
         {image && (
-          <span className="relative block h-30 w-42 overflow-hidden rounded-16">
-            <Image src={image.src} alt={image.alt} fill sizes="169px" className="object-cover" />
+          <span className="relative block aspect-[169/120] w-full max-w-42 overflow-hidden rounded-16">
+            <Image src={image.src} alt={image.alt} fill sizes="(max-width: 400px) 80vw, 169px" className="object-cover" />
           </span>
         )}
         <span className="flex w-full flex-col items-start gap-3">

@@ -68,6 +68,10 @@ export const storiesPage = {
     meta: "{couple} · {met}",
     read: "Read their story",
     share: { label: "Share your story", to: to("STORY-CREATE") } satisfies Action,
+    /** Paging and empty / error lines (design-silent; for owner approval). */
+    more: "Show more stories",
+    loadingMore: "Loading…",
+    empty: "No stories have been shared yet. Yours could be the first.",
   },
   context: {
     title: "Your story, your choice",
@@ -98,6 +102,19 @@ export const storiesPage = {
     /** Likes and the partner's consent (design-silent; for owner approval). */
     like: "Like · {count}",
     liked: "Liked · {count}",
+    /** Comment paging, deletion and failures (design-silent; for owner approval). */
+    earlier: "Show earlier comments",
+    deleteComment: "Delete",
+    deleteLabel: "Delete your comment",
+    deleteDialog: { title: "Delete your comment?", description: "It will be removed from this story for everyone.", confirm: "Delete comment", deleting: "Deleting…", keep: "Keep comment", close: "Close" },
+    commentFailed: "Your comment wasn’t posted. Check your connection and try again.",
+    actionFailed: "That didn’t go through. Try again.",
+    unavailable: {
+      title: "This story isn’t available",
+      description: "It may have been removed, or it hasn’t been published yet.",
+      summary: { icon: book, title: "Nothing to show here", description: "Browse other stories from the 48Date community." } satisfies StatusSummaryCopy,
+      primary: { label: "Back to stories", to: to("STORIES") } satisfies Action,
+    },
     consent: {
       note: "{name} wants to share this story about your date. It will be reviewed before anyone sees it.",
       approve: "Approve story",
