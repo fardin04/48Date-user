@@ -30,7 +30,7 @@ import { Workspace } from "@/components/sections/portal/shared/workspace";
 export function ManageView({ memberId }: { memberId: MemberId }) {
   const copy = getDatePage();
   const router = useRouter();
-  const { plan } = useDatePlan(memberId);
+  const { plan, setPlan } = useDatePlan(memberId);
   const [dialog, setDialog] = useState<"cancel" | "reason" | null>(null);
   const [reason, setReason] = useState<CancelReason>(copy.reasonDialog.reasons[0].value);
   const [picked, setPicked] = useState<CancelReason>(reason);
@@ -48,7 +48,7 @@ export function ManageView({ memberId }: { memberId: MemberId }) {
   const reasonLabel = copy.reasonDialog.reasons.find((option) => option.value === reason)?.label ?? "";
 
   const cancel = async () => {
-    if (await run(() => dateService.cancel(memberId, reason, message.trim()))) router.push(hrefFor("DATE-PENDING", memberId));
+    if (await run(async () => setPlan(await dateService.cancel(memberId, reason, message.trim())))) replaceRoute(router, hrefFor("DATE-PENDING", memberId));
     else setDialog(null);
   };
   const openReason = () => {

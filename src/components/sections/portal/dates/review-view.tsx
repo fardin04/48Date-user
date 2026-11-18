@@ -27,20 +27,22 @@ import { Workspace } from "@/components/sections/portal/shared/workspace";
 export function ReviewView({ memberId }: { memberId: MemberId }) {
   const copy = getDatePage();
   const router = useRouter();
-  const { plan } = useDatePlan(memberId);
+  const { plan, setPlan } = useDatePlan(memberId);
   const { busy, failure, run } = useServiceAction(getDatePage().failed);
   const weather = useLoaded([...screenKeys.venues(memberId), "weather", plan?.date ?? ""], () => dateService.getWeather(memberId), { enabled: Boolean(plan?.date) }).value;
-  const incomplete = plan !== null && (!plan.date || plan.time === null);
+  // Nothing to review yet (direct visit): open the first missing step — the place, then the date and time.
+  const missing = plan === null ? null : !plan.place.name ? "VENUES" : !plan.date || plan.time === null ? "DATE-TIME" : null;
+  const incomplete = missing !== null;
 
-  // Nothing to review yet (direct visit): choose the date and time first.
   useEffect(() => {
-    if (incomplete) replaceRoute(router, hrefFor("DATE-TIME", memberId));
-  }, [incomplete, memberId, router]);
+    if (missing) replaceRoute(router, hrefFor(missing, memberId));
+  }, [missing, memberId, router]);
 
   if (!plan || incomplete) return null;
   const name = getMemberName(memberId);
   const send = async () => {
-    if (await run(() => dateService.sendInvitation(memberId))) router.push(hrefFor("DATE-PENDING", memberId));
+    // Sent: replace, so Back from the plan can't reopen the sent review (rule 51); the service invalidated the date and match keys.
+    if (await run(async () => setPlan(await dateService.sendInvitation(memberId)))) replaceRoute(router, hrefFor("DATE-PENDING", memberId));
   };
 
   return (

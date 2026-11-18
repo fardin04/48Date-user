@@ -77,4 +77,15 @@ export const areas: Area[] = [
   { id: "edinburgh", name: "Edinburgh", label: "Edinburgh", region: "United Kingdom", countryCode: "GB", center: [55.95, -3.19] },
   { id: "cardiff", name: "Cardiff", label: "Cardiff", region: "United Kingdom", countryCode: "GB", center: [51.48, -3.18] },
   { id: "belfast", name: "Belfast", label: "Belfast", region: "United Kingdom", countryCode: "GB", center: [54.6, -5.93] },
+  // Dhaka neighbourhoods (approximate centres), so a date area can be narrower than the city.
+  { id: "gulshan", name: "Gulshan", label: "Gulshan, Dhaka", region: "Bangladesh", countryCode: "BD", center: [23.78, 90.42] },
+  { id: "banani", name: "Banani", label: "Banani, Dhaka", region: "Bangladesh", countryCode: "BD", center: [23.79, 90.4] },
+  { id: "baridhara", name: "Baridhara", label: "Baridhara, Dhaka", region: "Bangladesh", countryCode: "BD", center: [23.8, 90.42] },
+  { id: "bashundhara", name: "Bashundhara", label: "Bashundhara, Dhaka", region: "Bangladesh", countryCode: "BD", center: [23.82, 90.43] },
+  { id: "uttara", name: "Uttara", label: "Uttara, Dhaka", region: "Bangladesh", countryCode: "BD", center: [23.87, 90.4] },
+  { id: "mirpur", name: "Mirpur", label: "Mirpur, Dhaka", region: "Bangladesh", countryCode: "BD", center: [23.81, 90.37] },
+  { id: "mohakhali", name: "Mohakhali", label: "Mohakhali, Dhaka", region: "Bangladesh", countryCode: "BD", center: [23.78, 90.4] },
+  { id: "dhanmondi", name: "Dhanmondi", label: "Dhanmondi, Dhaka", region: "Bangladesh", countryCode: "BD", center: [23.75, 90.37] },
+  { id: "lalmatia", name: "Lalmatia", label: "Lalmatia, Dhaka", region: "Bangladesh", countryCode: "BD", center: [23.76, 90.37] },
+  { id: "mohammadpur", name: "Mohammadpur", label: "Mohammadpur, Dhaka", region: "Bangladesh", countryCode: "BD", center: [23.76, 90.36] },
 ];

@@ -16,7 +16,7 @@ import { Button } from "@/components/ui/button";
 import type { MemberId } from "@/data/portal/types";
 import { cn } from "@/lib/cn";
 import { fill } from "@/lib/format";
-import { addDays, formatFullDay, formatShortDay, formatTime, hasPassed, todayIso } from "@/lib/portal/date-format";
+import { addDays, DATE_WINDOW, dateWindowError, formatFullDay, formatShortDay, formatTime, todayIso } from "@/lib/portal/date-format";
 import { dateService, type DatePlan } from "@/lib/portal/date-service";
 import { useDatePlan } from "@/hooks/use-date-plan";
 import { hrefFor, toItem } from "@/lib/routes";
@@ -50,15 +50,20 @@ function TimeForm({ plan }: { plan: DatePlan }) {
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
 
+  const lastDay = addDays(today, DATE_WINDOW.days);
   const days = Array.from({ length: SUGGESTED_DAYS }, (_, index) => addDays(today, index + 1));
+  // Only times the API accepts (1 hour to 14 days ahead, in the date's timezone).
   const slots: number[] = [];
-  for (let minutes = copy.slots.from; minutes <= copy.slots.to; minutes += copy.slots.step) slots.push(minutes);
+  for (let minutes = copy.slots.from; minutes <= copy.slots.to; minutes += copy.slots.step) {
+    if (!dateWindowError(date || pickedDate, minutes, timezone)) slots.push(minutes);
+  }
 
   const submit = async (event: FormEvent) => {
     event.preventDefault();
     if (busy) return;
     if (!date || time === null) return setError(copy.required);
-    if (hasPassed(date, time)) return setError(copy.pastError);
+    const outside = dateWindowError(date, time, timezone);
+    if (outside) return setError(outside === "early" ? copy.tooSoon : copy.tooLate);
     setBusy(true);
     await dateService.saveDraft(plan.member, { date, time, timezone });
     router.push(hrefFor("DATE-REVIEW", plan.member));
@@ -73,7 +78,8 @@ function TimeForm({ plan }: { plan: DatePlan }) {
     setDialog("date");
   };
   const openTime = () => {
-    setPickedTime(time ?? copy.defaultTime);
+    const wanted = time ?? copy.defaultTime;
+    setPickedTime(slots.includes(wanted) ? wanted : (slots[0] ?? wanted));
     setDialog("time");
   };
   const applyDate = () => {
@@ -138,7 +144,7 @@ function TimeForm({ plan }: { plan: DatePlan }) {
           </Button>
         }
       >
-        <DatePicker value={pickedDate} onChange={setPickedDate} min={today} labels={copy.datePicker} />
+        <DatePicker value={pickedDate} onChange={setPickedDate} min={today} max={lastDay} labels={copy.datePicker} />
       </PortalDialog>
       <PortalDialog
         open={dialog === "time"}
@@ -148,7 +154,7 @@ function TimeForm({ plan }: { plan: DatePlan }) {
         description={fill(copy.timePicker.description, { timezone, date: formatFullDay(date || pickedDate) })}
         closeLabel={copy.timePicker.close}
         actions={
-          <Button type="button" variant="confirm" size="portalPill" width="full" onClick={applyTime}>
+          <Button type="button" variant="confirm" size="portalPill" width="full" disabled={slots.length === 0} onClick={applyTime}>
             {fill(copy.timePicker.primary, { time: formatTime(pickedTime) })}
           </Button>
         }
@@ -157,6 +163,7 @@ function TimeForm({ plan }: { plan: DatePlan }) {
           <Text as="legend" variant="text14Semibold" tone="strong" className="sr-only">
             {copy.timePicker.legend}
           </Text>
+          {slots.length === 0 && <StatusNote variant="notice" message={copy.noSlots} />}
           {slots.map((slot) => (
             <OptionRow key={slot} variant="choice" name="date-time" value={String(slot)} label={formatTime(slot)} checked={slot === pickedTime} onSelect={() => setPickedTime(slot)} />
           ))}

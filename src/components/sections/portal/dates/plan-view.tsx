@@ -16,7 +16,9 @@ import { Button } from "@/components/ui/button";
 import type { NoShowReason } from "@/data/portal/dates";
 import type { MemberId } from "@/data/portal/types";
 import { fill } from "@/lib/format";
-import { formatShortDay, formatTime, hasPassed } from "@/lib/portal/date-format";
+import { formatShortDay, formatTime } from "@/lib/portal/date-format";
+import { attendanceSections, planScreen } from "@/lib/portal/date-plan-state";
+import { CardHeading } from "@/components/pieces/content/card-heading";
 import { dateService, type DatePlan } from "@/lib/portal/date-service";
 import { useDatePlan } from "@/hooks/use-date-plan";
 import { useMatchClock } from "@/hooks/use-match-clock";
@@ -46,10 +48,9 @@ export function PlanView({ memberId }: { memberId: MemberId }) {
   }, [draft, memberId, router]);
 
   if (!plan || draft || clock.status === "loading") return null;
-  const open = plan.status === "pending" || plan.status === "invited";
-  if (open && clock.status === "expired") return <PlanStatus plan={plan} state="expired" />;
-  if (plan.status === "declined" || plan.status === "cancelled") return <PlanStatus plan={plan} state={plan.status} />;
-  if (plan.status === "confirmed" && plan.date && plan.time !== null && hasPassed(plan.date, plan.time)) return <Attendance plan={plan} onChange={setPlan} />;
+  const screen = planScreen(plan, clock.status);
+  if (screen === "expired" || screen === "declined" || screen === "cancelled") return <PlanStatus plan={plan} state={screen} />;
+  if (screen === "attendance") return <Attendance plan={plan} onChange={setPlan} />;
   return <PlanDetails plan={plan} onChange={setPlan} />;
 }
 
@@ -165,25 +166,6 @@ function Attendance({ plan, onChange }: { plan: DatePlan; onChange: (plan: DateP
   const back = <PortalBack action={{ ...copy.back, to: toItem("CHAT-01", plan.member) }} />;
   const aside = <DateContext member={plan.member} place={plan.place} />;
 
-  if (plan.attendance === "waiting") {
-    const wait = copy.attendanceWait;
-    return (
-      <Workspace aside={aside}>
-        {back}
-        <FormHeader variant="portal" title={wait.title} description={fill(wait.description, { name })} badge={<StatusBadge variant="pending" label={wait.badge} live={false} />} />
-        <StatusSummary summary={wait.summary} />
-        <ActionRow>
-          <ActionButton action={{ label: wait.feedback, to: toItem("FEEDBACK", plan.member) }} variant="confirm" size="portalPill" width="actionSlot" />
-          <ActionButton action={wait.matches} variant="roseOutline" size="portalPill" width="actionSlot" />
-        </ActionRow>
-      </Workspace>
-    );
-  }
-  if (plan.attendance === "review") {
-    const review = copy.attendanceReview;
-    return <StatusScreen back={back} title={review.title} description={review.description} summary={review.summary} primary={review.primary} aside={aside} actionWidth="actionSlot" />;
-  }
-
   const record = async (met: boolean) => {
     if (busy) return;
     if (!met && !reason) return setError(true);
@@ -230,24 +212,59 @@ function Attendance({ plan, onChange }: { plan: DatePlan; onChange: (plan: DateP
   }
 
   const ask = copy.attendance;
+  const wait = copy.attendanceWait;
+  const review = copy.attendanceReview;
+  const status = plan.attendance === "waiting" ? wait.badge : plan.attendance === "review" ? review.summary.title : copy.confirmed.status;
+  const header =
+    plan.attendance === "waiting" ? (
+      <FormHeader variant="portal" title={wait.title} description={fill(wait.description, { name })} badge={<StatusBadge variant="pending" label={wait.badge} live={false} />} />
+    ) : plan.attendance === "review" ? (
+      <FormHeader variant="portalStatus" title={review.title} description={review.description} />
+    ) : (
+      <FormHeader variant="portalStatus" title={fill(ask.heading, { name })} description={ask.headingDescription} />
+    );
+  const blocks = {
+    details: <DateSummary key="details" plan={plan} status={status} />,
+    wait: (
+      <div key="wait" className="flex w-full flex-col gap-5">
+        <StatusSummary summary={wait.summary} />
+        <ActionRow>
+          <ActionButton action={{ label: wait.feedback, to: toItem("FEEDBACK", plan.member) }} variant="confirm" size="portalPill" width="actionSlot" />
+          <ActionButton action={wait.matches} variant="roseOutline" size="portalPill" width="actionSlot" />
+        </ActionRow>
+      </div>
+    ),
+    review: (
+      <div key="review" className="flex w-full flex-col gap-5">
+        <StatusSummary summary={review.summary} />
+        <ActionRow>
+          <ActionButton action={review.primary} variant="confirm" size="portalPill" width="actionSlot" />
+        </ActionRow>
+      </div>
+    ),
+    // "Have you met?" is secondary to the date details: an h2 in a quieter scale under the page h1.
+    question: (
+      <section key="question" aria-labelledby="attendance-question" className="flex w-full flex-col gap-4">
+        <CardHeading as="h2" id="attendance-question" size={14} title={fill(ask.title, { name })} description={ask.description} />
+        <fieldset className="flex w-full flex-col gap-3">
+          <legend className="sr-only">{ask.legend}</legend>
+          <OptionRow variant="choice" name="attendance" value="met" label={ask.choices.met} checked={choice === "met"} onSelect={() => setChoice("met")} />
+          <OptionRow variant="choice" name="attendance" value="missed" label={ask.choices.missed} checked={choice === "missed"} onSelect={() => setChoice("missed")} />
+        </fieldset>
+        {failure && <StatusNote variant="alert" message={failure} />}
+        <ActionRow>
+          <Button type="button" variant="confirm" size="portalPill" width="actionSlot" disabled={busy} aria-busy={busy || undefined} onClick={() => (choice === "met" ? void record(true) : setNoShow(true))}>
+            {choice === "met" ? ask.met : ask.missed}
+          </Button>
+        </ActionRow>
+      </section>
+    ),
+  };
   return (
     <Workspace aside={aside}>
       {back}
-      <FormHeader variant="portalStatus" title={fill(ask.title, { name })} description={ask.description} />
-      <fieldset className="flex w-full flex-col gap-5">
-        <legend className="sr-only">{ask.legend}</legend>
-        <OptionRow variant="choice" name="attendance" value="met" label={ask.choices.met} checked={choice === "met"} onSelect={() => setChoice("met")} />
-        <OptionRow variant="choice" name="attendance" value="missed" label={ask.choices.missed} checked={choice === "missed"} onSelect={() => setChoice("missed")} />
-      </fieldset>
-      {failure && <StatusNote variant="alert" message={failure} />}
-      <ActionRow>
-        <Button type="button" variant="confirm" size="portalPill" width="actionSlot" disabled={busy} aria-busy={busy || undefined} onClick={() => void record(true)}>
-          {ask.met}
-        </Button>
-        <Button type="button" variant="roseOutline" size="portalPill" width="actionSlot" disabled={busy} onClick={() => setNoShow(true)}>
-          {ask.missed}
-        </Button>
-      </ActionRow>
+      {header}
+      {attendanceSections(plan.attendance).map((section) => blocks[section])}
     </Workspace>
   );
 }
