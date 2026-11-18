@@ -1,6 +1,8 @@
+import type { Area } from "@/data/onboarding/types";
 import type { CancelReason, FeedbackAnswer, NoShowReason, Venue, VenueId } from "@/data/portal/dates";
 import type { MemberId, MemberSummary } from "@/data/portal/types";
 import { apiEnabled } from "@/lib/api/config";
+import type { DateArea } from "@/lib/portal/date-area";
 import { apiDateService } from "@/lib/portal/api-date-service";
 import { mockDateService } from "@/lib/portal/mocks/mock-date-service";
 
@@ -22,6 +24,8 @@ export type DatePlan = {
   /** Minutes after midnight, or null until chosen. */
   time: number | null;
   timezone: string;
+  /** The area this date is planned around (rule 55: never the profile location); null = around both members. */
+  area: DateArea | null;
   status: PlanStatus;
   /** After the date: the member's answer (waiting for the match, or under review after a no-show). */
   attendance: "waiting" | "review" | null;
@@ -32,8 +36,12 @@ export type DatePlan = {
 
 /** Contract the date-planning screens talk to (rule 37). Responses and timing come from the service. */
 export type DateService = {
-  /** Public places near the shared area; empty when none fit (VENUES-EMPTY). */
+  /** Public places near the shared area, or near the plan's chosen area (nearest first); empty when none fit (VENUES-EMPTY). */
   getVenues: (member: MemberId) => Promise<Venue[]>;
+  /** VENUES-AREA: the starter areas matching a query (no place-search API exists). */
+  searchAreas: (query: string) => Promise<Area[]>;
+  /** Keeps the area in this plan's draft only (null clears it); never the profile location. */
+  setPlanArea: (member: MemberId, area: DateArea | null) => Promise<DatePlan>;
   getPlan: (member: MemberId) => Promise<DatePlan>;
   /** Saves the venue, date, time or timezone while the plan is being made. */
   saveDraft: (member: MemberId, change: Partial<Pick<DatePlan, "venue" | "date" | "time" | "timezone">>) => Promise<DatePlan>;

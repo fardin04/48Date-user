@@ -93,3 +93,14 @@ export function isoToZoned(iso: string, timeZone: string) {
   const wall = new Date(utc + zoneOffset(utc, timeZone) * 60_000);
   return { day: wall.toISOString().slice(0, 10), minutes: wall.getUTCHours() * 60 + wall.getUTCMinutes() };
 }
+
+/** The API takes a date from 1 hour to 14 days ahead (`POST /matches/:id/dates`). */
+export const DATE_WINDOW = { leadMinutes: 60, days: 14 } as const;
+
+/** Whether a day and time in `timeZone` falls outside the API's window: too soon (incl. past), too late, or null when it fits. */
+export function dateWindowError(day: string, minutes: number, timeZone: string, now = Date.now()): "early" | "late" | null {
+  const ahead = Date.parse(zonedToIso(day, minutes, timeZone)) - now;
+  if (ahead < DATE_WINDOW.leadMinutes * 60_000) return "early";
+  if (ahead > DATE_WINDOW.days * 86_400_000) return "late";
+  return null;
+}
