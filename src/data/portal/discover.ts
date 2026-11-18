@@ -37,6 +37,8 @@ export const discoverPage = {
     } satisfies Record<Decision, { label: string; icon: IconName }>,
     /** Announced after a decision. */
     sent: { pass: "Passed. Showing the next profile.", like: "Like sent.", super: "Super Like sent." } satisfies Record<Decision, string>,
+    /** A decision that didn’t go through without an API reason (offline, server error); design-silent. */
+    failed: "That didn’t go through. Try again.",
     /** `{name}, {age}` and `Verified · {distance}`. */
     title: "{name}, {age}",
     verifiedLine: "Verified · {distance}",
@@ -61,6 +63,9 @@ export const discoverPage = {
     description: "You and {name} have 48 hours to agree on a date.",
     timer: "48:00:00",
     timerLabel: "48 hours to agree on a date",
+    /** The server-owned deadline counting down (design-silent "hours:minutes"; a background match may be hours old). */
+    timerLive: "{hours}:{minutes}",
+    timerLiveLabel: "{hours} hours {minutes} minutes left to agree on a date",
     icon: heart,
     /** Opens the matched member's conversation (MSG-01 on first open). */
     primary: "Say hello",
@@ -124,11 +129,12 @@ export const filtersPage = {
   primary: "Show matches",
   saving: "Saving…",
   reset: "Reset filters",
+  /** Shown when saving or resetting fails without an API reason (offline, server error); design-silent. */
+  failed: "We couldn’t save your preferences. Check your connection and try again.",
 };
 
 /** W04 / DISCOVER-PROFILE. */
 export const profilePage = {
-  back: { label: "Back to discovery", to: to("DISCOVER") } satisfies Action,
   /** Page title for the browser tab: `{name}` is the member. */
   documentTitle: "{name}’s profile",
   title: "Make a real connection",

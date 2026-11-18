@@ -12,6 +12,7 @@ import {
   getStoriesPage,
   getDiscoverPage,
   getFiltersPage,
+  getLikesPage,
   getInboxPage,
   getMatchDetailPage,
   getMatchesPage,
@@ -50,6 +51,7 @@ import { StoryView } from "@/components/sections/portal/stories/story-view";
 import { CompatView } from "@/components/sections/portal/discover/compat-view";
 import { DiscoverView } from "@/components/sections/portal/discover/discover-view";
 import { FiltersView } from "@/components/sections/portal/discover/filters-view";
+import { LikesView } from "@/components/sections/portal/likes/likes-view";
 import { InboxView } from "@/components/sections/portal/chats/inbox-view";
 import { MatchDetailView } from "@/components/sections/portal/matches/match-detail-view";
 import { MatchesView } from "@/components/sections/portal/matches/matches-view";
@@ -93,6 +95,8 @@ export function portalViewTitle(view: PortalView) {
       return getDiscoverPage().title;
     case "filters":
       return getFiltersPage().title;
+    case "likes":
+      return getLikesPage().documentTitle;
     case "profile":
       return fill(getProfilePage().documentTitle, { name: getMemberName(view.member) });
     case "compat":
@@ -131,7 +135,7 @@ export function portalViewTitle(view: PortalView) {
 /** Header nav label of the area a view belongs to (none for profile, settings and reports). */
 export function portalViewArea(view: PortalView) {
   const [discover, matches, chats, stories] = getPortalShell().nav;
-  if (view.kind === "account" || view.kind === "report" || view.kind === "checkout") return undefined;
+  if (view.kind === "account" || view.kind === "report" || view.kind === "checkout" || view.kind === "likes") return undefined;
   if (view.kind === "inbox" || view.kind === "chat" || view.kind === "game") return chats.label;
   if (view.kind === "stories" || view.kind === "story" || view.kind === "storyCreate" || view.kind === "storyMine") return stories.label;
   return view.kind === "matches" || view.kind === "match" || view.kind === "date" ? matches.label : discover.label;
@@ -144,6 +148,8 @@ export function PortalPage({ view }: { view: PortalView }) {
       return <DiscoverView />;
     case "filters":
       return <FiltersView />;
+    case "likes":
+      return <LikesView />;
     case "profile":
       return <ProfileView memberId={view.member} />;
     case "compat":

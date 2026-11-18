@@ -3,6 +3,7 @@ import type { Destination } from "@/lib/routes";
 /** Hugeicons slugs available in public/icons (rule 13). */
 export type IconName =
   | "add-01"
+  | "more-vertical"
   | "arrow-down-01"
   | "arrow-left-02"
   /** Remix arrows on the Align UI date picker (as exported from Figma). */

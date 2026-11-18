@@ -27,6 +27,8 @@ import { FlowContext } from "@/components/sections/portal/shared/flow-context";
 import { StatusScreen } from "@/components/sections/portal/shared/status-screen";
 import { Workspace } from "@/components/sections/portal/shared/workspace";
 import { screenKeys } from "@/lib/screen-keys";
+import { layout } from "@/lib/control-sizes";
+import { LoadFailed } from "@/components/sections/portal/shared/load-failed";
 
 /**
  * W04 / MATCH-EXPIRING on the match's URL, counting down to the server-owned deadline: under two
@@ -35,9 +37,10 @@ import { screenKeys } from "@/lib/screen-keys";
 export function MatchDetailView({ memberId }: { memberId: MemberId }) {
   const copy = getMatchDetailPage();
   const { urgentMinutes, confirmed: confirmedLabel, timeLeft: timeLeftLabel } = getMatchesPage();
-  const match = useLoaded(screenKeys.match(memberId), () => portalService.getMatch(memberId)).value;
+  const { value: match, error, reload } = useLoaded(screenKeys.match(memberId), () => portalService.getMatch(memberId));
   const { plan } = useDatePlan(memberId);
   const now = useNow();
+  if (error && match === undefined) return <LoadFailed onRetry={() => void reload()} error={error} />;
   if (match === undefined || now === null) return null;
 
   const back = <PortalBack action={copy.back} />;
@@ -64,7 +67,7 @@ export function MatchDetailView({ memberId }: { memberId: MemberId }) {
   const state = match.confirmed ? copy.confirmed : urgent ? copy.expiring : copy.active;
   const status = match.confirmed ? confirmedLabel : urgent ? copy.expiring.badge : copy.active.label;
   const badge = urgent ? (
-    <StatusBadge variant="urgent" label={copy.expiring.badge} />
+    <StatusBadge variant="urgent" label={copy.expiring.badge} live={false} />
   ) : (
     <StatusBadge variant="success" label={left ? fill(timeLeftLabel, { hours: left.hours, minutes: left.minutes }) : status} live={false} />
   );
@@ -75,7 +78,8 @@ export function MatchDetailView({ memberId }: { memberId: MemberId }) {
       <FormHeader variant="portal" title={state.title} description={fill(state.description, { name: member.name })} badge={badge} />
       <MemberRow photo={member.photo} title={fill(copy.expiring.pairTitle, { name: member.name })} description={status} />
       {image && (
-        <div className="relative h-65 w-full overflow-hidden rounded-16">
+        // The Figma 860×260 venue frame as a ratio, capped by the viewport so "Plan a date" shares the first screen at 1440×900 (rule 60).
+        <div className="relative aspect-[43/13] max-h-[max(5rem,calc(var(--svh)-44rem))] w-full overflow-hidden rounded-16">
           <Image src={image.src} alt={image.alt} unoptimized={isRawImage(image.src)} fill sizes="(min-width: 1280px) 860px, 100vw" className="object-cover" />
         </div>
       )}
@@ -87,7 +91,8 @@ export function MatchDetailView({ memberId }: { memberId: MemberId }) {
         </dl>
       )}
       {left && <StatusNote variant="deadline" message={fill(copy.expiring.deadline, { hours: left.paddedHours, minutes: left.minutes })} />}
-      <ActionRow>
+      {/* Pinned above the tab bar in stacked layouts, so "Plan a date" stays reachable at 200–400 % (rule 49). */}
+      <ActionRow className={layout.stickyActions}>
         <ActionButton action={forMember(copy.expiring.primary, memberId)} variant="confirm" size="portalPill" width="grow" />
         <ActionButton action={{ label: copy.expiring.secondary, to: toItem("CHAT-01", memberId) }} variant="roseOutline" size="portalPill" width="grow" />
       </ActionRow>
