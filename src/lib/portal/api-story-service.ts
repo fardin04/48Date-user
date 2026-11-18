@@ -51,6 +51,8 @@ function toStory(story: ApiStory): Story {
     photo: { ...memberPhoto(couple, story.imageUrl, story.title), height: 1080 },
     comments: [],
     likes: { count: story.likesCount, liked: story.isLikedByMe },
+    stage: story.status,
+    rejectionReason: story.rejectionReason,
   };
 }
 
@@ -65,13 +67,34 @@ async function currentSubmission(): Promise<ApiStory | null> {
 }
 
 function toSubmission(story: ApiStory): Submission {
+  const isRejected = story.status === "REJECTED" || story.status === "DECLINED";
+  const mineCopy = getStoriesPage().mine;
+  let statusBadge: string | undefined;
+  let statusNote: string | undefined;
+  if (story.status === "PENDING_PARTNER") {
+    statusBadge = mineCopy.waitingPartnerBadge;
+    statusNote = mineCopy.waitingPartnerNote;
+  } else if (story.status === "PENDING_REVIEW") {
+    statusBadge = mineCopy.waitingAdminBadge;
+    statusNote = mineCopy.waitingAdminNote;
+  } else if (story.status === "DECLINED") {
+    statusBadge = mineCopy.declinedBadge;
+    statusNote = mineCopy.declinedNote;
+  } else if (story.status === "REJECTED") {
+    statusBadge = mineCopy.rejectedBadge;
+    statusNote = story.rejectionReason ?? mineCopy.rejectedNote;
+  }
   return {
     title: story.title,
     met: story.datePlanId,
     metLabel: fill(getLiveStoryCopy().shared, { month: formatMonth(story.createdAt.slice(0, 10)) }),
     body: story.body,
     consent: true,
-    status: story.status === "REJECTED" || story.status === "DECLINED" ? "rejected" : "pending",
+    status: isRejected ? "rejected" : "pending",
+    subStatus: story.status,
+    statusBadge: isRejected ? undefined : statusBadge,
+    statusNote: isRejected ? undefined : statusNote,
+    rejectionReason: story.rejectionReason,
     photo: story.imageUrl ? { ...memberPhoto(story.title, story.imageUrl, getLiveStoryCopy().photo.alt), height: 1080 } : null,
   };
 }
@@ -141,17 +164,19 @@ export const apiStoryService: StoryService = {
   async saveDraft(draft) {
     writeDraft(draft);
   },
-  async submit(draft, photo) {
+  async submit(draft, photo, onProgress) {
     const existing = await currentSubmission();
-    const imageUrl = photo ? (await onboardingApi.upload(photo, "STORY_IMAGE", () => undefined)).url : undefined;
+    const imageUrl = photo ? (await onboardingApi.upload(photo, "STORY_IMAGE", onProgress ?? (() => undefined))).url : undefined;
+    let submitted: ApiStory | null = null;
     if (existing) {
-      await storiesApi.edit(existing.id, { title: draft.title, body: draft.body, ...(imageUrl ? { imageUrl } : {}) });
+      const { data: patched } = await storiesApi.edit(existing.id, { title: draft.title, body: draft.body, ...(imageUrl ? { imageUrl } : {}) });
+      submitted = (await currentSubmission()) ?? ({ ...existing, ...patched } as ApiStory);
     } else {
       if (!imageUrl) throw new Error(getLiveStoryCopy().photo.required);
-      await storiesApi.create({ datePlanId: draft.met, title: draft.title, body: draft.body, imageUrl });
+      const { data: created } = await storiesApi.create({ datePlanId: draft.met, title: draft.title, body: draft.body, imageUrl });
+      submitted = (await currentSubmission()) ?? created;
     }
     writeDraft(null);
-    const submitted = await currentSubmission();
     if (!submitted) throw new Error("The story wasn't saved.");
     return toSubmission(submitted);
   },
@@ -162,5 +187,13 @@ export const apiStoryService: StoryService = {
   async removeSubmission() {
     const story = await currentSubmission();
     if (story) await storiesApi.remove(story.id);
+  },
+  async getPendingPartnerStories() {
+    try {
+      const { data } = await storiesApi.mine({ role: "partner", status: "PENDING_PARTNER" });
+      return data.map(toStory);
+    } catch {
+      return [];
+    }
   },
 };

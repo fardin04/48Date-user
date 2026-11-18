@@ -59,8 +59,8 @@ async function load(overrides: Record<string, unknown> = {}) {
     return replay(input, init);
   });
 
-  const { tokenStorage } = await import("@/lib/api/tokens");
-  tokenStorage.setTokens({ accessToken: "token-1", refreshToken: "refresh-1" });
+  const { tokenStore } = await import("@/lib/api/tokens");
+  tokenStore.set({ accessToken: "token-1", refreshToken: "refresh-1" });
   const { apiAccountService } = await import("@/lib/portal/api-account-service");
   return { apiAccountService };
 }

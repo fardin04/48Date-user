@@ -3,6 +3,7 @@ import type { SelectOption } from "@/data/onboarding/types";
 import { isApiError } from "@/lib/api/errors";
 import { onboardingApi } from "@/lib/api/modules/onboarding-api";
 import { authApi } from "@/lib/api/modules/auth-api";
+import { chatApi } from "@/lib/api/modules/chat-api";
 import { notificationsApi } from "@/lib/api/modules/notifications-api";
 import { storiesApi } from "@/lib/api/modules/stories-api";
 import type { InboxNotification } from "@/lib/api/types/notifications";
@@ -17,7 +18,11 @@ import { fill } from "@/lib/format";
 import { nearestArea, searchAreaList } from "@/lib/onboarding/area-search";
 import { toStepOptions } from "@/lib/onboarding/options";
 import { approximate } from "@/lib/onboarding/step-payloads";
-import type { AccountService, FieldErrors, LocationChoice } from "@/lib/portal/account-service";
+import type { ImageAsset } from "@/data/types";
+import { cacheKeys } from "@/lib/api/modules/cache-keys";
+import { invalidate } from "@/lib/api/cache";
+import { screenKeys } from "@/lib/screen-keys";
+import type { AccountService, FieldErrors, LocationChoice, NotificationItem } from "@/lib/portal/account-service";
 import { formatDayMonth } from "@/lib/portal/date-format";
 import { mediaUrl } from "@/lib/portal/api-members";
 import { mockAccountService } from "@/lib/portal/mocks/mock-account-service";
@@ -36,19 +41,40 @@ function labelOf(list: SelectOption[] | undefined, value: string | null | undefi
 }
 
 /** Where a notification leads: its target screen, opened for the member it is about. */
-function destinationOf(item: InboxNotification): Destination {
+export function destinationOf(item: InboxNotification): Destination | null {
   const screen = (item.target?.screen ?? item.type ?? "").toUpperCase();
   const member = item.actor?.nickname;
   const story = item.target?.params?.storyId;
+  if (screen === "NONE" || item.type === "REPORT_REVIEWED" || item.type === "ANNOUNCEMENT") return null;
   // Without a story id (the consent request sends none) the stories feed is the closest screen.
   if (screen.includes("STORY")) return story ? toItem("STORY-DETAIL", story) : to("STORIES");
   if (screen.includes("TRUST") || screen.includes("WARNING") || screen.includes("VERIFICATION")) return to("TRUST");
   if (screen.includes("SUBSCRIPTION") || screen.includes("MEMBERSHIP") || screen.includes("PAYMENT")) return to("MEMBERSHIP");
-  if (!member) return to("MATCHES");
+  if (screen.includes("RATE_DATE") || screen.includes("DATE_RATE")) {
+    return member ? toItem("FEEDBACK", member) : to("MATCHES");
+  }
+  if (!member) return null;
   if (screen.includes("DATE")) return toItem("DATE-PENDING", member);
   if (screen.includes("GAME")) return toItem("GAMES", member);
   if (screen.includes("CHAT") || screen.includes("MESSAGE")) return toItem("CHAT-01", member);
-  return toItem("MATCH-EXPIRING", member);
+  if (screen.includes("MATCH")) return toItem("MATCH-EXPIRING", member);
+  return null;
+}
+
+function toNotificationItem(item: InboxNotification): NotificationItem {
+  const photoUrl = mediaUrl(item.actor?.mainPhotoUrl ?? item.imageUrl);
+  const avatar: ImageAsset | null = photoUrl
+    ? { src: photoUrl, alt: item.actor?.nickname ?? item.title ?? "Notification", width: 48, height: 48 }
+    : null;
+  return {
+    id: item.id,
+    title: item.title ?? "",
+    description: item.body ?? "",
+    to: destinationOf(item),
+    unread: !item.readAt,
+    at: Date.parse(item.createdAt) || null,
+    avatar,
+  };
 }
 
 /** The Figma reasons, matched to the API's catalogue (`GET /reports/reasons`) by their wording. */
@@ -81,10 +107,17 @@ const areaOf = (location: Pick<NonNullable<MeData["location"]>, "city"> | null |
  * clears them) and a new position never keeps the previous city. The API doesn't geocode: a
  * device position is named after the starter area it falls in, when there is one.
  */
-function locationBody(choice: LocationChoice): UpdateLocationBody {
+export function locationBody(choice: LocationChoice): UpdateLocationBody {
   if (choice.kind === "area") {
     const [latitude, longitude] = choice.area.center;
-    return { latitude, longitude, city: choice.area.name, region: null, countryCode: choice.area.countryCode, source: "MANUAL" };
+    return {
+      latitude: approximate(latitude),
+      longitude: approximate(longitude),
+      city: choice.area.name,
+      region: null,
+      countryCode: choice.area.countryCode,
+      source: "MANUAL",
+    };
   }
   const near = nearestArea(choice.latitude, choice.longitude);
   return {
@@ -144,7 +177,7 @@ export const apiAccountService: AccountService = {
         { label: facts.languages.label, value: me.languageCodes.length ? me.languageCodes.map((code) => labelOf(lists?.languages, code)).join(" · ") : values.missing },
         { label: labels.lookingFor, value: labelOf(lists?.goal, me.lookingFor) },
       ],
-      photoUrl: mediaUrl((me.photos.find((photo) => photo.isMain) ?? me.photos[0])?.url),
+      photoUrl: mediaUrl(me.mainPhotoUrl ?? (me.photos?.find((photo) => photo.isMain) ?? me.photos?.[0])?.url ?? null),
       trust: trust ? fill(page.trustValue, { value: trust.data.value.toFixed(1), label: trust.data.label }) : values.missing,
       completeness: me.profileCompletenessPercent,
     };
@@ -159,6 +192,7 @@ export const apiAccountService: AccountService = {
         occupation: profile.occupation,
         ...(profile.lookingFor ? { lookingFor: profile.lookingFor as LookingFor } : {}),
       });
+      invalidate(cacheKeys.me, screenKeys.profile, screenKeys.avatar, screenKeys.overview);
       return { ok: true };
     } catch (error) {
       if (!isApiError(error)) throw error;
@@ -183,6 +217,7 @@ export const apiAccountService: AccountService = {
   async saveLocation(choice) {
     try {
       const { data } = await usersApi.updateLocation(locationBody(choice));
+      invalidate(cacheKeys.me, screenKeys.location, screenKeys.profile, screenKeys.overview, screenKeys.discoveryDeck);
       return areaOf(data) ?? getAccountPage().location.nearYou;
     } catch (error) {
       throw new Error(isApiError(error) ? error.message : getAccountPage().location.failed);
@@ -193,7 +228,7 @@ export const apiAccountService: AccountService = {
   },
   async getPhotos() {
     const { data: me } = await usersApi.me();
-    return [...me.photos].sort((a, b) => a.position - b.position).flatMap(({ fileId, url }) => {
+    return [...(me.photos ?? [])].sort((a, b) => a.position - b.position).flatMap(({ fileId, url }) => {
         const src = mediaUrl(url);
         return src ? [{ fileId, url: src }] : [];
       });
@@ -206,6 +241,7 @@ export const apiAccountService: AccountService = {
         if (fileId) refs.push({ fileId, isMain: refs.length === 0 });
       }
       await usersApi.updatePhotos(refs);
+      invalidate(cacheKeys.me, screenKeys.photos, screenKeys.avatar, screenKeys.overview);
     } catch (error) {
       throw new Error(failureMessage(error));
     }
@@ -236,9 +272,10 @@ export const apiAccountService: AccountService = {
   },
   async saveNotificationPrefs(prefs) {
     await usersApi.updateNotificationSettings(prefs);
+    invalidate(screenKeys.notificationPrefs);
   },
   requestTrustReview: mockAccountService.requestTrustReview,
-  async report(subject, reason, details) {
+  async report(subject, reason, details, options) {
     if (!subject) throw new Error("A report needs a member.");
     // Stories are reported through their author (the API reports members).
     const story = subject.kind === "story" ? (await storiesApi.detail(subject.id)).data : null;
@@ -247,29 +284,50 @@ export const apiAccountService: AccountService = {
     const entry = catalogueEntry(groups, reason);
     if (!entry) throw new Error("Report reasons are unavailable.");
     const description = (story ? `${story.title}: ${details}` : details).slice(0, 500);
-    await trustApi.report({ reportedNickname, reason: entry.reason, subReason: entry.subReason, description, source: "PROFILE" });
+    const source = options?.source ?? (story ? "PROFILE" : "PROFILE");
+    let conversationId = options?.conversationId;
+    if (source === "CHAT" && !conversationId) {
+      try {
+        const { data: convs } = await chatApi.list();
+        conversationId = convs.find((c) => c.partner?.nickname === reportedNickname)?.id;
+      } catch {
+        // Fallback without conversationId
+      }
+    }
+    await trustApi.report({
+      reportedNickname,
+      reason: entry.reason,
+      subReason: entry.subReason,
+      description,
+      source,
+      conversationId: conversationId ?? undefined,
+      dateId: options?.dateId ?? undefined,
+      alsoBlock: options?.alsoBlock ?? undefined,
+    });
   },
   async getAvatar() {
     const { data: me } = await usersApi.me();
-    const main = me.photos.find((photo) => photo.isMain) ?? me.photos[0];
-    return memberPhoto(me.nickname, main?.url, getAccountPage().photo.alt);
+    const main = me.photos?.find((photo) => photo.isMain) ?? me.photos?.[0];
+    const url = me.mainPhotoUrl ?? main?.url;
+    return memberPhoto(me.nickname, url, getAccountPage().photo.alt);
   },
   async getNotifications() {
-    const { data } = await notificationsApi.inbox();
-    return data.map((item) => ({
-      id: item.id,
-      title: item.title ?? "",
-      description: item.body ?? "",
-      to: destinationOf(item),
-      unread: !item.readAt,
-      at: Date.parse(item.createdAt) || null,
-    }));
+    const page = await this.getNotificationsPage();
+    return page.items;
+  },
+  async getNotificationsPage(cursor) {
+    const { data, meta } = await notificationsApi.inbox(cursor ?? undefined);
+    return {
+      items: data.map(toNotificationItem),
+      next: meta?.nextCursor ?? null,
+    };
   },
   async getUnreadCount() {
     return (await notificationsApi.unreadCount()).data.unreadCount;
   },
   async markNotificationsRead() {
     await notificationsApi.readAll();
+    invalidate(screenKeys.unreadCount, screenKeys.notifications);
   },
   async getSignInMethods() {
     const { data } = await authApi.methods();
