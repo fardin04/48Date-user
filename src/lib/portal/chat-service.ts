@@ -14,7 +14,10 @@ export type ChatMessage = {
   /** Text, photo caption, the voice duration ("00:18"), or the card's line. */
   text: string;
   sentAt: number;
-  status: "sent" | "seen" | "failed";
+  /** `sending` while the optimistic copy is in flight; the server copy replaces it in place. */
+  status: "sending" | "sent" | "seen" | "failed";
+  /** Stable React key: the client id an optimistic message started with (kept once the server copy replaces it). */
+  key?: string;
   /** A photo or voice note the browser may load (API messages). */
   mediaUrl?: string;
   /** The sender changed the text, or removed the message (it keeps its place, without content). */

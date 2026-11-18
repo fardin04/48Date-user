@@ -9,8 +9,11 @@ import { dateEvents, type ApiDatePlan, type ApiVenue, type DateEvent, type SendI
 import { fill } from "@/lib/format";
 import { memberPhoto, toSummary } from "@/lib/portal/api-members";
 import { findMatch, requireMatch } from "@/lib/portal/api-match-lookup";
+import { searchAreaList } from "@/lib/onboarding/area-search";
+import { areaDistance, rankByArea, validArea, type DateArea } from "@/lib/portal/date-area";
 import { isIsoDay, isoToZoned, zonedToIso } from "@/lib/portal/date-format";
-import type { DatePlan, DateService, PlanStatus } from "@/lib/portal/date-service";
+import type { DatePlan, DateService } from "@/lib/portal/date-service";
+import { attendanceOf, statusOf } from "@/lib/portal/date-plan-state";
 import { getDatePage, getLiveVenueCopy, getMemberCopy } from "@/stores/portal-store";
 
 const DRAFTS_KEY = "48date.dates.drafts";
@@ -36,6 +39,8 @@ type Draft = {
   date: string | null;
   time: number | null;
   timezone: string | null;
+  /** The date-specific area (rule 55), kept after the plan is sent. */
+  area: DateArea | null;
   updatedAt: number;
   /** After the date, per plan id: feedback given or skipped (the API records only ratings, not a skip). */
   feedback: Record<string, "submitted" | "skipped">;
@@ -43,10 +48,10 @@ type Draft = {
   postpones: string[];
 };
 
-const emptyDraft = (): Draft => ({ venue: null, place: null, details: null, date: null, time: null, timezone: null, updatedAt: 0, feedback: {}, postpones: [] });
+const emptyDraft = (): Draft => ({ venue: null, place: null, details: null, date: null, time: null, timezone: null, area: null, updatedAt: 0, feedback: {}, postpones: [] });
 
 /** Keeps a finished draft's after-date answers and sent requests. */
-const keptOf = (draft: Draft): Draft => ({ ...emptyDraft(), feedback: draft.feedback, postpones: draft.postpones });
+const keptOf = (draft: Draft): Draft => ({ ...emptyDraft(), area: draft.area, feedback: draft.feedback, postpones: draft.postpones });
 
 function validPlace(value: unknown): Venue | null {
   if (!isRecord(value) || !isRecord(value.photo) || !isRecord(value.pin)) return null;
@@ -97,6 +102,7 @@ function readDrafts(): Record<string, Draft> {
         date: isIsoDay(raw.date) ? raw.date : null,
         time: time !== null && Number.isInteger(time) && time >= 0 && time < 24 * 60 ? time : null,
         timezone: text(raw.timezone, 64),
+        area: validArea(raw.area),
         updatedAt: num(raw.updatedAt) ?? 0,
         feedback: states(raw.feedback, ["submitted", "skipped"]) as Draft["feedback"],
         postpones: Array.isArray(raw.postpones) ? raw.postpones.filter((id): id is string => typeof id === "string").slice(-20) : [],
@@ -242,31 +248,6 @@ async function latestPlan(member: MemberId): Promise<ApiDatePlan | null> {
 /** Plans that still stand: open, confirmed, or past and being confirmed. */
 const standing = new Set<ApiDatePlan["status"]>(["REQUESTED", "SET", "AWAITING_CONFIRMATION", "COMPLETED", "NO_SHOW"]);
 
-function statusOf(plan: ApiDatePlan | null): PlanStatus {
-  if (!plan) return "draft";
-  switch (plan.status) {
-    case "REQUESTED":
-      return plan.canAccept || plan.canDecline ? "invited" : "pending";
-    case "SET":
-    case "AWAITING_CONFIRMATION":
-    case "COMPLETED":
-    case "NO_SHOW":
-      return "confirmed";
-    case "DECLINED":
-      return "declined";
-    default:
-      return plan.cancelReason === "DECLINED" ? "declined" : "cancelled";
-  }
-}
-
-/** After the date, from the member's own answer: met (waiting for feedback), or a no-show under review. */
-function attendanceOf(plan: ApiDatePlan | null): DatePlan["attendance"] {
-  if (!plan) return null;
-  const mine = plan.myConfirmation;
-  if (plan.status === "NO_SHOW" || mine?.attended === false) return "review";
-  return mine?.attended || plan.hasRated ? "waiting" : null;
-}
-
 function partnerOf(plan: ApiDatePlan | null, fallback: MemberSummary): MemberSummary {
   if (!plan) return fallback;
   const { counterpart } = plan;
@@ -300,6 +281,7 @@ async function planFor(member: MemberId): Promise<DatePlan> {
     date: (composing ? draft.date : null) ?? scheduled?.day ?? null,
     time: (composing ? draft.time : null) ?? scheduled?.minutes ?? null,
     timezone,
+    area: draft.area,
     status,
     attendance,
     feedback: (remote && draft.feedback[remote.id]) ?? (remote?.hasRated && attendance !== "review" ? "submitted" : null),
@@ -341,13 +323,29 @@ export const apiDateService: DateService = {
   async getVenues(member) {
     const match = await requireMatch(member);
     const { data: run } = await datesApi.venues(match.id);
-    const ordered = [...run.venues].sort((a, b) => Number(b.isAiPick) - Number(a.isAiPick));
+    // The API picks places around both members (no location input, blocker N13): a chosen date area re-ranks and filters them here.
+    const area = readDraft(member).area;
+    const ranked = area
+      ? rankByArea(run.venues, (venue) => ({ lat: venue.latitude, lng: venue.longitude }), area)
+      : [...run.venues].sort((a, b) => Number(b.isAiPick) - Number(a.isAiPick)).map((item) => ({ item, km: null }));
+    const ordered = ranked.map(({ item }) => item);
     const positions = pins(ordered);
-    const places = ordered.map((venue, index) => toPlace(venue, positions[index]));
+    const template = getDatePage().venues.area.distance;
+    const places = ranked.map(({ item, km }, index) => ({
+      ...toPlace(item, positions[index]),
+      position: { lat: item.latitude, lng: item.longitude },
+      ...(area && km !== null ? { areaDistance: areaDistance(template, km, area) } : {}),
+    }));
     suggested.set(keyOf(member), { runId: run.runId, venues: ordered, places });
     return places;
   },
   getPlan: planFor,
+  searchAreas: async (query) => searchAreaList(query),
+  async setPlanArea(member, area) {
+    // Not a plan change: the plan's own status and choices stay as they are.
+    writeDraft(member, { ...readDraft(member), area });
+    return planFor(member);
+  },
   async saveDraft(member, change) {
     const draft = readDraft(member);
     const next: Draft = { ...draft, updatedAt: Date.now() };
