@@ -8,6 +8,10 @@ type ActionTargetProps = {
   "aria-label"?: string;
   /** Marks the link to the open page or tab. */
   "aria-current"?: "page";
+  /** Menu items (`ActionMenu`) render their links and not-functional buttons through here. */
+  role?: "menuitem";
+  tabIndex?: number;
+  onClick?: () => void;
   children: ReactNode;
 };
 
