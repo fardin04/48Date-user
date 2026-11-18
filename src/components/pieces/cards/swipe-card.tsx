@@ -8,6 +8,7 @@ import { Icon } from "@/components/pieces/content/icon";
 import { Reveal } from "@/components/pieces/layout/reveal";
 import { Text } from "@/components/pieces/content/text";
 import { isRawImage } from "@/lib/image";
+import { swipePhotoFrame } from "@/lib/control-sizes";
 
 /** Pointer handlers of the photo's drag zone (left half passes, right half likes). */
 export type DragZone = {
@@ -54,14 +55,14 @@ export function SwipeCard({ member, title, verifiedLine, feedback, offset = 0, d
         className,
       )}
     >
-      <div {...drag} aria-describedby={dragHintId} className={cn("relative aspect-[448/464] w-full select-none", drag && "cursor-grab touch-pan-y active:cursor-grabbing")}>
+      <div {...drag} aria-describedby={dragHintId} className={cn("relative aspect-[448/464] w-full select-none", swipePhotoFrame, drag && "cursor-grab touch-pan-y active:cursor-grabbing")}>
         <Image
           src={member.photo.src} unoptimized={isRawImage(member.photo.src)}
           alt={member.photo.alt}
           fill
           draggable={false}
           sizes="(min-width: 1024px) 448px, calc(100vw - 32px)"
-          className="pointer-events-none object-cover"
+          className="pointer-events-none object-cover object-top"
         />
         {feedback && (
           <div className="absolute top-12 left-6 flex w-45 items-start gap-2 rounded-12 border border-rose bg-white p-3">

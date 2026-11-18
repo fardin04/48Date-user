@@ -12,6 +12,8 @@ type FormFieldProps = {
   /** Rose validation message under the control. */
   message?: string;
   messageId?: string;
+  /** Keeps the label for screen readers only (the conversation composer, whose placeholder names it). */
+  hideLabel?: boolean;
   /** Placement only (rule 17). */
   className?: string;
   revealDelay?: number;
@@ -19,8 +21,8 @@ type FormFieldProps = {
 };
 
 /** "Form / Input control" field: external 14/22 label, the 56px control and an optional rose message. */
-export function FormField({ htmlFor, labelId, label, message, messageId, className, revealDelay, children }: FormFieldProps) {
-  const labelClass = cn(typeScale.text14SemiboldRelaxed, textTones.strong);
+export function FormField({ htmlFor, labelId, label, message, messageId, hideLabel, className, revealDelay, children }: FormFieldProps) {
+  const labelClass = cn(typeScale.text14SemiboldRelaxed, textTones.strong, hideLabel && "sr-only");
   return (
     <Reveal delay={revealDelay} className={cn("flex w-full min-w-0 flex-col gap-2", className)}>
       {htmlFor ? (
