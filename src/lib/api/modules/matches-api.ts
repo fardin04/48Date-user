@@ -10,10 +10,10 @@ const PAGE = 50;
 
 /** User / 04 - Matches. */
 export const matchesApi = {
-  /** One tab, first page; shared by the matches list, the deck's counter and member lookups. */
-  list: (tab: MatchTabParam = "all") =>
-    cached([...cacheKeys.matches, "raw", tab], MATCHES_MS, async () => {
-      const result = await api.get<MatchItem[]>(endpoints.matches.list, { query: { tab, limit: PAGE } });
+  /** One tab, a page from `cursor` (the first without); shared by the matches list, the deck's counter and member lookups. */
+  list: (tab: MatchTabParam = "all", cursor?: string) =>
+    cached([...cacheKeys.matches, "raw", tab, cursor ?? ""], MATCHES_MS, async () => {
+      const result = await api.get<MatchItem[]>(endpoints.matches.list, { query: { tab, cursor, limit: PAGE } });
       return { data: result.data, meta: result.meta as MatchesMeta | undefined };
     }),
   /** New matches whose "What a match" popup hasn't been shown (at most ten). */

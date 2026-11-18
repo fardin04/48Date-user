@@ -1,33 +1,26 @@
 import type { Preferences } from "@/data/portal/types";
-import { distanceValues } from "@/data/portal/types";
 import { onCacheClear } from "@/lib/api/cache";
 import { isApiError } from "@/lib/api/errors";
 import { discoveryApi, matchingApi } from "@/lib/api/modules/discovery-api";
 import { matchesApi } from "@/lib/api/modules/matches-api";
+import { chatApi } from "@/lib/api/modules/chat-api";
 import { usersApi } from "@/lib/api/modules/users-api";
 import { discoveryErrors, type DeckCard, type DiscoveryPreferences } from "@/lib/api/types/discovery";
 import type { InterestedIn } from "@/lib/api/types/onboarding";
 import type { MatchItem } from "@/lib/api/types/matches";
-import { milesToKm, optionLists, toMember, toSummary } from "@/lib/portal/api-members";
+import { optionLists, toMember, toSummary } from "@/lib/portal/api-members";
 import { findMatch, openMatches } from "@/lib/portal/api-match-lookup";
 import type { Match, PortalService } from "@/lib/portal/portal-service";
 import { toLocalTime } from "@/lib/portal/server-clock";
 import { fill } from "@/lib/format";
+import { needsNextPage, swipeAction } from "@/lib/portal/deck-intent";
+import { toLikesPage } from "@/lib/portal/likes";
+import { distanceFromKm, distanceToKm } from "@/lib/portal/preference-facts";
 import { formatDayMonth } from "@/lib/portal/date-format";
 import { getFiltersPage, getMatchesPage, getMemberCopy } from "@/stores/portal-store";
 
-/** Load the next page of cards when fewer than this many are left to review. */
-const LOW_WATER = 3;
-
 const meetToApi: Record<Preferences["meet"], InterestedIn> = { everyone: "EVERYONE", women: "WOMEN", men: "MEN" };
 const meetFromApi: Record<InterestedIn, Preferences["meet"]> = { EVERYONE: "everyone", WOMEN: "women", MEN: "men" };
-
-/** `maxDistanceKm` → the nearest distance option in miles ("any" for no limit). */
-function distanceFromKm(km: number | null): Preferences["distance"] {
-  if (km === null) return "any";
-  const options = distanceValues.filter((value) => value !== "any");
-  return options.reduce((best, value) => (Math.abs(milesToKm(Number(value)) - km) < Math.abs(milesToKm(Number(best)) - km) ? value : best), options[0]);
-}
 
 function toPreferences(api: DiscoveryPreferences): Preferences {
   return {
@@ -88,7 +81,7 @@ async function currentDeck(rebuilt = false): Promise<Deck> {
     current = await building;
   }
   try {
-    while (unreviewed(current) < LOW_WATER && current.hasMore) current = await loadMore(current);
+    while (needsNextPage(unreviewed(current), current.hasMore)) current = await loadMore(current);
   } catch (error) {
     // The deck expired (24h) or was replaced: build a fresh one, once.
     if (!rebuilt && isApiError(error) && (error.code === discoveryErrors.runExpired || error.code === discoveryErrors.runNotFound)) {
@@ -111,14 +104,19 @@ const resetDeck = () => {
  * A date is confirmed when its latest plan is set (or past, or done). The 48-hour countdown runs only while
  * the server gives a deadline and hasn't stopped the clock; otherwise the match has no countdown.
  */
-function toMatch(item: MatchItem): Match {
+/**
+ * `lastPreview` is the conversation's last message from `GET /conversations` (the live API sends
+ * `lastMessagePreview: null` on matches). With no message at all an open match keeps the "say hello"
+ * line; a match with a confirmed date shows none, since that line would be wrong there.
+ */
+function toMatch(item: MatchItem, lastPreview?: string | null): Match {
   const status = item.latestDate?.status;
   const confirmed = status === "SET" || status === "AWAITING_CONFIRMATION" || status === "COMPLETED";
   const counting = item.clockStoppedAt === null && item.expiresAt !== null;
   return {
     member: item.otherUser.nickname,
     summary: toSummary(item.otherUser),
-    preview: item.lastMessagePreview ?? getMemberCopy().preview,
+    preview: item.lastMessagePreview ?? lastPreview ?? (confirmed ? "" : getMemberCopy().preview),
     confirmed,
     expiresAt: counting ? toLocalTime(item.expiresAt) : null,
   };
@@ -155,7 +153,7 @@ export const apiPortalService: PortalService = {
       interestedIn: meetToApi[preferences.meet],
       ageMin: preferences.minAge,
       ageMax: preferences.maxAge,
-      maxDistanceKm: preferences.distance === "any" ? null : milesToKm(Number(preferences.distance)),
+      maxDistanceKm: distanceToKm(preferences.distance),
       verifiedOnly: preferences.verifiedOnly,
       interestIds: preferences.sharedInterest ? interestIds.slice(0, current.allowedRanges.maxInterests) : [],
     });
@@ -190,7 +188,7 @@ export const apiPortalService: PortalService = {
     try {
       const { data } = await discoveryApi.swipe({
         targetNickname: member,
-        action: decision === "pass" ? "PASS" : decision === "super" ? "SUPER_LIKE" : "LIKE",
+        action: swipeAction(decision),
         source: source === "profile" ? "PROFILE" : "DECK",
         ...(source === "deck" && runId ? { runId } : {}),
       });
@@ -198,6 +196,8 @@ export const apiPortalService: PortalService = {
     } catch (error) {
       // Already decided, or no longer available: the card stays out of the deck.
       if (isApiError(error) && (error.code === discoveryErrors.alreadyDecided || error.code === discoveryErrors.unavailable)) return { matched: false };
+      // Not recorded (the weekly Super Like limit, offline…): the card stays in the deck.
+      decided.delete(member);
       throw error;
     }
   },
@@ -206,24 +206,28 @@ export const apiPortalService: PortalService = {
     refreshNext = true;
   },
   async getMatches() {
-    return (await openMatches()).matches.map(toMatch);
+    // One shared, cached list read for every card's last message (never one request per card).
+    const [{ matches }, conversations] = await Promise.all([openMatches(), chatApi.list().catch(() => null)]);
+    const previews = new Map(conversations?.data.map((item) => [item.id, item.lastMessage?.preview ?? item.lastMessage?.text ?? null]) ?? []);
+    return matches.map((match) => toMatch(match, match.conversationId ? previews.get(match.conversationId) : null));
   },
   async getActiveCount() {
     const { matches, activeCount } = await openMatches();
     return activeCount ?? matches.filter((match) => match.clockStoppedAt === null && match.expiresAt !== null).length;
   },
-  async getOutcomes(tab) {
-    const { data } = await matchesApi.list(tab === "complete" ? "completed" : "cancelled");
+  async getOutcomes(tab, cursor) {
+    const { data, meta } = await matchesApi.list(tab === "complete" ? "completed" : "cancelled", cursor);
     const { outcome } = getMatchesPage();
-    return data.map((item) => {
+    const outcomes = data.map((item) => {
       const summary = toSummary(item.otherUser);
       const at = toLocalTime(item.latestDate?.scheduledAt);
       const venue = item.latestDate?.place?.name ?? item.latestDate?.venueName;
       let meta = fill(outcome.meta, { name: summary.name });
       if (at !== null) meta = fill(outcome.when, { meta, when: formatDayMonth(new Date(at).toISOString()) });
       if (venue) meta = fill(outcome.venue, { meta, venue });
-      return { member: summary.id, summary, meta, image: summary.photo };
+      return { member: summary.id, summary, meta, image: summary.photo, rated: item.latestDate?.myRatingDone === true };
     });
+    return { outcomes, next: meta?.hasMore ? (meta.nextCursor ?? null) : null };
   },
   async getMatch(member) {
     const match = await findMatch(member);
@@ -243,4 +247,14 @@ export const apiPortalService: PortalService = {
     await matchingApi.start();
   },
   isFindingMatches: matchingApi.isRunning,
+  async getLikesReceived(page) {
+    return toLikesPage((await discoveryApi.likesReceived(page)).data);
+  },
+  async matchLike(member) {
+    const { data } = await discoveryApi.matchLike(member);
+    return { matched: data.match !== null };
+  },
+  async passLike(member) {
+    await discoveryApi.passLike(member);
+  },
 };

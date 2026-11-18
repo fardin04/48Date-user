@@ -103,6 +103,38 @@ export type SwipeData = {
   match: { id: string; conversationId: string; matchedUser: { id: string; nickname: string; mainPhotoUrl: string | null } } | null;
 };
 
+/** `GET /discovery/likes-received`: who liked the member. `PAYWALL_BLURRED` sends masked, blurred items (`isLocked`). */
+export type LikesReceivedMode = "ALL_UNBLURRED" | "PAYWALL_BLURRED";
+
+export type LikeReceivedItem = {
+  id: string;
+  nickname: string;
+  age: number | null;
+  mainPhotoUrl: string | null;
+  isVerified: boolean;
+  isSuperLike: boolean;
+  likedAt: string;
+  distanceKm: number | null;
+  bio: string | null;
+  occupation: string | null;
+  photos: { url: string; position: number }[];
+  interests: InterestTag[];
+  trustScore?: TrustBadge;
+  isLocked: boolean;
+};
+
+export type LikesReceivedData = {
+  items: LikeReceivedItem[];
+  mode: LikesReceivedMode;
+  meta: { page: number; limit: number; total: number; totalPages: number; hasMore: boolean; nextCursor: string | null };
+};
+
+/** `POST /discovery/likes-received/:nickname/match` (`match` set) and `/pass` (`match: null`). */
+export type LikeDecisionData = {
+  swipe: { id: string; action: SwipeAction; createdAt: string };
+  match: { id: string; conversationId: string; matchedAt: string; expiresAt: string | null } | null;
+};
+
 /** Error codes the deck reacts to. */
 export const discoveryErrors = {
   onboardingIncomplete: "DISCOVERY_ONBOARDING_INCOMPLETE",

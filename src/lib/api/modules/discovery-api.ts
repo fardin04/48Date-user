@@ -7,6 +7,8 @@ import type {
   DiscoveryPreferencesBody,
   DiscoveryProfile,
   DiscoveryRun,
+  LikeDecisionData,
+  LikesReceivedData,
   StartRunData,
   SwipeBody,
   SwipeData,
@@ -68,7 +70,23 @@ export const discoveryApi = {
     if (result.data.match) invalidate(cacheKeys.matches, cacheKeys.conversations);
     return result;
   },
+  /** Who liked the member, a page at a time (`page` from 1). */
+  likesReceived: (page: number, limit = LIKES_PAGE) => api.get<LikesReceivedData>(endpoints.discovery.likesReceived, { query: { page, limit } }),
+  /** Like back: a mutual match (new match, its conversation and the unseen popup list). */
+  async matchLike(nickname: string) {
+    const result = await api.post<LikeDecisionData>(endpoints.discovery.likesReceivedMatch(nickname));
+    invalidate(cacheKeys.likesReceived, ...(result.data.match ? [cacheKeys.matches, cacheKeys.conversations] : []));
+    return result;
+  },
+  async passLike(nickname: string) {
+    const result = await api.post<LikeDecisionData>(endpoints.discovery.likesReceivedPass(nickname));
+    invalidate(cacheKeys.likesReceived);
+    return result;
+  },
 };
+
+/** Likes received per page (the collection's example asks for 20). */
+export const LIKES_PAGE = 20;
 
 /** The one auto-matching run in progress (READY starts it, MATCHES joins it); stopped on sign-out. */
 let matching: { run: Promise<DiscoveryRun>; controller: AbortController } | null = null;

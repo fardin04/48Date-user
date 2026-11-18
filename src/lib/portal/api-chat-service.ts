@@ -10,6 +10,7 @@ import { acquireSocket } from "@/lib/api/socket";
 import type { ApiMessage, ClosedEvent, MessageDeletedEvent, MessageEditedEvent, ReceiptEvent, SendMessageBody, TypingEvent } from "@/lib/api/types/chat";
 import { mediaUrl, toSummary } from "@/lib/portal/api-members";
 import { findMatch } from "@/lib/portal/api-match-lookup";
+import { ledgerMessages, mergeMessages } from "@/lib/portal/chat-optimistic";
 import type { ChatMessage, ChatService, Conversation, ConversationWatcher, MessageKind, OutgoingMessage } from "@/lib/portal/chat-service";
 import { getMemberCopy } from "@/stores/portal-store";
 
@@ -39,6 +40,8 @@ type Room = {
   blocked: boolean;
   /** Failed sends, kept so Retry reuses the same `clientMessageId` (the API delivers it once). */
   outbox: Map<string, Outgoing>;
+  /** Server id → the client id its optimistic copy had (`chat-optimistic.ts`). */
+  keys: Map<string, string>;
 };
 
 const rooms = new Map<string, Room>();
@@ -101,11 +104,10 @@ function readIntro(): string[] {
 }
 
 function snapshot(room: Room): Conversation {
-  const ordered = [...room.messages.values()].sort((a, b) => a.seq - b.seq).map(({ message }) => toMessage(message, room.partnerSeen));
   return {
     member: room.member,
     partner: room.partner,
-    messages: [...ordered, ...[...room.outbox.values()].map((entry) => entry.message)],
+    messages: ledgerMessages(room, (message) => toMessage(message, room.partnerSeen)),
     opening: "live",
     hasOlder: room.hasOlder,
     blocked: room.blocked,
@@ -119,14 +121,7 @@ function notify(room: Room) {
   watchers.get(keyOf(room.member))?.forEach((watcher) => watcher.onChange(conversation));
 }
 
-function merge(room: Room, list: ApiMessage[]) {
-  for (const message of list) {
-    if (message.conversationId !== room.conversationId) continue;
-    room.messages.set(message.id, { seq: message.seq, message });
-    room.newestSeq = Math.max(room.newestSeq, message.seq);
-    room.oldestSeq = room.oldestSeq === null ? message.seq : Math.min(room.oldestSeq, message.seq);
-  }
-}
+const merge = (room: Room, list: ApiMessage[], clientId?: string) => mergeMessages(room, list, clientId);
 
 /** A conversation that doesn't exist (any more): closed, or blocked when this member blocked them. */
 async function closedRoom(member: MemberId): Promise<Conversation> {
@@ -185,6 +180,7 @@ async function readRoom(member: MemberId): Promise<Room | null> {
       readOnly: false,
       blocked: false,
       outbox: new Map(),
+      keys: new Map(),
     };
     merge(room, page.data);
     if (!known) room.hasOlder = page.meta?.hasMore ?? false;
@@ -218,12 +214,15 @@ async function bodyFor(entry: Outgoing): Promise<SendMessageBody> {
   return { clientMessageId: message.id, type: "VOICE", fileId: entry.fileId, durationSeconds: Math.min(120, Math.max(1, Math.round(outgoing.seconds))) };
 }
 
-/** Sends one entry; a failure keeps it in the outbox as `failed`. */
+/** Sends one entry, shown as "Sending…" until the server copy replaces it; a failure keeps it in the outbox as `failed`. */
 async function deliver(room: Room, entry: Outgoing): Promise<ChatMessage> {
+  room.outbox.set(entry.message.id, { ...entry, message: { ...entry.message, status: "sending" } });
+  notify(room);
   try {
-    const { data } = await chatApi.send(room.conversationId, await bodyFor(entry));
+    const { data } = await chatApi.send(room.conversationId, await bodyFor(room.outbox.get(entry.message.id) ?? entry));
     const sent = Array.isArray(data) ? data : [data];
-    merge(room, sent);
+    merge(room, sent.slice(0, -1));
+    merge(room, sent.slice(-1), entry.message.id);
     room.outbox.delete(entry.message.id);
     notify(room);
     const last = sent.at(-1);
@@ -231,7 +230,8 @@ async function deliver(room: Room, entry: Outgoing): Promise<ChatMessage> {
   } catch (error) {
     if (isApiError(error) && error.code === "CONVERSATION_CLOSED") room.readOnly = true;
     const failed: ChatMessage = { ...entry.message, status: "failed" };
-    room.outbox.set(failed.id, { ...entry, message: failed });
+    // Keeps the uploaded fileId, so Retry doesn't upload twice.
+    room.outbox.set(failed.id, { ...(room.outbox.get(failed.id) ?? entry), message: failed });
     notify(room);
     return failed;
   }
@@ -344,7 +344,8 @@ export const apiChatService: ChatService = {
           }
         })
         .catch(() => undefined);
-    const refresh = () => invalidate(listKey);
+    // The match cards show the last message too.
+    const refresh = () => invalidate(listKey, cacheKeys.matches);
     // An edited or removed last message changes the preview.
     const listEvents = ["message:new", "message:edited", "message:deleted", "conversation:closed"];
     socket.on("connect", join);
@@ -401,7 +402,7 @@ export const apiChatService: ChatService = {
         watcher.onTyping(false);
       }
       notify(room);
-      invalidate(listKey);
+      invalidate(listKey, cacheKeys.matches);
     };
     const onReceipt = (event: ReceiptEvent) => {
       const room = rooms.get(key);

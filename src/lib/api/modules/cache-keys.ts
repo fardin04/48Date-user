@@ -20,6 +20,7 @@ export const cacheKeys = {
   preferences: ["discovery", "preferences"],
   discoveryRun: ["discovery", "run"],
   discoveryProfile: ["discovery", "profile"],
+  likesReceived: ["discovery", "likes-received"],
   matches: ["matches"],
   conversations: ["conversations"],
   games: ["games"],
