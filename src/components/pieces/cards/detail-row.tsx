@@ -25,10 +25,10 @@ export function DetailRow({ label, value, variant = "split", divided, className,
   const style = variants[variant];
   return (
     <Reveal delay={revealDelay} className={cn("grid items-center gap-3 bg-white p-3", style.row, divided ? "border-b border-divider" : "rounded-12", className)}>
-      <Text as="dt" variant="text14Semibold" tone="strong">
+      <Text as="dt" variant="text14Semibold" tone="strong" className="break-anywhere">
         {label}
       </Text>
-      <Text as="dd" variant="text14Relaxed" tone="sub" className={style.value}>
+      <Text as="dd" variant="text14Relaxed" tone="sub" className={cn(style.value, "break-anywhere")}>
         {value}
       </Text>
     </Reveal>

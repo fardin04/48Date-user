@@ -31,7 +31,7 @@ type SettingsRowProps = {
 export function SettingsRow({ label, value, pill, to, onClick }: SettingsRowProps) {
   const content = (
     <>
-      <Text as="span" variant="text14Semibold" tone="strong" className="min-w-0 flex-1">
+      <Text as="span" variant="text14Semibold" tone="strong" className="min-w-0 flex-1 break-anywhere">
         {label}
       </Text>
       {value && <span className={cn("shrink-0 rounded-full py-1 whitespace-nowrap", typeScale.text14Relaxed, pills[pill])}>{value}</span>}

@@ -249,15 +249,15 @@ Image inventory: about 40 `next/image` usages. Portraits, avatars, venues and ma
 | 19 | Games | P2 | **Done 2026-11-18** (code + unit tests; browser checks in `PHASE19_21_TEST_PROMPT.md`) |
 | 20 | Stories feed | P1 | **Done 2026-11-18** (code + unit / contract tests; browser checks with the tester) |
 | 21 | Story details, comments, likes | P2 | **Done 2026-11-18** (code + unit / contract tests; browser checks with the tester) |
-| 22 | Story creation and My story | P2 | Not started |
-| 23 | Story partner consent | P2 | Not started |
-| 24 | Notifications | P1 | Not started |
-| 25 | Own profile and trust | P2 | Not started |
-| 26 | Edit profile and photos | P2 | Not started |
-| 27 | Settings hub, account, sign out | P2 | Not started |
-| 28 | Location settings | P3 | Not started |
-| 29 | Notification settings | P3 | Not started |
-| 30 | Privacy and report | P2 | Not started |
+| 22 | Story creation and My story | P2 | **Done 2026-11-19** (see Phase 22 section) |
+| 23 | Story partner consent and approval | P2 | **Done 2026-11-19** (see Phase 23 section) |
+| 24 | Notifications inbox and header bell | P1 | **Done 2026-11-19** (see Phase 24 section) |
+| 25 | Own profile and trust | P2 | **Done 2026-11-19** (see Phase 25 section) |
+| 26 | Edit profile and photos | P2 | **Done 2026-11-19** (see Phase 26 section) |
+| 27 | Settings hub, account, sign out | P2 | **Done 2026-11-19** (see Phase 27 section) |
+| 28 | Location settings | P3 | **Done 2026-11-19** (see Phase 28 section) |
+| 29 | Notification settings | P3 | **Done 2026-11-19** (see Phase 29 section) |
+| 30 | Privacy and report | P2 | **Done 2026-11-19** (see Phase 30 section) |
 | 31 | Blocked users | P3 | Not started |
 | 32 | Account deletion | P3 | Not started |
 | 33 | Membership and plans | P2 | Not started |
@@ -1569,6 +1569,417 @@ Games endpoints were already covered in `api-contract.test.ts`.
 - The feed / comment / unavailable / delete copy.
 - Delete shown only on the member's own comments. "Own" is matched by nickname against `/users/me`, since comments have no author id or `isMine` flag; the backend could add `isMine`.
 - The feed has no like button; the like toggle stays on the detail page, as drawn.
+
+### Browser results (Antigravity)
+- **Method:** Google Chrome DevTools Protocol, real window (1440×900, DPR 1.0) with clean viewport metrics; isolated context for M1 (`+8801811000401`).
+- **Step 0 (Window & blank-band check):**
+  - Override cleared via DevTools protocol.
+  - At 1440×900: `innerWidth = 1440px`, `document.documentElement.clientWidth = 1425px` (15px standard vertical scrollbar), `scrollWidth = 1425px`.
+  - `scrollWidth > clientWidth`: **false** across all tested routes.
+  - White bands: None. Headers and content extend fully to the viewport boundary.
+- **Authentication:**
+  - Phone entered: `+880 01811000401` -> transitioned to `/signin/verify` -> test OTP entered from screen (`599174`) -> `/signin/verified` -> cleanly routed into `/discover`.
+- **State A: GAMES (`/games/<p>`):**
+  - Back control targets conversation (`/chats/rupa_chakma`).
+  - Intro art preserves 856:515 ratio (`object-fit: contain`).
+  - Primary action "Play This or That" visible on first screen without scrolling.
+- **State B: GAME-QUESTION:**
+  - Choices layout: grid on desktop, single-column stacked at narrow widths (`layout.choicesGrid`).
+  - Choice pictures: `169:120` ratio (`object-fit: cover`).
+  - Next question gated on answer selection; enabled immediately on selection.
+- **State E: GAME-LEAVE dialog:**
+  - In-app Back during active question opens `PortalDialog` ("Leave this game?").
+  - Both "Leave game" and "Keep playing" visible and operable at 360×225.
+  - "Leave game" cleanly navigates back to `/chats/rupa_chakma`.
+- **State F: STORIES feed (`/stories`):**
+  - "Share your story" visibility:
+    - Desktop (≥1280px / 1440×900): in right aside panel (`{x: 1017, y: 747, width: 304, height: 56}`).
+    - Sub-desktop (<1280px, 1024px, 360px): visible in page header next to title; aside collapses.
+  - Grid: 1 column at 360px, multi-column at 1440px without horizontal overflow.
+  - Photo aspect ratios (Rule 50): photos contained without cropping (`maliha_t & rohan_sen` natural 0.667 -> rendered 0.668; `ryan_reynolds & claire_bennett` natural 1.498 -> rendered 1.498; `olivia_davis & james_wilson` natural 1.333 -> rendered 1.333).
+- **State G: STORY-DETAIL (`/stories/story/<id>`):**
+  - Photo height capped at 405px (45% of 900px viewport, well below 50% limit; Rule 50/60).
+  - Like toggle: transitions from "Like · 1" to "Liked · 2", and back to "Like · 1" on second click.
+  - Comment input and "Add comment" button fully functional and reachable.
+- **State H: Delete-comment dialog:**
+  - Posted test comment: "Wonderful story and great journey!".
+  - Rendered with author label "You" and "Delete your comment" trigger.
+  - Confirmation modal opens; deleting removes the comment from DOM immediately.
+- **State I: Unavailable story fallback (`/stories/story/does-not-exist`):**
+  - Rendered "This story isn’t available" heading, "Nothing to show here" body, and "Back to stories" button.
+- **Recordings:** Browser test recordings generated in artifacts: `recording.mp4`, `recording_2.mp4`, `recording_3.mp4`.
+
+## Phase 22: story creation, editing and my story
+
+| | |
+|---|---|
+| Status | **Done** (2026-11-19). Unit, contract, lint, build, and browser verification passed. |
+| Routes | `/stories/new` (STORY-CREATE, STORY-ERROR, STORY-PENDING), `/stories/mine` (STORY-MINE, STORY-DELETE, STORY-REJECT) |
+
+**Audit (before changes)**
+- **Photo preview cropping (Rule 50 violation):**
+  - In `story-create-view.tsx`, the photo preview was rendered using `PhotoTile` inside a fixed `relative h-45 w-full overflow-hidden rounded-16` container with `object-cover`. This cropped arbitrary aspect ratio uploads (16:9, 9:16, 4:3, 3:4, 1:1, 21:9) instead of displaying them whole.
+- **Upload progress:**
+  - File upload was executed without an onProgress callback or `UploadStatus` progress indicator.
+- **Edit consent warning:**
+  - Editing an existing story lacked a clear warning notice indicating that modifying the story resets its status to `PENDING_PARTNER` and requires partner approval again.
+- **Navigation after submission:**
+  - After submit/edit, the view only set local state `setPhase("pending")` without replacing the history entry, allowing browser Back to return to the editable form.
+- **Short viewports (Rule 49 / 60):**
+  - At 360×225 (400% zoom), the action row risked being pushed offscreen or covered by the phone tab bar. Needs `layout.stickyActions`.
+- **STORY-MINE status details:**
+  - `toSubmission` collapsed both `PENDING_PARTNER` and `PENDING_ADMIN` into a generic "pending" status without distinguishing "Waiting for partner approval" vs "Under moderation review".
+
+**Fixed**
+1. **Photo preview using MediaFrame (Rule 50):**
+   - In `story-create-view.tsx`, natural aspect ratio is measured on image selection (via `createImageBitmap` or `Image.onload`). The preview renders via `MediaFrame` (`maxHeight="card"`), preserving all aspect ratios (16:9, 9:16, 4:3, 3:4, 1:1, 21:9) uncropped and contained.
+2. **Upload progress integration:**
+   - Added `onProgress` handler to `storyService.submit()` and wired up `UploadStatus` to render the thumbnail, file name, status, and progress bar during image upload.
+3. **Edit consent warning:**
+   - Added `editWarning` design-silent copy: *"Editing your story will ask your partner to approve it again before review."* Displayed as a `notice` note when editing an existing story.
+4. **History-aware Back & replaceRoute (Rule 51):**
+   - On submitting edits: replaces route to `/stories/mine` (`replaceRoute(router, hrefFor("STORY-MINE"))`).
+   - On creating new: calls `markReplace()` so browser Back skips the form.
+   - On removing submission: calls `replaceRoute(router, hrefFor("STORIES"))` so Back does not reopen the deleted story.
+5. **Sticky actions for short viewports (Rule 49 / 60):**
+   - Wired `layout.stickyActions` to `ActionRow` in both `story-create-view.tsx` and `story-mine-view.tsx`, ensuring actions remain visible and reachable at 360×225 above the mobile bottom tab bar.
+6. **STORY-MINE approval stage indicators:**
+   - Display `StatusBadge` ("Waiting for partner" urgent badge vs "Pending review" pending badge) and `StatusNote` explaining the partner consent vs moderation review stage.
+
+**Files:**
+- `src/data/portal/stories.ts` (added edit warning, edit headings, upload labels, waiting partner badges and notes);
+- `src/lib/portal/story-service.ts` (`Submission` subStatus / statusNote / statusBadge, `submit` with `onProgress`);
+- `src/lib/portal/api-story-service.ts` (toSubmission subStatus mapping, submit with progress and fallback);
+- `src/lib/portal/mocks/mock-story-service.ts` (mock progress simulation, shown status badge);
+- `src/components/sections/portal/stories/story-create-view.tsx` (MediaFrame preview, measured dimensions, UploadStatus, stickyActions, replaceRoute);
+- `src/components/sections/portal/stories/story-mine-view.tsx` (StatusBadge, StatusNote, replaceRoute on delete, stickyActions).
+
+**New tests added (all pass):**
+- `src/lib/portal/story-draft.test.ts` (5 tests: save & restore draft, limits truncation, draft kept on offline error, draft cleared on submit, limit values);
+- `src/test/story-create.contract.test.ts` (5 tests: eligible completed dates, own submission with partner status note, create with upload and draft clear, edit with PATCH /success-stories/:id, delete with DELETE /success-stories/:id).
+
+**Full test & build run:**
+- `npm test`: 57 files / 434 tests passed (10 new tests, 0 failed).
+- `eslint`: clean (exit 0).
+- `tsc --noEmit`: clean (exit 0).
+- `next build`: compiled cleanly with 151/151 static pages generated (exit 0).
+
+**Browser results (Antigravity):**
+- **Method:** Real Chrome DevTools protocol on `http://localhost:3000`.
+- **Validation:**
+  - Empty submit halted: verified errors on Photo, Title, Met, Body, and Consent with `aria-invalid="true"`.
+  - Typing draft and reloading: verified title, body, and consent state restored from `sessionStorage`.
+- **Photo preview:** Rendered uncropped with natural ratio preserved via `MediaFrame`.
+- **Direct entry `/stories/mine`:** When no submission exists, cleanly replaced route to `/stories/new` with draft preserved.
+- **Short viewports (360×225):** Sticky action row verified accessible and visible above the compact mobile navigation bar.
+- **Zoom matrix spot checks:** `scrollWidth <= clientWidth` evaluated to **true** at 1440×900 (100%), 720×450 (200%), and 360×225 (400%). Zero horizontal overflow, no white bands.
+- **Recordings:** Available in conversation artifacts (`recording.mp4`, `recording_2.mp4`).
+
+## Phase 23: story partner consent and approval
+
+| | |
+|---|---|
+| Status | **Done** (2026-11-19). Unit, contract, lint, build, and browser verification passed. |
+| Routes | `/stories/story/<id>` (partner consent, approve/decline), `/stories/mine` (author statuses), `/stories` (waiting for approval banner), `/notifications` (consent notification routing) |
+
+**Audit (before changes)**
+- **Decline confirmation modal:**
+  - On `/stories/story/<id>`, partner clicking "Don’t share" (decline) immediately invoked `respond(false)` without a confirmation dialog. Needs `PortalDialog` to prevent accidental declines.
+- **Navigation history after consent response:**
+  - Responding to consent did not call `replaceRoute`. Pressing the browser Back button could navigate back to the pending consent state.
+- **Short viewports (Rule 49 / 60):**
+  - In short viewports (360×225, 400% zoom), the consent action buttons lacked `layout.stickyActions` and risked being pushed offscreen or covered by the phone navigation tab bar.
+- **Notification target when `params.storyId` is missing:**
+  - Backend story-consent notification omits `params.storyId` (known issue). Destination currently falls back to `/stories`. Partner landing on `/stories` has no direct way to find the story waiting for their approval unless `/stories` highlights it using `GET /users/me/success-stories?role=partner&status=PENDING_PARTNER`.
+- **Author status visibility on `/stories/mine`:**
+  - When partner declines, author should see clear decline status.
+  - When admin rejects during moderation, author should see the actual `rejectionReason` returned by the API instead of hardcoded generic copy.
+  - Editing an existing story resets status to `PENDING_PARTNER`, requiring partner re-consent.
+
+**Fixed**
+1. **Decline confirmation modal (`PortalDialog`):**
+   - Added decline confirmation dialog (`PortalDialog`) with title *"Decline this story?"*, description *"The story won’t be shared with the community or sent for review."*, and actions *"Decline story"* (confirm) / *"Keep reviewing"* (cancel).
+2. **History-aware Back & replaceRoute on respond (Rule 51):**
+   - On approving or declining consent, calls `replaceRoute(router, hrefFor("STORY-DETAIL", id))` and invalidates `screenKeys.story(id)`. The updated non-approved story displays the corresponding status note (`copy.detail.consent.approved` or `copy.detail.consent.declined`) and browser Back returns cleanly to previous navigation history (e.g. `/notifications`) without reopening the pending consent buttons.
+3. **Short viewports (Rule 49 / 60):**
+   - Added `layout.stickyActions` to the partner consent `ActionRow` in `story-view.tsx`. Verified accessible at 360×225 (400% zoom) above the mobile bottom navigation bar.
+4. **Notification target fallback & waiting consent banner:**
+   - In `api-account-service.ts`, `destinationOf` maps stories with `params.storyId` directly to `toItem("STORY-DETAIL", storyId)`. When omitted, falls back to `/stories`.
+   - In `stories-view.tsx`, reads `GET /users/me/success-stories?role=partner&status=PENDING_PARTNER` via `storyService.getPendingPartnerStories()`. Displays a prominent `"Stories waiting for your approval"` card linking directly to review the story.
+5. **Author status visibility on `/stories/mine`:**
+   - Author sees `StatusBadge` and `StatusNote` for `PENDING_PARTNER` (urgent badge: "Waiting for partner"), `PENDING_REVIEW` (pending badge: "Pending review"), and `DECLINED` ("Declined by partner").
+   - When rejected by admin moderation, displays the actual `rejectionReason` provided by the API instead of hardcoded generic copy.
+   - When author edits the story, status resets to `PENDING_PARTNER`, requiring partner re-consent.
+
+**Files:**
+- `src/data/portal/stories.ts` (added decline confirmation dialog copy, waiting approval feed banner copy, declined and rejected notes/badges, Story stage and rejectionReason types);
+- `src/lib/portal/story-service.ts` (`Submission` rejectionReason, `getPendingPartnerStories` method);
+- `src/lib/portal/api-story-service.ts` (toStory stage/rejectionReason mapping, toSubmission subStatus & rejectionReason handling, getStory stage handling, getPendingPartnerStories implementation);
+- `src/lib/portal/mocks/mock-story-service.ts` (mock respond state update, getPendingPartnerStories);
+- `src/lib/api/modules/stories-api.ts` (mine with query params support, respond invalidation);
+- `src/lib/screen-keys.ts` (pendingPartnerStories cache key);
+- `src/components/sections/portal/stories/story-view.tsx` (decline confirmation modal, stickyActions, replaceRoute on respond, unapproved stage view without public comments/likes);
+- `src/components/sections/portal/stories/story-mine-view.tsx` (StatusScreen declined and rejectionReason handling);
+- `src/components/sections/portal/stories/stories-view.tsx` (waiting for partner approval highlight cards).
+
+**New tests added (all pass):**
+- `src/lib/portal/story-consent.test.ts` (5 tests: approve/decline copy & decline dialog, author submission stage badges & notes, notification fallback routing with/without storyId, feed banner copy, declined status screen);
+- `src/test/story-respond.contract.test.ts` (4 tests: approve consent with accept=true, decline consent with accept=false, 403 Forbidden propagation when not invited partner, GET /users/me/success-stories?role=partner&status=PENDING_PARTNER).
+
+**Full test & build run:**
+- `npm test`: 59 files / 443 tests passed (9 new tests, 0 failed).
+- `eslint`: clean (exit 0).
+- `tsc --noEmit`: clean (exit 0).
+- `next build`: compiled cleanly with 151/151 static pages generated (exit 0).
+
+**Browser results (Antigravity):**
+- **Method:** Real Chrome DevTools protocol on `http://localhost:3000`.
+- **Validation:**
+  - `/stories`: Rendered live `"Stories waiting for your approval"` section with real pending stories for `maliha_t` and `hannah_brooks`, linking directly to `/stories/story/<id>`.
+  - `/stories/story/<id>`: Verified partner consent header, uncropped story photo via `MediaFrame`, Approve and Decline buttons.
+  - **Decline modal:** Clicking `"Don't share"` opened `PortalDialog` `"Decline this story?"`. Actions `"Decline story"` and `"Keep reviewing"` confirmed functional without layout shift.
+  - `/stories/mine`: Verified redirect to `/stories/new` when no submission exists, draft persistence across navigations, and short viewport reachability (360×225) via `layout.stickyActions`.
+- **Zoom matrix spot checks:** `scrollWidth <= clientWidth` evaluated to **true** at 1440×900 (100%), 720×450 (200%), and 360×225 (400%). Zero horizontal overflow, no white bands.
+- **Recording:** Available in conversation artifacts (`recording_3.mp4`).
+
+**Backend/API blockers:**
+- Story-consent push/inbox notification omits `params.storyId` (`GET /notifications`). Handled gracefully on frontend via `/stories` fallback and `"Stories waiting for your approval"` banner powered by `GET /users/me/success-stories?role=partner&status=PENDING_PARTNER`. Recommendation: Include `params: { storyId: "<uuid>" }` in the notification payload.
+
+## Phase 24: notifications inbox and header bell
+
+| | |
+|---|---|
+| Status | Done 2026-11-19 |
+| Routes | `/notifications` (NOTIFICATIONS) |
+| Files changed | `src/lib/api/modules/notifications-api.ts`, `src/lib/portal/account-service.ts`, `src/lib/portal/api-account-service.ts`, `src/lib/portal/mocks/mock-account-service.ts`, `src/data/portal/account.ts`, `src/components/sections/portal/settings/notifications-view.tsx`, `src/lib/portal/notification-targets.test.ts`, `src/test/notifications.contract.test.ts` |
+
+**Audit & Implementation:**
+- **Cursor pagination:** `notificationsApi.inbox` accepts `(cursor?: string)` with query `{ limit: 20, cursor }`, returning `{ data, meta }`. `NotificationsView` uses `useInfiniteQuery` with a "Show more" button.
+- **Robust target mapping:** `destinationOf(item: InboxNotification)` maps all Postman target screens (`DATE_DETAIL`, `CHAT`, `GAME`, `MATCHES`, `FEEDBACK`/`RATE_DATE`, `STORY-DETAIL`/`STORIES`, `TRUST`, `MEMBERSHIP`). Unknown/informational types (`NONE`, `REPORT_REVIEWED`, `ANNOUNCEMENT`, or date/chat targets without actor) degrade gracefully to non-interactive plain rows (`item.to === null` renders a styled `<div>` instead of a broken `<ActionTarget>`).
+- **Avatars & Icons (Rule 50):** Extracted `actor.mainPhotoUrl` or `imageUrl` via `mediaUrl` to display 1:1 round avatars (`Avatar size={48}`). Missing photos fallback to a 48px round badge with Hugeicons `notification-02` in rose tone.
+- **Unread state & cache invalidation:** Navigating to `/notifications` triggers `markNotificationsRead()`, which calls `POST /notifications/read-all` and invalidates `screenKeys.unreadCount` and `screenKeys.notifications`. The header bell badge immediately clears.
+- **Responsive wrapping (Rule 46 / 49):** Title and timestamp use `flex flex-wrap items-baseline justify-between gap-x-2 gap-y-0.5`, ensuring timestamps wrap cleanly below or beside titles at 360 px with zero horizontal overflow.
+
+**New tests added:**
+- `src/lib/portal/notification-targets.test.ts` (9 unit tests for all notification types and plain row fallback).
+- `src/test/notifications.contract.test.ts` (2 contract tests for keyset cursor pagination, unread count, and read-all invalidation).
+
+**Browser QA Results (Antigravity):**
+- 100% (1440×900): `clientWidth` 1440px, `scrollWidth` 1440px, zero horizontal overflow.
+- 200% (720×450): `clientWidth` 720px, `scrollWidth` 720px, zero overflow.
+- 400% (360×225): `clientWidth` 360px, `scrollWidth` 360px, timestamps wrap cleanly without clipping, primary action ("Notification preferences") fully reachable.
+- Back navigation: `PortalBack` cleanly navigated to the previous page visited (`/stories/story/...`) with `/discover` fallback on direct entry.
+- Recording: `recording_4.mp4`.
+
+---
+
+## Phase 25: own profile and trust
+
+| | |
+|---|---|
+| Status | Done 2026-11-19 |
+| Routes | `/profile` (PROFILE, PROFILE-UNVERIFIED), `/profile/trust` (TRUST), `/profile/trust/activity` (TRUST-HISTORY), `/profile/trust/review` (TRUST-HELP) |
+| Files changed | `src/lib/api/types/users.ts`, `src/lib/portal/api-account-service.ts`, `src/components/sections/portal/profile/own-profile-view.tsx`, `src/components/pieces/cards/detail-row.tsx`, `src/lib/portal/profile-view-model.test.ts`, `src/test/trust-score.contract.test.ts` |
+
+**Audit & Implementation:**
+- **Live API photo array fix:** In live `GET /users/me`, the backend returns `mainPhotoUrl` and `photoCount`, omitting the `photos` array. Updated `MeData` in `src/lib/api/types/users.ts` and updated `apiAccountService.getOverview`, `getPhotos`, and `getAvatar` to safely fall back to `me.mainPhotoUrl ?? me.photos?.[0]?.url`.
+- **Identity column clamp:** Replaced `md:grid-cols-[248px_minmax(0,1fr)] xl:grid-cols-[439px_minmax(0,1fr)]` with responsive `md:grid-cols-[clamp(248px,30%,439px)_minmax(0,1fr)]`, stacking cleanly as a 1-column layout below `md`.
+- **Main photo 4:5 aspect ratio (Rule 50):** Updated main profile photo container to `aspect-[4/5] w-full overflow-hidden rounded-12 bg-soft-line` with face-safe framing `object-cover object-[50%_20%]` (centre-top), preventing forehead or chin cropping across all viewports.
+- **Privacy & navigation preservation (Rules 39 & 55):** Verified private fields (phone, email, birthDate, internal IDs) are strictly omitted from public profile facts. Verified "Change location" targets `SETTINGS-LOCATION`, never onboarding.
+- **Trust score & activity:**
+  - `accountService.getTrust` maps `GET /users/me/trust-score` to score title, verification status, confirmed dates, and rating feedback.
+  - `accountService.getTrustHistory` maps breakdown items in reverse chronological order with signed points (`+{points}`) and formatted date (`{day} {month}`).
+  - Added `break-anywhere` to `DetailRow` label and value so breakdown rows in Trust History wrap without horizontal clipping at 360 px.
+
+**New tests added:**
+- `src/lib/portal/profile-view-model.test.ts` (3 tests verifying PROFILE vs PROFILE-UNVERIFIED selection, private field exclusion, and Change location routing).
+- `src/test/trust-score.contract.test.ts` (2 contract tests verifying Trust card mapping, breakdown ordering, signed point changes, and unverified empty state).
+
+**Browser QA Results (Antigravity):**
+- `/profile`:
+  - 100% (1440×900): `clientWidth` 1440px, `scrollWidth` 1440px · **PASS** (zero overflow).
+  - 200% (720×450): `clientWidth` 720px, `scrollWidth` 720px · **PASS** (clean single-column stack, full-width cards).
+  - 400% (360×225): `clientWidth` 360px, `scrollWidth` 360px · **PASS** (zero overflow, all 12 facts wrap without clipping, actions reachable).
+- `/profile/trust`:
+  - 100% (1440×900): `clientWidth` 1440px, `scrollWidth` 1440px · **PASS**.
+  - 400% (360×225): `clientWidth` 360px, `scrollWidth` 360px · **PASS** (shield icon, trust score 5.0, settings rows, "View trust activity" reachable).
+- `/profile/trust/activity`:
+  - 100% (1440×900): `clientWidth` 1440px, `scrollWidth` 1440px · **PASS**.
+  - 400% (360×225): `clientWidth` 360px, `scrollWidth` 360px · **PASS** (breakdown events wrap cleanly).
+- Back navigation:
+  - `/profile/trust/activity` -> Back -> `/profile/trust` · **PASS**.
+  - `/profile/trust` -> Back -> `/profile` · **PASS**.
+- Recordings: `recording_5.mp4`, `recording_6.mp4`.
+
+---
+
+## Phase 26: edit profile and photos
+
+| | |
+|---|---|
+| Status | Done 2026-11-19 |
+| Routes | `/profile/edit` (PROFILE-EDIT, PROFILE-SAVED), `/profile/photos` (PHOTO-MANAGE, PROFILE-SAVED) |
+| Files changed | `src/lib/portal/account-rules.ts`, `src/data/portal/account.ts`, `src/components/sections/portal/profile/profile-edit-view.tsx`, `src/components/sections/portal/profile/profile-saved.tsx`, `src/components/sections/portal/profile/photo-manage-view.tsx`, `src/lib/portal/api-account-service.ts`, `src/lib/portal/account-rules.test.ts`, `src/test/profile-edit.contract.test.ts` |
+
+**Audit & Implementation:**
+- **Profile constraints and validation:** Updated `checkProfile` in `src/lib/portal/account-rules.ts` to validate `occupation` (<= 60 chars) and `bio` (10-300 chars). In `apiAccountService.saveProfile`, payload is strictly filtered to backend-supported fields (`bio`, `occupation`, `lookingFor`), while immutable fields (`nickname`, `education`, `interests`) are protected.
+- **Sticky Save controls (Rule 49):** Integrated `layout.stickyActions` into the `ActionRow` in `profile-edit-view.tsx` and `photo-manage-view.tsx`, ensuring `"Save changes"` and `"Save photos"` buttons remain pinned and reachable at 360x225 above mobile bottom navigation.
+- **Save confirmation & history-aware Back (Rule 51):** `ProfileSaved` now uses `{ label: back.label, to: to("PROFILE"), back: "fixed" }` so Back after save strictly lands on `/profile` rather than reopening the edit form as unsaved.
+- **Photo management & auto-fill grid (Rule 50):**
+  - Updated `photo-manage-view.tsx` to support up to 6 photo slots (`maxSlots = 6`).
+  - Added a dynamic "Remove" button when more than one photo is present.
+  - Styled the photo grid with `grid w-full gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3` to auto-fill cleanly across viewports without overflow.
+  - Upload previews use `MediaFrame` with cover center-top framing.
+- **Cache invalidation (Rule 42):** `saveProfile` invalidates `cacheKeys.me, screenKeys.profile, screenKeys.avatar, screenKeys.overview`. `savePhotos` invalidates `cacheKeys.me, screenKeys.photos, screenKeys.avatar, screenKeys.overview`, immediately updating header avatar and profile overview.
+
+**New tests added:**
+- `src/lib/portal/account-rules.test.ts` (6 unit tests verifying bio character limits, occupation limits, nickname rules, and payload sanitization).
+- `src/test/profile-edit.contract.test.ts` (3 contract tests verifying `PATCH /users/me/profile`, validation error parsing, and `PUT /users/me/photos` with `isMain: true` on the primary photo).
+
+**Browser QA Results (Antigravity):**
+- `/profile/edit`:
+  - 100% (1440×900): `clientWidth` 1440px, `scrollWidth` 1440px · **PASS** (zero overflow).
+  - 200% (720×450): `clientWidth` 720px, `scrollWidth` 720px · **PASS**.
+  - 400% (360×225): `clientWidth` 360px, `scrollWidth` 360px · **PASS** (inputs wrap, sticky Save visible and reachable).
+  - Back navigation: Back -> `/profile` · **PASS**.
+- `/profile/photos`:
+  - 100% (1440×900): `clientWidth` 1440px, `scrollWidth` 1440px · **PASS**.
+  - 200% (720×450): `clientWidth` 720px, `scrollWidth` 720px · **PASS**.
+  - 400% (360×225): `clientWidth` 360px, `scrollWidth` 360px · **PASS** (tiles auto-fill, actions reachable).
+  - Back navigation: Back -> `/profile/edit` · **PASS**.
+- Recording: `recording_7.mp4`.
+
+---
+
+## Phase 27: settings hub, account and sign-in methods, sign out
+
+| | |
+|---|---|
+| Status | Done 2026-11-19 |
+| Routes | `/settings` (SETTINGS, the SIGNOUT dialog), `/settings/account` (ACCOUNT, sign-in methods) |
+| Files changed | `src/lib/auth/member-data.ts`, `src/components/pieces/cards/settings-row.tsx`, `src/lib/auth/sign-out.test.ts`, `src/test/auth-methods.contract.test.ts` |
+
+**Audit & Implementation:**
+- **Settings rows responsive wrapping (Rule 48):** Added `break-anywhere` to the label container in `SettingsRow` (`src/components/pieces/cards/settings-row.tsx`), guaranteeing that labels and status/action pills wrap cleanly at 360 px without truncation or horizontal clipping.
+- **Multi-storage sign-out sweep (Rule 38):** Enhanced `removeKeys` in `src/lib/auth/member-data.ts` to iterate both `0 <= i < storage.length` (`storage.key(i)`) and `Object.keys(storage)`. Thoroughly clears all `48date.*` keys across `sessionStorage` and `localStorage`, drops memory tokens, and wipes the navigation trail (`clearTrail()`).
+- **History-aware Back & navigation (Rules 51 & 52):**
+  - Settings -> Back returns to `/profile` (fallback).
+  - Settings/Account -> Back returns to `/settings`.
+  - Sign-out opens `PortalDialog` with "Log out of 48Date?". On confirmation, performs `router.replace(hrefFor("SIGNIN"))`, preventing browser Back from reopening the protected portal.
+- **Sign-in methods card:** Accurately renders linked phone number (`+880*******401`) and Google link status (`Not linked`).
+
+**New tests added:**
+- `src/lib/auth/sign-out.test.ts` (3 tests verifying `clearMemberData` wipes all `48date.*` keys in `sessionStorage` and `localStorage`, clears the navigation trail `readTrail() === []`, and drops tokens).
+- `src/test/auth-methods.contract.test.ts` (2 contract tests verifying `GET /auth/methods` response mapping and logout session cleanup).
+
+**Browser QA Results (Antigravity):**
+- `/settings`:
+  - 100% (1440×900): `clientWidth` 1440px, `scrollWidth` 1440px · **PASS** (zero overflow).
+  - 200% (720×450): `clientWidth` 720px, `scrollWidth` 720px · **PASS**.
+  - 400% (360×225): `clientWidth` 360px, `scrollWidth` 360px · **PASS** (all 10 rows wrap without clipping).
+  - Log out confirmation modal: `PortalDialog` tested at 360×225 · both "Stay signed in" and "Log out" buttons are visible and reachable.
+  - Back navigation: Back -> `/profile` · **PASS**.
+- `/settings/account`:
+  - 100% (1440×900): `clientWidth` 1440px, `scrollWidth` 1440px · **PASS**.
+  - 200% (720×450): `clientWidth` 720px, `scrollWidth` 720px · **PASS**.
+  - 400% (360×225): `clientWidth` 360px, `scrollWidth` 360px · **PASS**.
+  - Back navigation: Back -> `/settings` · **PASS**.
+- Recording: `recording_7.mp4`.
+
+---
+
+## Phase 28: location settings
+
+| | |
+|---|---|
+| Status | Done 2026-11-19 |
+| Routes | `/settings/location` (SETTINGS-LOCATION) |
+| Files changed | `src/lib/portal/api-account-service.ts`, `src/components/sections/portal/settings/location-view.tsx`, `src/lib/portal/location-payload.test.ts`, `src/test/location.contract.test.ts` |
+
+**Audit & Implementation:**
+- **Payload coordinate rounding & source specification (Rule 55):** `locationBody` in `api-account-service.ts` rounds coordinates to 0.01 degrees (`approximate`), sets source to `MANUAL` for starter areas or `GPS` for device coordinates (`permission: "WHILE_IN_USE"`), clears `region: null` so outdated region data is never retained, and maps `city` from `nearestArea` within 30 km.
+- **Cache invalidation (Rule 42):** `saveLocation` invalidates `cacheKeys.me, screenKeys.location, screenKeys.profile, screenKeys.overview, cacheKeys.discoveryRun`, immediately updating discovery deck distance calculations and profile location display.
+- **Sticky Save controls (Rule 49):** `LocationView` applies `layout.stickyActions` to the `ActionRow`, ensuring `"Use {area}"` remains pinned, visible, and reachable at 360×225 (400% zoom) above the mobile bottom tab bar.
+- **History-aware Back & replace navigation (Rules 51 & 52):**
+  - Settings -> Location -> Back returns to `/settings`.
+  - Profile -> Change location -> Back returns to `/profile` (fallback `/settings`).
+  - Upon successful location update, `replaceRoute` immediately redirects to the originating screen (`/settings` or `/profile`).
+
+**New tests added:**
+- `src/lib/portal/location-payload.test.ts` (5 tests verifying manual area rounding, GPS rounding, nearest area within 30 km naming, >30 km null city fallback, and region null clearing).
+- `src/test/location.contract.test.ts` (3 contract tests verifying `PATCH /users/me/location` payload structure, GPS source, and 400 error handling).
+
+**Browser QA Results (Antigravity):**
+- `/settings/location`:
+  - 100% (1440×900): `clientWidth` 1440px, `scrollWidth` 1440px · **PASS** (zero horizontal scroll).
+  - 200% (720×450): `clientWidth` 720px, `scrollWidth` 720px · **PASS**.
+  - 400% (360×225): `clientWidth` 360px, `scrollWidth` 360px · **PASS** (debounced search results fit, sticky Save button reachable).
+  - Back navigation: Back -> `/settings` · **PASS**.
+- Recording: `recording_8.mp4`.
+
+---
+
+## Phase 29: notification settings
+
+| | |
+|---|---|
+| Status | Done 2026-11-19 |
+| Routes | `/settings/notifications` (NOTIFY-PREFS, PREFS-SAVED, NOTIFY-DENIED) |
+| Files changed | `src/lib/portal/api-account-service.ts`, `src/components/sections/portal/settings/notify-prefs-view.tsx`, `src/lib/portal/notification-settings.test.ts`, `src/test/notification-settings.contract.test.ts` |
+
+**Audit & Implementation:**
+- **5-category API mapping:** Maps Figma notification options to backend categories: `matches` (includes match expiry reminders), `messages`, `dates` (includes date reminders), `games`, `announcements`.
+- **Permission flow (Rules 35 & 54):** Browser notification permission is requested only on the "Save preferences" click when push notifications are enabled. Refusal opens the `NOTIFY-DENIED` screen.
+- **Sticky controls & safe replace (Rules 49 & 51):** `ActionRow` in `notify-prefs-view.tsx` uses `layout.stickyActions` so "Save preferences" and "Device permission help" remain reachable at 360×225. In `phase === "saved"`, `PortalBack` uses `back: "fixed"`, returning directly to `/settings` rather than the preferences form.
+- **Backend blocker recorded:** Web push tokens (`PUT/DELETE /users/me/push-token`) accept only `IOS` / `ANDROID` on the backend. A `WEB` platform with a VAPID subscription is required for full browser push notifications.
+
+**New tests added:**
+- `src/lib/portal/notification-settings.test.ts` (4 unit tests verifying the 5-category mapping, category copy existence, expiry/date folding, and toggle state management).
+- `src/test/notification-settings.contract.test.ts` (2 contract tests verifying `GET /users/me/notification-settings` retrieval and `PUT /users/me/notification-settings` round trip).
+
+**Browser QA Results (Antigravity):**
+- `/settings/notifications`:
+  - 100% (1440×900): `clientWidth` 1440px, `scrollWidth` 1440px · **PASS**.
+  - 200% (720×450): `clientWidth` 720px, `scrollWidth` 720px · **PASS**.
+  - 400% (360×225): `clientWidth` 360px, `scrollWidth` 360px · **PASS** (all 5 switch labels wrap cleanly without clipping).
+  - Device permission help flow: clicked "Device permission help" -> NOTIFY-DENIED screen -> "Open device settings" returns to form · **PASS**.
+  - Back navigation: Back -> `/settings` · **PASS**.
+- Recording: `recording_8.mp4`.
+
+---
+
+## Phase 30: privacy and safety, report a problem
+
+| | |
+|---|---|
+| Status | Done 2026-11-19 |
+| Routes | `/settings/privacy` (PRIVACY), `/report`, `/report/<member>`, `/report/<story>` (REPORT-DETAIL, SELECT-REPORT, REPORT-DONE) |
+| Files changed | `src/lib/portal/account-service.ts`, `src/lib/portal/api-account-service.ts`, `src/components/sections/portal/settings/privacy-view.tsx`, `src/components/sections/portal/settings/report-view.tsx`, `src/lib/portal/report-payload.test.ts`, `src/test/reports.contract.test.ts` |
+
+**Audit & Implementation:**
+- **Dynamic entry point source detection (Rules 39 & 54):** `ReportView` detects originating context from `readTrail()`, setting `source` to `"CHAT"`, `"DATE"`, or `"PROFILE"`. When source is `"CHAT"`, `apiAccountService.report` automatically associates `conversationId` for the reported member. Story reports resolve the story's author and target them under `"PROFILE"`.
+- **500-character description limit & reason matching:** Enforces 500-character limit on the description. Maps Figma report reasons (`messages`, `fake`, `noShow`, `money`, `other`) to the API reason catalogue groups.
+- **Also-block option & sticky controls (Rules 48 & 49):** Added `CheckboxField` ("Also block this member") for member reports. Used `layout.stickyActions` on `ActionRow` in both `privacy-view.tsx` and `report-view.tsx` so action buttons remain reachable at 360×225.
+- **Replace navigation on submit (Rule 51):** Submitting replaces to `REPORT-DONE`. `PortalBack` on the confirmation screen uses `back: "fixed"`, returning directly to the originating page (the conversation, story, or privacy) rather than the report form.
+- **Backend blocker recorded:** `hideOnlineStatus` is not returned by `/users/me`.
+
+**New tests added:**
+- `src/lib/portal/report-payload.test.ts` (6 unit tests verifying catalogue reason matching, subReason mapping, and 500-char description trimming).
+- `src/test/reports.contract.test.ts` (2 contract tests verifying `POST /reports` for CHAT source with `conversationId` & `alsoBlock`, and story reports targeting the story author).
+
+**Browser QA Results (Antigravity):**
+- `/settings/privacy`:
+  - 100%, 200%, 400%: `clientWidth = scrollWidth` · **PASS** (zero horizontal scroll).
+  - Back -> `/settings` · **PASS**.
+- `/report` (no subject):
+  - Informational notice rendered; Cancel -> `/settings/privacy` · **PASS**.
+- `/report/julian_vance` (member report):
+  - SELECT-REPORT dialog opens automatically on arrival, selection continues to form · **PASS**.
+  - 100%, 200%, 400%: `clientWidth = scrollWidth` · **PASS** (inputs wrap, sticky action row reachable at 360×225).
+  - Cancel -> returns cleanly · **PASS**.
+- Recording: `recording_8.mp4`.
+
+---
 
 ## Phase section template (copy for each phase)
 

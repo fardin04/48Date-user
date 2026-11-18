@@ -58,9 +58,9 @@ export function OwnProfileView() {
   return (
     <div className="flex w-full flex-col gap-6">
       {heading}
-      <div className="grid items-start gap-6 md:grid-cols-[248px_minmax(0,1fr)] xl:grid-cols-[439px_minmax(0,1fr)]">
+      <div className="grid items-start gap-6 md:grid-cols-[clamp(248px,30%,439px)_minmax(0,1fr)]">
         <PortalCard as="section" surface="outline" padding="md" revealDelay={40} aria-labelledby="own-name" className="flex flex-col gap-4">
-          <div className="relative h-90 w-full overflow-hidden rounded-12">
+          <div className="relative aspect-[4/5] w-full overflow-hidden rounded-12 bg-soft-line">
             <Image
               src={overview.photoUrl ?? (liveData ? getMemberCopy().placeholder.src : copy.photo.src)}
               alt={copy.photo.alt}
@@ -68,7 +68,7 @@ export function OwnProfileView() {
               loading="eager"
               // API photos come from the media CDN as optimised WebP; only the sample goes through the optimiser.
               unoptimized={overview.photoUrl !== null}
-              sizes="(min-width: 1280px) 400px, (min-width: 768px) 210px, 100vw"
+              sizes="(min-width: 1280px) 440px, (min-width: 768px) 30vw, 100vw"
               className="object-cover object-[50%_20%]"
             />
           </div>
