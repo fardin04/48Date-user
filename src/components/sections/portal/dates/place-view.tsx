@@ -1,6 +1,8 @@
 "use client";
 
 import Image from "next/image";
+import { useRouter } from "next/navigation";
+import { useEffect } from "react";
 import { ActionButton } from "@/components/pieces/actions/action-button";
 import { ActionRow } from "@/components/pieces/actions/action-row";
 import { CardHeading } from "@/components/pieces/content/card-heading";
@@ -11,7 +13,8 @@ import { PortalCard } from "@/components/pieces/layout/portal-card";
 import { Text } from "@/components/pieces/content/text";
 import type { MemberId } from "@/data/portal/types";
 import { useDatePlan } from "@/hooks/use-date-plan";
-import { toItem } from "@/lib/routes";
+import { hrefFor, toItem } from "@/lib/routes";
+import { replaceRoute } from "@/lib/navigation/replace-route";
 import { getDatePage } from "@/stores/portal-store";
 import { DateContext } from "@/components/sections/portal/dates/date-context";
 import { Workspace } from "@/components/sections/portal/shared/workspace";
@@ -20,19 +23,27 @@ import { isRawImage } from "@/lib/image";
 /** W06 / VENUE-DETAIL for the place chosen on VENUES (Amber & Oak, Garden Bistro or Lumen). */
 export function PlaceView({ memberId }: { memberId: MemberId }) {
   const copy = getDatePage();
+  const router = useRouter();
   const { plan } = useDatePlan(memberId);
-  if (!plan) return null;
+  const missing = plan !== null && !plan.place.name;
+
+  // Direct entry or refresh without a chosen place: pick one first.
+  useEffect(() => {
+    if (missing) replaceRoute(router, hrefFor("VENUES", memberId));
+  }, [missing, memberId, router]);
+
+  if (!plan || missing) return null;
   const venue = plan.place;
   const venues = toItem("VENUES", memberId);
   return (
     <Workspace aside={<DateContext member={memberId} place={venue} />}>
       <PortalBack action={{ ...copy.back, to: venues }} />
       <FormHeader variant="portalStatus" title={venue.name} description={copy.place.description} />
-      <div className="relative h-65 w-full overflow-hidden rounded-16">
+      <div className="relative aspect-[860/260] max-h-65 w-full overflow-hidden rounded-16">
         <Image src={venue.photo.src} unoptimized={isRawImage(venue.photo.src)} alt={venue.photo.alt} fill sizes="(min-width: 1280px) 860px, 100vw" className="object-cover" />
       </div>
       <PortalCard surface="outline" padding="sm" className="flex w-full flex-col gap-4">
-        <CardHeading as="h2" size={14} title={venue.name} description={venue.detailMeta} />
+        <CardHeading as="h2" size={14} title={venue.name} description={[venue.detailMeta, venue.areaDistance].filter(Boolean).join(" · ")} />
         <Text variant="text16" tone="sub">
           {venue.description}
         </Text>

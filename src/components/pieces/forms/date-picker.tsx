@@ -13,6 +13,8 @@ type DatePickerProps = {
   onChange: (value: string) => void;
   /** Earliest selectable day (`YYYY-MM-DD`). */
   min: string;
+  /** Latest selectable day (`YYYY-MM-DD`), when there is one. */
+  max?: string;
   labels: { previous: string; next: string; weekdays: string[] };
 };
 
@@ -26,7 +28,7 @@ const shiftMonth = (first: string, by: number) => {
 const weekday = (iso: string) => (new Date(`${iso}T00:00:00Z`).getUTCDay() + 6) % 7;
 
 /** Align UI "Date & Range Picker [1.1]": one month, Monday first; past days and other months are disabled. */
-export function DatePicker({ value, onChange, min, labels }: DatePickerProps) {
+export function DatePicker({ value, onChange, min, max, labels }: DatePickerProps) {
   const [month, setMonth] = useState(firstOfMonth(value || min));
   const start = addDays(month, -weekday(month));
   const weeks = Array.from({ length: 6 }, (_, row) => Array.from({ length: 7 }, (_, column) => addDays(start, row * 7 + column)));
@@ -42,7 +44,7 @@ export function DatePicker({ value, onChange, min, labels }: DatePickerProps) {
           <Text as="span" variant="text14Medium" tone="sub" aria-live="polite" className="flex-1 text-center">
             {formatMonth(month)}
           </Text>
-          <button type="button" aria-label={labels.next} onClick={() => setMonth(shiftMonth(month, 1))} className={nav}>
+          <button type="button" aria-label={labels.next} disabled={max !== undefined && firstOfMonth(max) <= month} onClick={() => setMonth(shiftMonth(month, 1))} className={nav}>
             <Icon name="arrow-right-s-line" size={20} tone="sub" />
           </button>
         </div>
@@ -63,7 +65,7 @@ export function DatePicker({ value, onChange, min, labels }: DatePickerProps) {
               <tr key={week[0]}>
                 {week.map((day) => {
                   const outside = day.slice(0, 7) !== month.slice(0, 7);
-                  const disabled = outside || day < min;
+                  const disabled = outside || day < min || (max !== undefined && day > max);
                   const selected = day === value;
                   return (
                     <td key={day} className="p-0">

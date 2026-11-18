@@ -19,6 +19,7 @@ import { formatDay } from "@/lib/portal/date-format";
 import { dateService } from "@/lib/portal/date-service";
 import { useDatePlan } from "@/hooks/use-date-plan";
 import { hrefFor, toItem } from "@/lib/routes";
+import { replaceRoute } from "@/lib/navigation/replace-route";
 import { getDatePage } from "@/stores/portal-store";
 import { DateContext } from "@/components/sections/portal/dates/date-context";
 import { StatusScreen } from "@/components/sections/portal/shared/status-screen";
@@ -51,7 +52,7 @@ export function FeedbackView({ memberId }: { memberId: MemberId }) {
     await run(async () => setPlan(await dateService.submitFeedback(memberId, answers)));
   };
   const skip = async () => {
-    if (await run(() => dateService.submitFeedback(memberId, null))) router.push(hrefFor("DATE-COMPLETE", memberId));
+    if (await run(async () => setPlan(await dateService.submitFeedback(memberId, null)))) replaceRoute(router, hrefFor("DATE-COMPLETE", memberId));
   };
 
   return (
