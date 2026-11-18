@@ -3,7 +3,6 @@
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { ActionButton } from "@/components/pieces/actions/action-button";
 import { ActionRow } from "@/components/pieces/actions/action-row";
 import { Avatar } from "@/components/pieces/media/avatar";
 import { FormHeader } from "@/components/pieces/forms/form-header";
@@ -16,6 +15,8 @@ import { Button } from "@/components/ui/button";
 import type { VenueId } from "@/data/portal/dates";
 import type { MemberId } from "@/data/portal/types";
 import { cn } from "@/lib/cn";
+import { venueListFrame, venueMapFrame } from "@/lib/control-sizes";
+import { AREA_RADIUS_KM } from "@/lib/portal/date-area";
 import { fill } from "@/lib/format";
 import { dateService } from "@/lib/portal/date-service";
 import { hrefFor, toItem } from "@/lib/routes";
@@ -25,22 +26,41 @@ import { useDatePlan } from "@/hooks/use-date-plan";
 import { useLoaded } from "@/hooks/use-loaded";
 import { screenKeys } from "@/lib/screen-keys";
 import { LoadFailed } from "@/components/sections/portal/shared/load-failed";
+import { AreaDialog } from "@/components/sections/portal/dates/area-dialog";
 import { DateContext } from "@/components/sections/portal/dates/date-context";
 import { StatusScreen } from "@/components/sections/portal/shared/status-screen";
 import { Workspace } from "@/components/sections/portal/shared/workspace";
 
-/** W06 / VENUES (VENUES-EMPTY when no public place fits): pick a place on the map or the list. */
+/**
+ * W06 / VENUES (VENUES-EMPTY when no public place fits): pick a place on the map or the list.
+ * VENUES-AREA (client state, rule 32) changes the area of this date only (rule 55).
+ */
 export function VenuesView({ memberId }: { memberId: MemberId }) {
   const copy = getDatePage();
   const router = useRouter();
-  const { plan } = useDatePlan(memberId);
+  const { plan, setPlan } = useDatePlan(memberId);
   const { value: found, error, reload } = useLoaded(screenKeys.venues(memberId), () => dateService.getVenues(memberId));
   const [chosen, setChosen] = useState<VenueId | null>(null);
+  const [areaOpen, setAreaOpen] = useState(false);
 
   if (!found || !plan) return error ? <LoadFailed onRetry={() => void reload()} error={error} /> : null;
   const member = plan.partner;
   const selected = chosen ?? plan.venue;
   const back = <PortalBack action={{ ...copy.back, to: toItem("CHAT-01", memberId) }} />;
+  const area = copy.venues.area;
+  const changeArea = { label: copy.venues.changeArea, onClick: () => setAreaOpen(true) };
+  const areaDialog = (
+    <AreaDialog
+      plan={plan}
+      open={areaOpen}
+      onOpenChange={setAreaOpen}
+      onSaved={(next) => {
+        setPlan(next);
+        setChosen(null);
+        void reload();
+      }}
+    />
+  );
 
   if (found.length === 0) {
     const { empty } = copy.venues;
@@ -48,13 +68,15 @@ export function VenuesView({ memberId }: { memberId: MemberId }) {
       <StatusScreen
         back={back}
         title={empty.title}
-        description={empty.description}
+        description={plan.area ? fill(empty.areaDescription, { km: AREA_RADIUS_KM, area: plan.area.label }) : empty.description}
         summary={empty.summary}
-        primary={empty.changeArea}
+        primary={changeArea}
         secondary={{ label: empty.retry, onClick: () => void reload() }}
         aside={<DateContext member={memberId} place={plan.place} />}
         actionWidth="actionSlot"
-      />
+      >
+        {areaDialog}
+      </StatusScreen>
     );
   }
 
@@ -79,9 +101,12 @@ export function VenuesView({ memberId }: { memberId: MemberId }) {
           </Text>
         </div>
       </PortalCard>
+      <Text variant="text14SemiboldRelaxed" tone="strong" className="break-anywhere">
+        {fill(area.label, { area: plan.area?.label ?? area.shared })}
+      </Text>
       <div className="grid w-full gap-6 lg:grid-cols-[minmax(0,672fr)_minmax(0,520fr)]">
-        <div className="flex flex-col gap-4">
-          <div className="relative h-123 w-full overflow-hidden rounded-16 max-md:h-90">
+        <div className="flex min-w-0 flex-col gap-4">
+          <div className={cn("relative w-full overflow-hidden rounded-16", venueMapFrame)}>
             <Image src={copy.venues.map.src} alt={copy.venues.map.alt} fill sizes="(min-width: 1024px) 672px, 100vw" className="object-cover" />
             {found.map((venue) => {
               const on = venue.id === current.id;
@@ -107,7 +132,7 @@ export function VenuesView({ memberId }: { memberId: MemberId }) {
           </div>
           <StatusNote variant="highlight" message={copy.venues.mapNote} />
         </div>
-        <ul aria-label={copy.venues.listLabel} className="flex flex-col gap-4">
+        <ul aria-label={copy.venues.listLabel} className={cn("flex min-w-0 flex-col gap-4", venueListFrame)}>
           {found.map((venue, index) => (
             <li key={venue.id} className="flex">
               <PlaceCard venue={venue} selected={venue.id === current.id} viewLabel={copy.venues.view} onView={() => void open(venue.id)} revealDelay={index * 60} />
@@ -119,8 +144,11 @@ export function VenuesView({ memberId }: { memberId: MemberId }) {
         <Button type="button" variant="confirm" size="portalPill" width="actionSlot" onClick={() => void open(current.id)}>
           {current.name}
         </Button>
-        <ActionButton action={copy.venues.changeArea} variant="roseOutline" size="portalPill" width="actionSlot" />
+        <Button type="button" variant="roseOutline" size="portalPill" width="actionSlot" aria-haspopup="dialog" onClick={changeArea.onClick}>
+          {changeArea.label}
+        </Button>
       </ActionRow>
+      {areaDialog}
     </Workspace>
   );
 }

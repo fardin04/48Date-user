@@ -24,6 +24,10 @@ export type Venue = {
   photo: ImageAsset;
   /** Pin position on the 672×492 map art (percent of the frame). */
   pin: { left: string; top: string };
+  /** Where the place is, when known: ranks it against the date's chosen area. */
+  position?: { lat: number; lng: number };
+  /** "2.1 km from Banani, Dhaka", once a date area is chosen. */
+  areaDistance?: string;
 };
 
 const photo = (name: string, alt: string): ImageAsset => ({ src: `/images/portal/${name}.webp`, alt, width: 720, height: 1080 });
@@ -47,6 +51,7 @@ export const venues: Venue[] = [
     arrival: "Meet at the main entrance",
     photo: photo("venue", "Amber & Oak Coffee counter and shelves"),
     pin: { left: "13.4%", top: "22.4%" },
+    position: { lat: 37.78, lng: -122.41 },
   },
   {
     id: "garden",
@@ -60,6 +65,7 @@ export const venues: Venue[] = [
     arrival: "Meet at the garden gate",
     photo: photo("garden", "The Garden Bistro courtyard with plants and tables"),
     pin: { left: "53.6%", top: "44.7%" },
+    position: { lat: 37.77, lng: -122.42 },
   },
   {
     id: "lumen",
@@ -73,6 +79,7 @@ export const venues: Venue[] = [
     arrival: "Meet at the front entrance",
     photo: photo("lumen", "Lumen Wine Bar counter in warm light"),
     pin: { left: "31.3%", top: "71.1%" },
+    position: { lat: 37.76, lng: -122.42 },
   },
 ];
 
@@ -121,12 +128,35 @@ export const datePage = {
     mapNote: "Approximate area · Your home locations are not shown",
     listLabel: "Suggested public places",
     view: "View place",
-    changeArea: { label: "Change area", to: to("LOCATION") } satisfies Action,
+    /** VENUES-AREA (rule 55): the area of this date only; it never opens onboarding or changes the profile location. */
+    changeArea: "Change area",
+    area: {
+      label: "Area: {area}",
+      shared: "Around both of you",
+      distance: "{km} km from {area}",
+      dialog: {
+        title: "Choose the date’s area",
+        description: "Places are suggested around this area. It applies to this date only; your profile location stays the same.",
+        device: "Use my current location",
+        locating: "Finding your area…",
+        or: "or",
+        field: { label: "Area", placeholder: "Search a city or neighbourhood" },
+        resultsLabel: "Matching areas",
+        noResult: "No matching area. Try a nearby neighbourhood or city.",
+        denied: "Location access is off. Allow it in your browser settings, or search for an area.",
+        unavailable: "We couldn’t find your position. Search for an area instead.",
+        nearYou: "Near your current location",
+        confirm: "Use {area}",
+        shared: "Use the area around both of you",
+        close: "Close",
+      },
+    },
     empty: {
       title: "Let’s try a different area",
       description: "We couldn’t find suitable public places within your current area.",
+      /** With a chosen area (design-silent). */
+      areaDescription: "No suggested public places are within {km} km of {area}.",
       summary: { icon: pin, title: "Choose a nearby area", description: "Look for a public meeting place that works for both of you." } satisfies StatusSummaryCopy,
-      changeArea: { label: "Change area", to: to("LOCATION") } satisfies Action,
       retry: "Try again",
     },
   },
@@ -144,6 +174,10 @@ export const datePage = {
     placeholders: { date: "Choose a date", time: "Choose a time" },
     required: "Choose a date and a time.",
     pastError: "Choose a date from today onwards.",
+    /** The API takes dates from 1 hour to 14 days ahead (design-silent copy). */
+    tooSoon: "Choose a time at least an hour from now.",
+    tooLate: "Choose a date within the next 14 days.",
+    noSlots: "No times are left on this day. Choose another day.",
     primary: "Review invitation",
     /** TIME-PICKER opens on 4:00 PM, as drawn. */
     defaultTime: 16 * 60,
@@ -170,7 +204,7 @@ export const datePage = {
     edit: "Edit plan",
   },
   member: { title: "Date with {name}", feedbackLine: "Your date · {date}" },
-  rows: { where: "Where", when: "When", timezone: "Timezone", meeting: "Meeting place" },
+  rows: { where: "Where", when: "When", timezone: "Timezone", area: "Area", meeting: "Meeting place" },
   pending: {
     title: "Invitation sent",
     badge: "Awaiting response",
@@ -254,6 +288,9 @@ export const datePage = {
     primary: { label: "Discover new connections", to: to("DISCOVER") } satisfies Action,
   },
   attendance: {
+    /** The page h1 after the date (requirement 7.4); the question below is a secondary h2. */
+    heading: "Your date with {name}",
+    headingDescription: "Here are the details of your date.",
     title: "Did you meet {name}?",
     description: "Confirm what happened so we can keep date history accurate.",
     legend: "Did you meet?",

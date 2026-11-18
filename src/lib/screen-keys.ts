@@ -22,6 +22,7 @@ export const screenKeys = {
   conversation: (member: string) => [...cacheKeys.conversations, "member", member],
   datePlan: (member: string) => [...cacheKeys.dates, "plan", member],
   venues: (member: string) => [...cacheKeys.venues, member],
+  dateAreas: (query: string) => ["dates", "areas", query.trim().toLowerCase()],
   plans: [...cacheKeys.plans, "screen"],
   membership: [...cacheKeys.subscription, "membership"],
   overview: [...cacheKeys.me, "overview"],

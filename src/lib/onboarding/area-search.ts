@@ -10,7 +10,7 @@ const EARTH_KM = 6371;
 const radians = (degrees: number) => (degrees * Math.PI) / 180;
 
 /** Great-circle distance in km. */
-function distanceKm([lat1, lon1]: [number, number], [lat2, lon2]: [number, number]) {
+export function distanceKm([lat1, lon1]: [number, number], [lat2, lon2]: [number, number]) {
   const a = Math.sin(radians(lat2 - lat1) / 2) ** 2 + Math.cos(radians(lat1)) * Math.cos(radians(lat2)) * Math.sin(radians(lon2 - lon1) / 2) ** 2;
   return 2 * EARTH_KM * Math.asin(Math.sqrt(a));
 }

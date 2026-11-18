@@ -7,6 +7,7 @@ import type { DiscoveryProfile, InterestTag, TrustBadge } from "@/lib/api/types/
 import { fill } from "@/lib/format";
 import { toStepOptions } from "@/lib/onboarding/options";
 import { getMemberCopy } from "@/stores/portal-store";
+import { sharedInterestLabels } from "@/lib/portal/shared-interests";
 
 const KM_PER_MILE = 1.609344;
 
@@ -76,7 +77,7 @@ export function toMember(profile: DiscoveryProfile, lists: Lists, ownInterestIds
   const photos = [...profile.photos].sort((a, b) => Number(b.isMain) - Number(a.isMain) || a.position - b.position);
   const main = photos[0];
   const interests = profile.interests.map((interest: InterestTag) => interest.label);
-  const shared = profile.interests.filter((interest) => ownInterestIds.includes(interest.id)).map((interest) => interest.label);
+  const shared = sharedInterestLabels(profile.interests, ownInterestIds);
   const lookingFor = labelOf(lists?.goal, profile.lookingFor);
   const city = profile.location?.city;
   const value = (amount: number | null, template: string) => (amount ? fill(template, { value: amount }) : copy.missing);

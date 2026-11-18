@@ -157,6 +157,14 @@ export const swipePhotoFrame = "max-h-[min(29rem,max(10rem,calc(var(--svh)-21.5r
  */
 export const matchPhotoFrame = "max-h-[max(7rem,calc(var(--svh)-43rem))]";
 
+/**
+ * VENUES map (rule 60): the Figma 672×492 frame as a ratio, capped by the viewport (32rem: header,
+ * heading, recommendation, area line, map note and actions) so the whole composition fits 1440×900.
+ * Beside it (≥1024) the place list scrolls inside the same height.
+ */
+export const venueMapFrame = "aspect-[672/492] max-h-[min(30.75rem,max(12rem,calc(var(--svh)-32rem)))]";
+export const venueListFrame = "lg:max-h-[min(34.5rem,max(16rem,calc(var(--svh)-28.25rem)))] lg:overflow-y-auto";
+
 export const sectionSpacing = {
   /** 128px at desktop */
   lg: "py-16 md:py-24 xl:py-32",
