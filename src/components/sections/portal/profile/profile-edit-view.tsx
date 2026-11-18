@@ -14,6 +14,7 @@ import { TextField } from "@/components/pieces/forms/text-field";
 import { TickRow } from "@/components/pieces/forms/tick-row";
 import { Button } from "@/components/ui/button";
 import type { PublicProfile } from "@/data/portal/account";
+import { layout } from "@/lib/control-sizes";
 import { checkProfile } from "@/lib/portal/account-rules";
 import { accountService, type FieldErrors } from "@/lib/portal/account-service";
 import { useLoaded } from "@/hooks/use-loaded";
@@ -144,7 +145,7 @@ function ProfileForm({ initial }: { initial: PublicProfile }) {
           {errors.interests && <StatusNote id="interests-error" variant="alert" message={errors.interests} />}
         </PortalCard>
         {failed && <StatusNote variant="alert" message={failed} />}
-        <ActionRow>
+        <ActionRow className={layout.stickyActions}>
           <Button type="submit" variant="confirm" size="portalPill" width="actionSlot" disabled={busy} aria-busy={busy || undefined}>
             {busy ? page.saving : page.save}
           </Button>

@@ -11,6 +11,7 @@ import { Text } from "@/components/pieces/content/text";
 import { UploadSlot } from "@/components/pieces/media/upload-slot";
 import { Button } from "@/components/ui/button";
 import type { ProfilePhoto } from "@/data/portal/account";
+import { layout } from "@/lib/control-sizes";
 import { fill } from "@/lib/format";
 import { accountService } from "@/lib/portal/account-service";
 import { useLoaded } from "@/hooks/use-loaded";
@@ -86,6 +87,15 @@ function PhotoForm({ initial }: { initial: ProfilePhoto[] }) {
   const makeMain = (slot: number) =>
     setPhotos((current) => current.map((photo, index) => (index === 0 ? current[slot] : index === slot ? current[0] : photo)));
 
+  const remove = (slot: number) => {
+    release(photos[slot]);
+    setPhotos((current) => {
+      const remaining = current.filter((_, index) => index !== slot && _ !== null);
+      const minSlots = Math.min(6, Math.max(page.slots, remaining.length + 1));
+      return [...remaining, ...Array<null>(Math.max(0, minSlots - remaining.length)).fill(null)];
+    });
+  };
+
   const save = async () => {
     if (busy) return;
     setBusy(true);
@@ -102,12 +112,26 @@ function PhotoForm({ initial }: { initial: ProfilePhoto[] }) {
   if (saved) return <ProfileSaved back={page.back} name={nickname} />;
 
   const firstEmpty = photos.indexOf(null);
+  const maxSlots = 6;
+  const filledCount = photos.filter(Boolean).length;
+  const canAdd = filledCount < maxSlots;
+
+  const handleAddPhoto = () => {
+    if (firstEmpty >= 0) {
+      choose(firstEmpty);
+    } else if (photos.length < maxSlots) {
+      const nextIndex = photos.length;
+      setPhotos((current) => [...current, null]);
+      choose(nextIndex);
+    }
+  };
+
   return (
     <Workspace aside={<ProfileContext />}>
       <PortalBack action={page.back} />
       <FormHeader variant="portalStatus" title={page.title} description={page.description} />
       <input ref={input} type="file" accept={page.accept.join(",")} onChange={picked} className="sr-only" tabIndex={-1} aria-hidden="true" />
-      <ul className="grid w-full gap-3 sm:grid-cols-3">
+      <ul className="grid w-full gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
         {photos.map((photo, index) => (
           <li key={index} className="flex min-w-0 flex-col gap-2">
             {photo ? (
@@ -126,6 +150,11 @@ function PhotoForm({ initial }: { initial: ProfilePhoto[] }) {
                   <Button type="button" variant="neutral" size="compact" disabled={busy} onClick={() => choose(index)}>
                     {page.replace}
                   </Button>
+                  {filledCount > 1 && (
+                    <Button type="button" variant="neutral" size="compact" disabled={busy} onClick={() => remove(index)}>
+                      {page.remove}
+                    </Button>
+                  )}
                 </div>
               </>
             ) : (
@@ -136,11 +165,11 @@ function PhotoForm({ initial }: { initial: ProfilePhoto[] }) {
       </ul>
       {rejected && <StatusNote variant="alert" message={page.rejected} />}
       {failed && <StatusNote variant="alert" message={failed} />}
-      <ActionRow>
+      <ActionRow className={layout.stickyActions}>
         <Button type="button" variant="confirm" size="portalPill" width="actionSlot" disabled={busy} aria-busy={busy || undefined} onClick={() => void save()}>
           {busy ? page.saving : page.save}
         </Button>
-        <Button type="button" variant="roseOutline" size="portalPill" width="actionSlot" disabled={busy || firstEmpty < 0} onClick={() => choose(firstEmpty)}>
+        <Button type="button" variant="roseOutline" size="portalPill" width="actionSlot" disabled={busy || !canAdd} onClick={handleAddPhoto}>
           {page.addPhoto}
         </Button>
       </ActionRow>

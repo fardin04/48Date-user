@@ -4,6 +4,7 @@ import { FormHeader } from "@/components/pieces/forms/form-header";
 import { PortalBack } from "@/components/pieces/actions/portal-back";
 import { SettingsRow } from "@/components/pieces/cards/settings-row";
 import { StatusNote } from "@/components/pieces/feedback/status-note";
+import { layout } from "@/lib/control-sizes";
 import { getAccountPage } from "@/stores/portal-store";
 import { ProfileContext } from "@/components/sections/portal/profile/profile-context";
 import { Workspace } from "@/components/sections/portal/shared/workspace";
@@ -23,7 +24,7 @@ export function PrivacyView() {
           </li>
         ))}
       </ul>
-      <ActionRow>
+      <ActionRow className={layout.stickyActions}>
         <ActionButton action={page.primary} variant="confirm" size="portalPill" width="actionSlot" />
       </ActionRow>
     </Workspace>
