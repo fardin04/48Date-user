@@ -1,5 +1,5 @@
 import type { Decision } from "@/data/portal/discover";
-import type { Member, MemberId, MemberSummary, Preferences } from "@/data/portal/types";
+import type { LikesPage, Member, MemberId, MemberSummary, Preferences } from "@/data/portal/types";
 import type { ImageAsset } from "@/data/types";
 import { apiEnabled } from "@/lib/api/config";
 import { apiPortalService } from "@/lib/portal/api-portal-service";
@@ -31,7 +31,12 @@ export type MatchOutcome = {
   /** "WildRose · 24 Oct · 4:00 PM": who, and the date's day and place when one was planned. */
   meta: string;
   image: ImageAsset;
+  /** Completed dates: this member already sent their feedback, so "Leave date feedback" is gone. */
+  rated?: boolean;
 };
+
+/** One page of an outcome tab; `next` is the cursor of the following page (null on the last). */
+export type OutcomePage = { outcomes: MatchOutcome[]; next: string | null };
 
 /**
  * Contract the member portal talks to (handoff: "Match deadline is server-owned").
@@ -54,7 +59,7 @@ export type PortalService = {
   getMatches: () => Promise<Match[]>;
   /** Matches on the 48-hour clock (the deck's "Active matches"). */
   getActiveCount: () => Promise<number>;
-  getOutcomes: (tab: "cancelled" | "complete") => Promise<MatchOutcome[]>;
+  getOutcomes: (tab: "cancelled" | "complete", cursor?: string) => Promise<OutcomePage>;
   /** One match, also after it expired; null when there is no match with this member. */
   getMatch: (member: MemberId) => Promise<Match | null>;
   /** A new match whose "What a match" screen hasn't been shown yet (made in the background). */
@@ -65,6 +70,12 @@ export type PortalService = {
   findMatches: () => Promise<void>;
   /** Whether a search for matches is still running (MATCHES waits for it instead of showing MATCHES-EMPTY). */
   isFindingMatches: () => boolean;
+  /** LIKES: who liked the member, a page at a time (from 1). */
+  getLikesReceived: (page: number) => Promise<LikesPage>;
+  /** Like back someone who liked the member; `matched` is the mutual match (always, unless they left). */
+  matchLike: (member: MemberId) => Promise<{ matched: boolean }>;
+  /** Pass on someone who liked the member; they leave the list for good. */
+  passLike: (member: MemberId) => Promise<void>;
 };
 
 /** The API (`NEXT_PUBLIC_API_BASE_URL` set) or the marked mock. */
