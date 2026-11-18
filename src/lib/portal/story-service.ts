@@ -3,6 +3,7 @@ import type { ImageAsset } from "@/data/types";
 import { apiEnabled } from "@/lib/api/config";
 import { apiStoryService } from "@/lib/portal/api-story-service";
 import { mockStoryService } from "@/lib/portal/mocks/mock-story-service";
+import type { CommentItem } from "@/lib/portal/story-comments";
 
 /** `met` is a chosen option of `getMeetOptions` (a month with the mock, a completed date with the API). */
 export type StoryDraft = { title: string; met: string; body: string; consent: boolean };
@@ -25,13 +26,19 @@ export type StoryService = {
   /** The API publishes a story with a photo of the two of them; the mock uses the sample photo. */
   photoRequired: boolean;
   getStories: () => Promise<Story[]>;
+  /** A page of the feed from `cursor` (the first without); `next` is null on the last page. */
+  getStoryPage: (cursor?: string | null) => Promise<{ stories: Story[]; next: string | null }>;
   getStory: (id: string) => Promise<Story | null>;
-  /** Toggles the member's like; resolves with the new count. */
-  toggleLike: (id: string) => Promise<{ count: number; liked: boolean }>;
+  /** Likes (or, when `liked`, unlikes) the story; resolves with the server's count. */
+  toggleLike: (id: string, liked: boolean) => Promise<{ count: number; liked: boolean }>;
   /** The invited partner's answer: share (goes to review) or don't. */
   respond: (id: string, accept: boolean) => Promise<void>;
   /** Comments are shown under the member's nickname ("You" in the build). */
   addComment: (id: string, text: string) => Promise<StoryComment>;
+  /** A page of comments from `cursor` (the first without), marking the member's own. */
+  getComments: (id: string, cursor?: string | null) => Promise<{ comments: CommentItem[]; next: string | null }>;
+  /** Deletes one of the member's own comments. */
+  deleteComment: (id: string, commentId: string) => Promise<void>;
   /** The choices for "When did you meet?". */
   getMeetOptions: () => Promise<MeetOption[]>;
   /** The saved draft while writing (kept after a failed submission). */

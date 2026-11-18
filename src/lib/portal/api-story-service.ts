@@ -82,6 +82,10 @@ export const apiStoryService: StoryService = {
   async getStories() {
     return (await storiesApi.feed()).data.map(toStory);
   },
+  async getStoryPage(cursor) {
+    const { data, meta } = await storiesApi.feed(cursor ?? undefined);
+    return { stories: data.map(toStory), next: meta?.hasMore ? (meta.nextCursor ?? null) : null };
+  },
   async getStory(id) {
     try {
       const { data: story } = await storiesApi.detail(id);
@@ -98,7 +102,11 @@ export const apiStoryService: StoryService = {
       throw error;
     }
   },
-  async toggleLike(id) {
+  async toggleLike(id, liked) {
+    if (liked) {
+      const { data } = await storiesApi.unlike(id);
+      return { count: data.likeCount ?? data.likesCount ?? 0, liked: data.isLiked };
+    }
     const { data } = await storiesApi.like(id);
     return { count: data.likesCount, liked: data.isLiked };
   },
@@ -108,6 +116,16 @@ export const apiStoryService: StoryService = {
   async addComment(id, text) {
     const { data } = await storiesApi.addComment(id, text);
     return { author: data.author.nickname, text: data.body };
+  },
+  async getComments(id, cursor) {
+    const [{ data, meta }, me] = await Promise.all([storiesApi.comments(id, cursor ?? undefined), usersApi.me().then(({ data: user }) => user.nickname.toLowerCase()).catch(() => null)]);
+    return {
+      comments: data.map((comment) => ({ id: comment.id, author: comment.author.nickname, text: comment.body, mine: me !== null && comment.author.nickname.toLowerCase() === me })),
+      next: meta?.hasMore ? (meta.nextCursor ?? null) : null,
+    };
+  },
+  async deleteComment(id, commentId) {
+    await storiesApi.deleteComment(id, commentId);
   },
   async getMeetOptions() {
     const { data } = await storiesApi.eligibleDates();
