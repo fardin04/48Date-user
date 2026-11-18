@@ -7,9 +7,15 @@ const APP_PREFIX = "48date.";
 export const MEMBER_PREFIX = "48date.member.";
 
 function removeKeys(storage: Storage, prefix: string) {
-  Object.keys(storage)
-    .filter((key) => key.startsWith(prefix))
-    .forEach((key) => storage.removeItem(key));
+  const keys: string[] = [];
+  for (let i = 0; i < storage.length; i++) {
+    const key = storage.key(i);
+    if (key && key.startsWith(prefix)) keys.push(key);
+  }
+  for (const key of Object.keys(storage)) {
+    if (key.startsWith(prefix) && !keys.includes(key)) keys.push(key);
+  }
+  keys.forEach((key) => storage.removeItem(key));
 }
 
 /** A new sign-in: forget what an earlier member left on this device (a session can end without a sign-out). */

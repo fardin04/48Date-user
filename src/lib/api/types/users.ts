@@ -42,7 +42,9 @@ export type MeData = {
     source: "GPS" | "MANUAL";
   } | null;
   interests: { id: string; key: string; label: string; category: string; icon?: string }[];
-  photos: ProfilePhoto[];
+  mainPhotoUrl?: string | null;
+  photoCount?: number;
+  photos?: ProfilePhoto[];
   createdAt: string;
 };
 

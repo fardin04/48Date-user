@@ -29,7 +29,10 @@ export const storiesApi = {
     invalidate([...cacheKeys.stories, "raw", "detail", id], [...cacheKeys.stories, "detail", id], commentKey(id));
     return result;
   },
-  mine: () => cached([...cacheKeys.myStories, "raw"], 30_000, () => api.get<ApiStory[]>(endpoints.users.stories)),
+  mine: (query?: { role?: "author" | "partner"; status?: string }) =>
+    cached([...cacheKeys.myStories, "raw", query?.role ?? "", query?.status ?? ""], 30_000, () =>
+      api.get<ApiStory[]>(endpoints.users.stories, { query })
+    ),
   eligibleDates: () => cached([...cacheKeys.myStories, "raw", "eligible"], MINUTE, () => api.get<EligibleDate[]>(endpoints.users.storyEligibleDates)),
   async like(id: string) {
     const result = await api.post<{ isLiked: boolean; likesCount: number }>(endpoints.stories.like(id));
@@ -44,7 +47,7 @@ export const storiesApi = {
   },
   async respond(id: string, accept: boolean) {
     const result = await api.post<{ id: string; status: string }>(endpoints.stories.respond(id), { body: { accept } });
-    invalidate(cacheKeys.stories);
+    invalidate(cacheKeys.stories, cacheKeys.myStories);
     return result;
   },
   async create(body: StoryBody) {
