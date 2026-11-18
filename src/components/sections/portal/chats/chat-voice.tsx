@@ -9,7 +9,7 @@ import { StatusNote } from "@/components/pieces/feedback/status-note";
 import { Button } from "@/components/ui/button";
 import type { MemberSummary } from "@/data/portal/types";
 import { fill } from "@/lib/format";
-import { getChatPage, getPortalShell } from "@/stores/portal-store";
+import { getChatPage } from "@/stores/portal-store";
 import { ConversationContext } from "@/components/sections/portal/chats/conversation-context";
 import { Workspace } from "@/components/sections/portal/shared/workspace";
 
@@ -133,7 +133,7 @@ export function ChatVoice({ member, onSend, onDiscard }: ChatVoiceProps) {
 
   return (
     <Workspace aside={<ConversationContext partner={member} withAction />}>
-      <PortalBack action={getPortalShell().back} onClick={discard} />
+      <PortalBack action={getChatPage().back} onClick={discard} />
       <FormHeader variant="portalStatus" title={copy.title} description={fill(copy.description, { name: member.name })} />
       <StatusNote variant={phase === "denied" ? "alert" : "highlight"} message={note} />
       <StatusArtwork icon={copy.icon} timer={clock(seconds)} timerLabel={fill(copy.timerLabel, { seconds })} />

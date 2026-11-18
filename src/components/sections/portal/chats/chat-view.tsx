@@ -12,7 +12,7 @@ import { ChatBubble } from "@/components/pieces/cards/chat-bubble";
 import { DetailRow } from "@/components/pieces/cards/detail-row";
 import { FormField } from "@/components/pieces/forms/form-field";
 import { Icon } from "@/components/pieces/content/icon";
-import { OptionRow } from "@/components/pieces/forms/option-row";
+import { ActionMenu, type MenuItem } from "@/components/pieces/overlays/action-menu";
 import { PortalBack } from "@/components/pieces/actions/portal-back";
 import { PortalCard } from "@/components/pieces/layout/portal-card";
 import { PortalDialog } from "@/components/pieces/overlays/portal-dialog";
@@ -22,10 +22,12 @@ import { TypingDots } from "@/components/pieces/content/typing-dots";
 import { Button } from "@/components/ui/button";
 import type { Fact, MemberId } from "@/data/portal/types";
 import { cn } from "@/lib/cn";
-import { fieldControl, fieldInput, layout } from "@/lib/control-sizes";
+import { chatComposer, fieldControl, fieldInput, layout } from "@/lib/control-sizes";
 import { usePrimaryInView } from "@/hooks/use-primary-in-view";
 import { fill } from "@/lib/format";
+import { groupsWithPrevious, persistentStatus } from "@/lib/portal/chat-bubble-layout";
 import { chatService, type ChatMessage, type OutgoingMessage } from "@/lib/portal/chat-service";
+import { conversationOptions } from "@/lib/portal/conversation-menu";
 import { dateService } from "@/lib/portal/date-service";
 import { formatShortDay, formatStamp, formatTime } from "@/lib/portal/date-format";
 import { forMember } from "@/lib/portal/member-link";
@@ -34,8 +36,10 @@ import { screenKeys } from "@/lib/screen-keys";
 import { useDatePlan } from "@/hooks/use-date-plan";
 import { useLoaded } from "@/hooks/use-loaded";
 import { useMatchClock } from "@/hooks/use-match-clock";
-import { hrefFor, toItem } from "@/lib/routes";
-import { getChatPage, getInboxPage } from "@/stores/portal-store";
+import { hrefFor } from "@/lib/routes";
+import { invalidate } from "@/lib/api/cache";
+import { cacheKeys } from "@/lib/api/modules/cache-keys";
+import { getAccountPage, getChatPage } from "@/stores/portal-store";
 import { ChatPhoto } from "@/components/sections/portal/chats/chat-photo";
 import { ChatVoice } from "@/components/sections/portal/chats/chat-voice";
 import { ConversationContext } from "@/components/sections/portal/chats/conversation-context";
@@ -45,8 +49,7 @@ import { LoadFailed } from "@/components/sections/portal/shared/load-failed";
 import { StatusScreen } from "@/components/sections/portal/shared/status-screen";
 
 type Suggest = { mode: "ai" | "starters"; status: "generating" | "ready" | "error"; items: string[] };
-type AttachChoice = "game" | "photo" | "voice" | "plan";
-type Panel = "chat" | "attach" | "photo" | "voice";
+type Panel = "chat" | "photo" | "voice";
 
 /** Card inside the messages ("Your first hello", "Date invitation", "A little help with your hello"). */
 function MessageCard({ title, description, children }: { title: string; description: string; children: ReactNode }) {
@@ -60,10 +63,10 @@ function MessageCard({ title, description, children }: { title: string; descript
   );
 }
 
-/** One rose pill of the action row or the conversation tools. */
-function ChatAction({ label, onClick, primary, size = "portalPill", width = "grow" }: { label: string; onClick: () => void; primary?: boolean; size?: "portalPill" | "pillCompact"; width?: "grow" | "full" }) {
+/** One rose pill of the action row. */
+function ChatAction({ label, onClick, primary }: { label: string; onClick: () => void; primary?: boolean }) {
   return (
-    <Button type="button" variant={primary ? "confirm" : "roseOutline"} size={size} width={width} onClick={onClick}>
+    <Button type="button" variant={primary ? "confirm" : "roseOutline"} size="portalPill" width="grow" onClick={onClick}>
       {label}
     </Button>
   );
@@ -94,17 +97,19 @@ export function ChatView({ memberId }: { memberId: MemberId }) {
   const conversationKey = screenKeys.conversation(memberId);
   const { value: conversation, error, reload } = useLoaded(conversationKey, () => chatService.getConversation(memberId));
   const [panel, setPanel] = useState<Panel>("chat");
-  const [dialog, setDialog] = useState<"block" | null>(null);
+  const [dialog, setDialog] = useState<"block" | "unblock" | "context" | null>(null);
   const [introDismissed, setIntroDismissed] = useState(false);
   const [suggest, setSuggest] = useState<Suggest | null>(null);
-  const [choice, setChoice] = useState<AttachChoice>("photo");
   const [draft, setDraft] = useState("");
-  const [pending, setPending] = useState<string | null>(null);
+  // A send in progress (its bubble comes from the service, "Sending…" → "Sent": one bubble per message).
+  const [sending, setSending] = useState(false);
   const [photo, setPhoto] = useState<string | null>(null);
   const [photoError, setPhotoError] = useState("");
   const [busy, setBusy] = useState(false);
   const [typing, setTyping] = useState(false);
-  const input = useRef<HTMLInputElement>(null);
+  const input = useRef<HTMLTextAreaElement>(null);
+  // Distance from the bottom to keep while earlier messages are added above.
+  const keepFromBottom = useRef<number | null>(null);
   const fileInput = useRef<HTMLInputElement>(null);
   const messages = useRef<HTMLOListElement>(null);
   const generation = useRef<AbortController | null>(null);
@@ -148,12 +153,22 @@ export function ChatView({ memberId }: { memberId: MemberId }) {
     if (newest && document.visibilityState === "visible") void chatService.markSeen(memberId);
   }, [memberId, newest]);
 
-  // Keep the newest message in view.
-  const count = (conversation?.messages.length ?? 0) + (pending ? 1 : 0) + (suggest ? 1 : 0) + (typing ? 1 : 0);
+  // Keep the newest message in view; earlier messages loaded above keep the reading position.
+  const count = (conversation?.messages.length ?? 0) + (suggest ? 1 : 0) + (typing ? 1 : 0);
   useEffect(() => {
     const list = messages.current;
-    if (list) list.scrollTop = list.scrollHeight;
+    if (!list) return;
+    list.scrollTop = keepFromBottom.current === null ? list.scrollHeight : list.scrollHeight - keepFromBottom.current;
+    keepFromBottom.current = null;
   }, [count, panel]);
+
+  // The composer grows with the message, up to about five lines (then it scrolls).
+  useEffect(() => {
+    const box = input.current;
+    if (!box) return;
+    box.style.height = "auto";
+    box.style.height = `${box.scrollHeight}px`;
+  }, [draft]);
 
   if (!conversation) return error ? <LoadFailed onRetry={() => void reload()} error={error} /> : null;
   if (clock.status === "loading") return null;
@@ -162,9 +177,22 @@ export function ChatView({ memberId }: { memberId: MemberId }) {
   const aside = <ConversationContext partner={member} withAction />;
   if (conversation.blocked) {
     const { blocked } = copy;
+    const unblockCopy = getAccountPage().blocked;
+    const unblock = async () => {
+      if (busy) return;
+      setBusy(true);
+      try {
+        await chatService.unblock(memberId);
+        setDialog(null);
+        invalidate(cacheKeys.conversations, cacheKeys.matches);
+        await refresh();
+      } finally {
+        setBusy(false);
+      }
+    };
     return (
       <StatusScreen
-        back={<PortalBack action={getInboxPage().back} />}
+        back={<PortalBack action={blocked.back} />}
         title={blocked.title}
         description={fill(blocked.description, { name: member.name })}
         summary={blocked.summary}
@@ -172,7 +200,30 @@ export function ChatView({ memberId }: { memberId: MemberId }) {
         secondary={forMember(blocked.secondary, memberId)}
         aside={aside}
         actionWidth="actionSlot"
-      />
+      >
+        <Button type="button" variant="roseOutline" size="back" width="auto" className="self-start" aria-haspopup="dialog" onClick={() => setDialog("unblock")}>
+          {fill(unblockCopy.unblock, { name: member.name })}
+        </Button>
+        <PortalDialog
+          open={dialog === "unblock"}
+          onOpenChange={(open) => setDialog(open ? "unblock" : null)}
+          title={fill(unblockCopy.dialog.title, { name: member.name })}
+          description={unblockCopy.dialog.description}
+          closeLabel={unblockCopy.dialog.close}
+          actions={
+            <>
+              <Button type="button" variant="confirm" size="portalPill" width="full" disabled={busy} aria-busy={busy || undefined} onClick={() => void unblock()}>
+                {busy ? unblockCopy.dialog.busy : unblockCopy.dialog.confirm}
+              </Button>
+              <Button type="button" variant="roseOutline" size="portalPill" width="full" onClick={() => setDialog(null)}>
+                {unblockCopy.dialog.keep}
+              </Button>
+            </>
+          }
+        >
+          <Icon name={blocked.summary.icon} size={120} tone="rose" />
+        </PortalDialog>
+      </StatusScreen>
     );
   }
   if (clock.status === "expired" || conversation.readOnly) return <ExpiredMatchScreen aside={aside} />;
@@ -250,19 +301,21 @@ export function ChatView({ memberId }: { memberId: MemberId }) {
   const send = async (event?: FormEvent) => {
     event?.preventDefault();
     const text = draft.trim();
-    if (!text || pending) return;
-    setPending(text);
-    // A first hello starts a new conversation: the free plan's weekly allowance may be used up (QUOTA).
-    if (firstHello && own.length === 0 && (await membershipService.startConversation(memberId)) === "limit") {
-      setPending(null);
-      router.push(hrefFor("QUOTA"));
-      return;
+    if (!text || sending) return;
+    setSending(true);
+    try {
+      // A first hello starts a new conversation: the free plan's weekly allowance may be used up (QUOTA).
+      if (firstHello && own.length === 0 && (await membershipService.startConversation(memberId)) === "limit") {
+        router.push(hrefFor("QUOTA"));
+        return;
+      }
+      setDraft("");
+      chatService.setTyping(memberId, false);
+      // The service shows the message as "Sending…" at once and replaces it in place when it is stored.
+      await chatService.send(memberId, { kind: "text", text });
+    } finally {
+      setSending(false);
     }
-    setDraft("");
-    chatService.setTyping(memberId, false);
-    await chatService.send(memberId, { kind: "text", text });
-    await refresh();
-    setPending(null);
   };
 
   const retry = async (message: ChatMessage) => {
@@ -284,6 +337,8 @@ export function ChatView({ memberId }: { memberId: MemberId }) {
     if (busy) return;
     setBusy(true);
     try {
+      const list = messages.current;
+      keepFromBottom.current = list ? list.scrollHeight - list.scrollTop : null;
       queryClient.setQueryData(conversationKey, await chatService.loadOlder(memberId));
     } finally {
       setBusy(false);
@@ -332,11 +387,13 @@ export function ChatView({ memberId }: { memberId: MemberId }) {
         ? copy.caption.agreed
         : copy.caption.plain;
 
-  const messageLine = (message: ChatMessage) => {
+  const shownMessages = live ? conversation.messages : own;
+  const keepStatus = persistentStatus(shownMessages);
+  const messageLine = (message: ChatMessage, index: number) => {
     // Lines the service posts (date confirmed or cancelled, game results, milestones) read as notes.
     if (message.kind === "system" || message.kind === "date" || message.kind === "game" || message.kind === "invite") {
       return (
-        <li key={message.id} className="flex w-full">
+        <li key={message.key ?? message.id} className="flex w-full">
           <StatusNote variant="highlight" message={message.text} />
         </li>
       );
@@ -349,13 +406,21 @@ export function ChatView({ memberId }: { memberId: MemberId }) {
           ? fill(copy.voiceMessage, { duration: message.text })
           : message.text;
     const time = formatStamp(message.sentAt);
-    const status = !message.mine ? fill(copy.received, { time }) : message.status === "failed" ? copy.failed : fill(message.status === "seen" ? copy.seen : copy.sent, { time });
+    const status = !message.mine
+      ? fill(copy.received, { time })
+      : message.status === "failed"
+        ? copy.failed
+        : message.status === "sending"
+          ? copy.sending
+          : fill(message.status === "seen" ? copy.seen : copy.sent, { time });
     const meta = message.edited ? fill(copy.edited, { meta: status }) : status;
     const media = message.mediaUrl;
     return (
       <ChatBubble
-        key={message.id}
+        key={message.key ?? message.id}
         variant={message.mine ? "own" : "incoming"}
+        metaVisible={keepStatus.has(message.id)}
+        className={groupsWithPrevious(shownMessages, index) ? "-mt-2" : undefined}
         text={message.kind === "photo" && message.text && !message.deleted ? `${copy.photoMessage} · ${text}` : text}
         meta={meta}
         metaTone={message.status === "failed" ? "alert" : "sub"}
@@ -367,16 +432,6 @@ export function ChatView({ memberId }: { memberId: MemberId }) {
 
   /** Screen actions for the current state. */
   const actions = (() => {
-    if (panel === "attach") {
-      const destination = choice === "game" ? toItem(copy.attach.game.step, memberId) : choice === "plan" ? toItem("VENUES", memberId) : null;
-      return destination ? (
-        <ActionButton action={{ label: copy.attach.primary[choice], to: destination }} variant="confirm" size="portalPill" width="full" />
-      ) : (
-        <Button type="button" variant="confirm" size="portalPill" width="full" onClick={() => (choice === "photo" ? fileInput.current?.click() : setPanel("voice"))}>
-          {copy.attach.primary[choice]}
-        </Button>
-      );
-    }
     if (suggest?.status === "generating") {
       const labels = copy.actions.generating;
       return (
@@ -406,7 +461,7 @@ export function ChatView({ memberId }: { memberId: MemberId }) {
     }
     if (draft.trim())
       return (
-        <Button type="submit" form="chat-composer" variant="confirm" size="portalPill" width="full" disabled={Boolean(pending)}>
+        <Button type="submit" form="chat-composer" variant="confirm" size="portalPill" width="full" disabled={sending}>
           {copy.actions.typed}
         </Button>
       );
@@ -446,14 +501,31 @@ export function ChatView({ memberId }: { memberId: MemberId }) {
     );
   })();
 
-  const askAi = () => void generate("ai");
-  const toggleAttach = () => {
-    stopSuggest();
-    setChoice("photo");
-    setPanel(panel === "attach" ? "chat" : "attach");
-  };
-  const openVoice = () => setPanel("voice");
   const openBlock = () => setDialog("block");
+  // The "+" menu: the six conversation actions, each calling its existing handler or page.
+  const menuActions: Record<(typeof copy.menu.items)[number]["id"], Pick<MenuItem, "onSelect" | "to">> = {
+    ai: { onSelect: () => void generate("ai") },
+    safety: { onSelect: openBlock },
+    voice: {
+      onSelect: () => {
+        stopSuggest();
+        setPanel("voice");
+      },
+    },
+    photo: {
+      onSelect: () => {
+        stopSuggest();
+        fileInput.current?.click();
+      },
+    },
+    plan: { to: forMember(copy.menu.plan, memberId).to },
+    game: { to: forMember(copy.menu.game, memberId).to },
+  };
+  const menuItems: MenuItem[] = copy.menu.items.map((item) => ({ ...item, ...menuActions[item.id] }));
+  const optionItems: MenuItem[] = conversationOptions(memberId, member.name, false).map((option) => ({
+    ...option,
+    onSelect: option.id === "block" ? openBlock : undefined,
+  }));
 
   // The invitation and agreed-date cards show the plan the date screens use (the samples' copy until it loads).
   const planFacts = (facts: Fact[]) =>
@@ -463,25 +535,44 @@ export function ChatView({ memberId }: { memberId: MemberId }) {
   const sampleReply = <ChatBubble variant="own" text={copy.sample.reply} meta={copy.sample.replyMeta} />;
 
   return (
-    <div className="grid items-start gap-6 lg:grid-cols-[280px_minmax(0,1fr)] xl:grid-cols-[280px_minmax(0,1fr)_312px]">
+    // Side columns flex with the viewport (Figma 280 / 312 at 1440); the conversation takes the rest.
+    <div className="grid items-start gap-6 lg:grid-cols-[clamp(240px,24%,320px)_minmax(0,1fr)] xl:grid-cols-[clamp(240px,20%,320px)_minmax(0,1fr)_clamp(260px,22%,360px)]">
       <ConversationList current={memberId} className="max-lg:hidden" />
-      <PortalCard as="section" surface="outline" padding="lg" revealDelay={0} aria-labelledby="chat-title" className={cn("flex w-full flex-col gap-4 max-lg:overflow-visible", chatPaneHeight)}>
+      <PortalCard as="section" surface="outline" padding="md" revealDelay={0} aria-labelledby="chat-title" className={cn("flex w-full min-w-0 flex-col gap-3 max-lg:overflow-visible", chatPaneHeight)}>
+        <PortalBack action={copy.back} className="lg:hidden" />
+        {/* The tools sit in the header (below the name when narrow), so the messages get the height (owner report). */}
         <header ref={paneTop} className="flex scroll-mt-4 items-center gap-3">
-          <Avatar image={member.photo} size={48} decorative />
-          <div className="flex min-w-0 flex-1 flex-col gap-1">
-            <Text as="h1" id="chat-title" variant="text20SemiboldSnug" tone="strong">
-              {member.name}
-            </Text>
-            <Text variant="text12Medium" tone="sub">
-              {caption}
-            </Text>
+          <div className="flex min-w-0 flex-1 items-center gap-3">
+            <Avatar image={member.photo} size={48} decorative />
+            <div className="flex min-w-0 flex-1 flex-col gap-1">
+              <Text as="h1" id="chat-title" variant="text20SemiboldSnug" tone="strong" className="break-anywhere">
+                {member.name}
+              </Text>
+              <Text variant="text12Medium" tone="sub">
+                {caption}
+              </Text>
+            </div>
+          </div>
+          <div className="flex shrink-0 gap-2">
+            <Button
+              type="button"
+              variant="roseOutline"
+              size="icon"
+              className="xl:hidden"
+              aria-haspopup="dialog"
+              aria-label={fill(copy.contextButton.label, { name: member.name })}
+              onClick={() => setDialog("context")}
+            >
+              <Icon name={copy.contextButton.icon} size={20} tone="rose" />
+            </Button>
+            <ActionMenu label={copy.options.label} icon={copy.options.icon} items={optionItems} placement="below" align="end" />
           </div>
         </header>
         <ol
           ref={messages}
           aria-label={copy.messagesLabel}
           aria-live="polite"
-          className="flex min-h-80 flex-1 flex-col gap-4 overflow-x-clip overflow-y-auto lg:min-h-0 rounded-16 bg-canvas-cool p-4 max-lg:max-h-112"
+          className="flex min-h-80 flex-1 flex-col gap-3 overflow-x-clip overflow-y-auto lg:min-h-0 rounded-16 bg-canvas-cool p-3 max-lg:max-h-112"
         >
           {live && conversation.hasOlder && (
             <li className="flex w-full justify-center">
@@ -500,7 +591,7 @@ export function ChatView({ memberId }: { memberId: MemberId }) {
               <StatusNote variant="alert" message={copy.aiError} />
             </li>
           )}
-          {firstHello && own.length === 0 && !pending && (
+          {firstHello && own.length === 0 && (
             <MessageCard title={copy.firstHello.title} description={live ? copy.firstHello.liveDescription : copy.firstHello.description}>
               <Icon name={copy.firstHello.icon} size={40} tone="rose" />
               <Text variant="text16" tone="sub">
@@ -520,8 +611,7 @@ export function ChatView({ memberId }: { memberId: MemberId }) {
               <FactRows facts={planFacts(copy.invite.facts)} />
             </MessageCard>
           )}
-          {(live ? conversation.messages : own).map(messageLine)}
-          {pending && <ChatBubble variant="own" text={pending} meta={copy.sending} />}
+          {shownMessages.map(messageLine)}
           {typing && (
             <li className="flex w-full">
               <TypingDots variant="bubble" label={fill(copy.typing, { name: member.name })} />
@@ -550,51 +640,40 @@ export function ChatView({ memberId }: { memberId: MemberId }) {
               </ul>
             </MessageCard>
           )}
-          {panel === "attach" && (
+          {photoError && (
             <li className="flex w-full">
-              <fieldset className="flex w-full flex-col gap-4">
-                <legend className="sr-only">{copy.attach.legend}</legend>
-                {copy.attach.options.map((option) => (
-                  <OptionRow
-                    key={option.value}
-                    variant="choice"
-                    name="chat-attach"
-                    value={option.value}
-                    label={option.label}
-                    checked={choice === option.value}
-                    onSelect={() => setChoice(option.value as AttachChoice)}
-                  />
-                ))}
-                {photoError && <StatusNote variant="alert" message={photoError} />}
-              </fieldset>
+              <StatusNote variant="alert" message={photoError} />
             </li>
           )}
         </ol>
-        <div role="group" aria-label={copy.tools.label} className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-          <ChatAction label={copy.tools.ai} onClick={askAi} size="pillCompact" width="full" />
-          <ChatAction label={copy.tools.photo} onClick={toggleAttach} size="pillCompact" width="full" />
-          <ChatAction label={copy.tools.voice} onClick={openVoice} size="pillCompact" width="full" />
-          <ChatAction label={copy.tools.safety} onClick={openBlock} size="pillCompact" width="full" />
-        </div>
         <form ref={composer} id="chat-composer" onSubmit={send} className={layout.stickyActions}>
-          <FormField htmlFor="chat-message" label={copy.composer.label}>
-            <div className="flex items-center gap-2">
-              <div className={cn(fieldControl.base, fieldControl.default, "min-w-0 flex-1")}>
-                <input
+          <FormField htmlFor="chat-message" label={copy.composer.label} hideLabel>
+            <div className="flex items-end gap-2">
+              <ActionMenu label={copy.menu.label} icon={copy.menu.icon} items={menuItems} className="mb-1.5" />
+              <div className={cn(fieldControl.base, fieldControl.default, chatComposer.control, "min-w-0 flex-1")}>
+                <textarea
                   ref={input}
                   id="chat-message"
+                  rows={1}
                   value={draft}
                   onChange={(event) => {
                     setDraft(event.target.value);
                     chatService.setTyping(memberId, event.target.value.trim().length > 0);
                   }}
+                  onKeyDown={(event) => {
+                    // Enter sends, Shift+Enter adds a line (as the single-line field sent on Enter).
+                    if (event.key === "Enter" && !event.shiftKey && !event.nativeEvent.isComposing) {
+                      event.preventDefault();
+                      composer.current?.requestSubmit();
+                    }
+                  }}
                   placeholder={copy.composer.placeholder}
                   maxLength={copy.composer.maxLength}
                   autoComplete="off"
-                  className={fieldInput}
+                  className={cn(fieldInput, chatComposer.input)}
                 />
               </div>
-              <Button type="submit" variant="confirm" size="pillCompact" width="send" disabled={!draft.trim() || Boolean(pending)}>
+              <Button type="submit" variant="confirm" size="pillCompact" width="send" aria-label={copy.composer.send} disabled={!draft.trim() || sending}>
                 {copy.composer.send}
               </Button>
             </div>
@@ -603,7 +682,18 @@ export function ChatView({ memberId }: { memberId: MemberId }) {
         <ActionRow>{actions}</ActionRow>
         <input ref={fileInput} type="file" accept={copy.photo.accept.join(",")} onChange={choosePhoto} className="sr-only" tabIndex={-1} aria-hidden="true" />
       </PortalCard>
-      <ConversationContext partner={member} className="md:max-xl:hidden" />
+      <ConversationContext partner={member} className="max-xl:hidden" />
+      <PortalDialog
+        open={dialog === "context"}
+        onOpenChange={(open) => setDialog(open ? "context" : null)}
+        title={fill(copy.contextButton.label, { name: member.name })}
+        description={copy.context.description}
+        closeLabel={copy.contextButton.close}
+        header="fit"
+        actions={null}
+      >
+        <ConversationContext partner={member} withAction />
+      </PortalDialog>
       <PortalDialog
         open={introOpen && dialog === null}
         onOpenChange={closeIntro}

@@ -12,7 +12,7 @@ import { toItem } from "@/lib/routes";
 import { getInboxPage } from "@/stores/portal-store";
 import { LoadFailed } from "@/components/sections/portal/shared/load-failed";
 import { ConversationContext } from "@/components/sections/portal/chats/conversation-context";
-import { conversationRowStatus } from "@/components/sections/portal/chats/conversation-list";
+import { conversationRowStatus, openConversations } from "@/lib/portal/conversation-list";
 import { StatusScreen } from "@/components/sections/portal/shared/status-screen";
 import { Workspace } from "@/components/sections/portal/shared/workspace";
 import { screenKeys } from "@/lib/screen-keys";
@@ -26,7 +26,7 @@ export function InboxView() {
   if (error && !loaded) return <LoadFailed onRetry={() => void reload()} error={error} />;
   if (!loaded) return null;
 
-  const open = loaded.filter((conversation) => !conversation.blocked);
+  const open = openConversations(loaded);
   if (open.length === 0) {
     const { empty } = copy;
     return (
