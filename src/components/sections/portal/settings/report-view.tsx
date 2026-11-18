@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useId, useState, type FormEvent } from "react";
 import { ActionButton } from "@/components/pieces/actions/action-button";
 import { ActionRow } from "@/components/pieces/actions/action-row";
+import { CheckboxField } from "@/components/pieces/forms/checkbox-field";
 import { FormHeader } from "@/components/pieces/forms/form-header";
 import { OptionRow } from "@/components/pieces/forms/option-row";
 import { PickerButton } from "@/components/pieces/forms/picker-button";
@@ -15,7 +16,9 @@ import { Button } from "@/components/ui/button";
 import { reportReasons, type ReportReason } from "@/data/portal/account";
 import { memberIdPattern, type MemberId } from "@/data/portal/types";
 import type { Action } from "@/data/types";
+import { layout } from "@/lib/control-sizes";
 import { fill } from "@/lib/format";
+import { readTrail } from "@/lib/navigation/nav-trail";
 import { accountService, type ReportSubject } from "@/lib/portal/account-service";
 import { chatService } from "@/lib/portal/chat-service";
 import { hrefFor, to, toItem } from "@/lib/routes";
@@ -56,6 +59,7 @@ export function ReportView({ subject: param }: { subject: string | null }) {
   const [failed, setFailed] = useState(false);
   const [sent, setSent] = useState(false);
   const [blocking, setBlocking] = useState(false);
+  const [alsoBlock, setAlsoBlock] = useState(false);
 
   const openPicker = (open: boolean) => {
     if (open) setChoice(reason ?? reportReasons[0]);
@@ -72,8 +76,16 @@ export function ReportView({ subject: param }: { subject: string | null }) {
     setFailed(false);
     if (!reason || Object.keys(found).length > 0) return;
     setBusy(true);
+    const trail = typeof window !== "undefined" ? readTrail() : [];
+    const previous = trail.at(-2) ?? "";
+    const isChat = previous.startsWith("/chats");
+    const isDate = previous.startsWith("/dates");
+    const source = isChat ? "CHAT" : isDate ? "DATE" : "PROFILE";
     try {
-      await accountService.report(subject, reason, details.trim());
+      await accountService.report(subject, reason, details.trim(), {
+        source,
+        alsoBlock: member ? alsoBlock : false,
+      });
       setSent(true);
     } catch {
       setFailed(true);
@@ -94,7 +106,7 @@ export function ReportView({ subject: param }: { subject: string | null }) {
     return (
       <>
         <StatusScreen
-          back={<PortalBack action={back} />}
+          back={<PortalBack action={{ ...back, back: "fixed" }} />}
           title={done.title}
           description={done.description}
           summary={done.summary}
@@ -164,8 +176,15 @@ export function ReportView({ subject: param }: { subject: string | null }) {
           maxLength={page.limits.details}
           message={errors.details}
         />
+        {member && (
+          <CheckboxField
+            label="Also block this member"
+            checked={alsoBlock}
+            onChange={setAlsoBlock}
+          />
+        )}
         {failed && <StatusNote variant="alert" message={page.failed} />}
-        <ActionRow>
+        <ActionRow className={layout.stickyActions}>
           <Button type="submit" variant="confirm" size="portalPill" width="actionSlot" disabled={busy} aria-busy={busy || undefined}>
             {busy ? page.submitting : page.submit}
           </Button>

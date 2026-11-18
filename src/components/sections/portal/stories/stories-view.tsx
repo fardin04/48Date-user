@@ -12,6 +12,7 @@ import { layout } from "@/lib/control-sizes";
 import { fill } from "@/lib/format";
 import { storyService } from "@/lib/portal/story-service";
 import { toItem } from "@/lib/routes";
+import { useLoaded } from "@/hooks/use-loaded";
 import { getStoriesPage } from "@/stores/portal-store";
 import { LoadFailed } from "@/components/sections/portal/shared/load-failed";
 import { StoryContext } from "@/components/sections/portal/stories/story-context";
@@ -25,6 +26,7 @@ import { screenKeys } from "@/lib/screen-keys";
  */
 export function StoriesView() {
   const copy = getStoriesPage();
+  const pendingApproval = useLoaded(screenKeys.pendingPartnerStories, storyService.getPendingPartnerStories).value ?? [];
   const pages = useInfiniteQuery({
     queryKey: screenKeys.stories,
     queryFn: ({ pageParam }) => storyService.getStoryPage(pageParam),
@@ -42,6 +44,31 @@ export function StoriesView() {
           <ActionButton action={copy.context.mine} variant="roseOutline" size="pillCompact" width="auto" />
         </div>
       </div>
+      {pendingApproval.length > 0 && (
+        <ul className="flex w-full flex-col gap-3">
+          {pendingApproval.map((story) => (
+            <li key={story.id} className="w-full">
+              <PortalCard surface="rose" radius={16} padding="md" className="flex w-full flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex min-w-0 flex-1 flex-col gap-1">
+                  <Text as="h3" variant="text16Semibold" tone="strong" className="break-anywhere">
+                    {copy.feed.waitingConsentTitle}
+                  </Text>
+                  <Text variant="text14Relaxed" tone="sub" className="break-anywhere">
+                    {fill(copy.feed.waitingConsentDescription, { name: story.couple.split("&")[0].trim() || "Your partner" })}
+                  </Text>
+                </div>
+                <ActionButton
+                  action={{ label: copy.feed.waitingConsentAction, to: toItem("STORY-DETAIL", story.id) }}
+                  variant="confirm"
+                  size="pillCompact"
+                  width="auto"
+                  className="self-start sm:self-auto"
+                />
+              </PortalCard>
+            </li>
+          ))}
+        </ul>
+      )}
       {pages.error && !stories ? (
         <LoadFailed onRetry={() => void pages.refetch()} error={pages.error} />
       ) : stories?.length === 0 ? (

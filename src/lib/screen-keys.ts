@@ -45,4 +45,5 @@ export const screenKeys = {
   story: (id: string) => [...cacheKeys.stories, "detail", id],
   storySubmission: [...cacheKeys.myStories, "submission"],
   storyMeetOptions: [...cacheKeys.myStories, "meet-options"],
+  pendingPartnerStories: [...cacheKeys.stories, "pending-partner"],
 } as const;

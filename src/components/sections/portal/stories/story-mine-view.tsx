@@ -7,9 +7,12 @@ import { ActionRow } from "@/components/pieces/actions/action-row";
 import { FormHeader } from "@/components/pieces/forms/form-header";
 import { PortalBack } from "@/components/pieces/actions/portal-back";
 import { PortalDialog } from "@/components/pieces/overlays/portal-dialog";
+import { StatusBadge } from "@/components/pieces/feedback/status-badge";
+import { StatusNote } from "@/components/pieces/feedback/status-note";
 import { Button } from "@/components/ui/button";
 import { storyService } from "@/lib/portal/story-service";
 import { useLoaded } from "@/hooks/use-loaded";
+import { layout } from "@/lib/control-sizes";
 import { hrefFor } from "@/lib/routes";
 import { replaceRoute } from "@/lib/navigation/replace-route";
 import { getStoriesPage } from "@/stores/portal-store";
@@ -36,13 +39,28 @@ export function StoryMineView() {
   if (!submission) return null;
 
   if (submission.status === "rejected") {
+    if (submission.subStatus === "DECLINED") {
+      const { declined } = copy;
+      return (
+        <StatusScreen
+          back={<PortalBack action={copy.back} />}
+          title={declined.title}
+          description={declined.description}
+          summary={declined.summary}
+          primary={declined.primary}
+          aside={<StoryContext />}
+          actionWidth="actionSlot"
+        />
+      );
+    }
     const { reject } = copy;
+    const feedback = submission.rejectionReason ?? reject.description;
     return (
       <StatusScreen
         back={<PortalBack action={copy.back} />}
         title={reject.title}
-        description={reject.description}
-        summary={reject.summary}
+        description={feedback}
+        summary={{ ...reject.summary, description: feedback }}
         primary={reject.primary}
         aside={<StoryContext />}
         actionWidth="actionSlot"
@@ -54,15 +72,29 @@ export function StoryMineView() {
     if (busy) return;
     setBusy(true);
     await storyService.removeSubmission();
-    router.push(hrefFor("STORIES"));
+    replaceRoute(router, hrefFor("STORIES"));
   };
+
+  const isPartnerPending = submission.subStatus === "PENDING_PARTNER";
 
   return (
     <Workspace aside={<StoryContext />}>
       <PortalBack action={copy.back} />
-      <FormHeader variant="portalStatus" title={copy.mine.title} description={copy.mine.description} />
+      <FormHeader
+        variant="portalStatus"
+        title={copy.mine.title}
+        description={submission.statusBadge ? `${copy.mine.title} · ${submission.statusBadge}` : copy.mine.description}
+      />
+      {submission.statusBadge && (
+        <div className="flex w-full items-center">
+          <StatusBadge variant={isPartnerPending ? "urgent" : "pending"} label={submission.statusBadge} />
+        </div>
+      )}
+      {submission.statusNote && (
+        <StatusNote variant={isPartnerPending ? "notice" : "highlight"} message={submission.statusNote} />
+      )}
       <StoryBody photo={submission.photo ?? copy.create.photo} title={submission.title} meta={submission.metLabel} body={submission.body} />
-      <ActionRow>
+      <ActionRow className={layout.stickyActions}>
         <ActionButton action={copy.mine.edit} variant="confirm" size="portalPill" width="actionSlot" />
         <Button type="button" variant="roseOutline" size="portalPill" width="actionSlot" onClick={() => setRemoving(true)}>
           {copy.mine.remove}

@@ -1,6 +1,7 @@
 "use client";
 
 import { useInfiniteQuery, useQueryClient, type InfiniteData } from "@tanstack/react-query";
+import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
 import { ActionButton } from "@/components/pieces/actions/action-button";
 import { ActionRow } from "@/components/pieces/actions/action-row";
@@ -12,12 +13,14 @@ import { TextField } from "@/components/pieces/forms/text-field";
 import { Button } from "@/components/ui/button";
 import { StatusNote } from "@/components/pieces/feedback/status-note";
 import { useServiceAction } from "@/hooks/use-service-action";
+import { layout } from "@/lib/control-sizes";
 import { fill } from "@/lib/format";
+import { replaceRoute } from "@/lib/navigation/replace-route";
 import { failureReason } from "@/lib/portal/failure";
 import { mergeComments, withoutComment, type CommentItem } from "@/lib/portal/story-comments";
 import { storyService } from "@/lib/portal/story-service";
 import { useLoaded } from "@/hooks/use-loaded";
-import { toItem } from "@/lib/routes";
+import { hrefFor, toItem } from "@/lib/routes";
 import { getStoriesPage } from "@/stores/portal-store";
 import { LoadFailed } from "@/components/sections/portal/shared/load-failed";
 import { StatusScreen } from "@/components/sections/portal/shared/status-screen";
@@ -31,6 +34,7 @@ type CommentPage = { comments: CommentItem[]; next: string | null };
 /** W08 / STORY-DETAIL, then COMMENT-SENT once a comment is posted (rule 32). An unknown or unpublished id shows "not available". */
 export function StoryView({ id }: { id: string }) {
   const copy = getStoriesPage();
+  const router = useRouter();
   const queryClient = useQueryClient();
   const { value: story, error: loadError, reload } = useLoaded(screenKeys.story(id), () => storyService.getStory(id));
   const commentsKey = [...screenKeys.story(id), "comments"];
@@ -39,13 +43,14 @@ export function StoryView({ id }: { id: string }) {
     queryFn: ({ pageParam }) => storyService.getComments(id, pageParam),
     initialPageParam: null as string | null,
     getNextPageParam: (page) => page.next,
-    enabled: Boolean(story && !story.consent),
+    enabled: Boolean(story && !story.consent && (!story.stage || story.stage === "APPROVED")),
   });
   const [comment, setComment] = useState("");
   const [posted, setPosted] = useState<string | null>(null);
   const [error, setError] = useState(false);
   const [likes, setLikes] = useState<{ count: number; liked: boolean } | null>(null);
   const [answered, setAnswered] = useState<boolean | null>(null);
+  const [confirmDecline, setConfirmDecline] = useState(false);
   const [removing, setRemoving] = useState<CommentItem | null>(null);
   const answer = useServiceAction(copy.detail.consent.declined);
   const posting = useServiceAction(copy.detail.commentFailed);
@@ -64,11 +69,16 @@ export function StoryView({ id }: { id: string }) {
   const like = () => shownLikes && void liking.run(async () => setLikes(await storyService.toggleLike(id, shownLikes.liked)));
 
   if (story.consent) {
-    const { consent } = copy.detail;
-    const respond = (accept: boolean) =>
-      void answer.run(() => storyService.respond(id, accept)).then((ok) => {
-        if (ok) setAnswered(accept);
-      });
+    const { consent, declineDialog } = copy.detail;
+    const respond = async (accept: boolean) => {
+      setConfirmDecline(false);
+      const ok = await answer.run(() => storyService.respond(id, accept));
+      if (ok) {
+        setAnswered(accept);
+        await queryClient.invalidateQueries({ queryKey: screenKeys.story(id) });
+        replaceRoute(router, hrefFor("STORY-DETAIL", id));
+      }
+    };
     return (
       <Workspace aside={<StoryContext />}>
         <PortalBack action={copy.back} />
@@ -77,16 +87,48 @@ export function StoryView({ id }: { id: string }) {
         {answered !== null ? (
           <StatusNote variant={answered ? "success" : "notice"} message={answered ? consent.approved : consent.declined} />
         ) : (
-          <ActionRow>
-            <Button type="button" variant="confirm" size="portalPill" width="actionSlot" disabled={answer.busy} aria-busy={answer.busy || undefined} onClick={() => respond(true)}>
+          <ActionRow className={layout.stickyActions}>
+            <Button type="button" variant="confirm" size="portalPill" width="actionSlot" disabled={answer.busy} aria-busy={answer.busy || undefined} onClick={() => void respond(true)}>
               {consent.approve}
             </Button>
-            <Button type="button" variant="roseOutline" size="portalPill" width="actionSlot" disabled={answer.busy} onClick={() => respond(false)}>
+            <Button type="button" variant="roseOutline" size="portalPill" width="actionSlot" disabled={answer.busy} onClick={() => setConfirmDecline(true)}>
               {consent.decline}
             </Button>
           </ActionRow>
         )}
         {answer.failure && <StatusNote variant="alert" message={answer.failure} />}
+        <PortalDialog
+          open={confirmDecline}
+          onOpenChange={setConfirmDecline}
+          header="fit"
+          title={declineDialog.title}
+          description={declineDialog.description}
+          closeLabel={declineDialog.close}
+          actions={
+            <>
+              <Button type="button" variant="confirm" size="portalPill" width="full" disabled={answer.busy} aria-busy={answer.busy || undefined} onClick={() => void respond(false)}>
+                {answer.busy ? declineDialog.declining : declineDialog.confirm}
+              </Button>
+              <Button type="button" variant="roseOutline" size="portalPill" width="full" disabled={answer.busy} onClick={() => setConfirmDecline(false)}>
+                {declineDialog.keep}
+              </Button>
+            </>
+          }
+        />
+      </Workspace>
+    );
+  }
+
+  // A non-approved story without consent (already responded or author view): show status note, no comments/likes
+  if (story.stage && story.stage !== "APPROVED") {
+    const isDeclined = story.stage === "DECLINED";
+    const statusMessage = isDeclined ? copy.detail.consent.declined : copy.detail.consent.approved;
+    return (
+      <Workspace aside={<StoryContext />}>
+        <PortalBack action={copy.back} />
+        <FormHeader variant="portalStatus" title={story.detailTitle} description={fill(copy.feed.meta, { couple: story.couple, met: story.met })} />
+        <StoryBody photo={story.photo} title={story.couple} meta={story.met} body={story.body} />
+        <StatusNote variant={isDeclined ? "notice" : "success"} message={statusMessage} />
       </Workspace>
     );
   }

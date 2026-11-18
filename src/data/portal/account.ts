@@ -225,6 +225,7 @@ export const accountPage = {
     main: "Main photo",
     makeMain: "Make main",
     replace: "Replace",
+    remove: "Remove",
     /** `{number}` is the photo's position. */
     alt: "Your profile photo {number}",
     accept: ["image/jpeg", "image/png", "image/webp"],
@@ -446,6 +447,8 @@ export const accountPage = {
     empty: "Nothing new yet. We’ll let you know when something happens.",
     /** Read out before a notification not seen yet (the row is tinted; design-silent). */
     unread: "Unread",
+    more: "Show more",
+    loadingMore: "Loading more…",
     items: [
       { title: "A new connection", description: "GoldenHour liked you back.", to: toItem("CHAT-01", "goldenhour") },
       { title: "Your date is tomorrow", description: "Amber & Oak Coffee · 4:00 PM", to: toItem("DATE-PENDING", "riverstone") },
