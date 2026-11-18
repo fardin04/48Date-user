@@ -4,6 +4,7 @@ import { datePage, liveVenueCopy, venues, type VenueId } from "@/data/portal/dat
 import { gamePage } from "@/data/portal/games";
 import { liveStoryCopy, stories, storiesPage } from "@/data/portal/stories";
 import { compatPage, discoverPage, filtersPage, profilePage } from "@/data/portal/discover";
+import { likesPage } from "@/data/portal/likes";
 import { matchDetailPage, matchesPage } from "@/data/portal/matches";
 import { membershipPage, plans, type PlanId } from "@/data/portal/membership";
 import { memberAvatar, memberCopy, members } from "@/data/portal/members";
@@ -20,6 +21,7 @@ export const getMemberCopy = () => memberCopy;
 export const getMembers = () => members;
 export const getDiscoverPage = () => discoverPage;
 export const getFiltersPage = () => filtersPage;
+export const getLikesPage = () => likesPage;
 export const getProfilePage = () => profilePage;
 export const getCompatPage = () => compatPage;
 export const getMatchesPage = () => matchesPage;

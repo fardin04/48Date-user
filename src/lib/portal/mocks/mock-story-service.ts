@@ -85,12 +85,34 @@ export const mockStoryService: StoryService = {
   async getMeetOptions() {
     return recentMonths(getStoriesPage().create.limits.months);
   },
-  async toggleLike() {
-    return { count: 0, liked: false };
+  async toggleLike(id, liked) {
+    const count = getStories().find((story) => story.id === id)?.likes?.count ?? 0;
+    return { count: liked ? count : count + 1, liked: !liked };
   },
   async respond() {},
   async getStories() {
     return getStories();
+  },
+  async getStoryPage() {
+    return { stories: getStories(), next: null };
+  },
+  async getComments(id) {
+    const you = getStoriesPage().detail.you;
+    const sample = getStories().find((story) => story.id === id)?.comments ?? [];
+    const own = read().comments[id] ?? [];
+    return {
+      comments: [
+        ...sample.map((comment, index) => ({ id: `sample-${index}`, ...comment, mine: false })),
+        ...own.map((comment, index) => ({ id: `own-${index}`, ...comment, mine: comment.author === you })),
+      ],
+      next: null,
+    };
+  },
+  async deleteComment(id, commentId) {
+    await wait();
+    const index = commentId.startsWith("own-") ? Number(commentId.slice(4)) : -1;
+    const { comments } = read();
+    if (index >= 0) write({ comments: { ...comments, [id]: (comments[id] ?? []).filter((_, at) => at !== index) } });
   },
   async getStory(id) {
     const story = getStories().find((item) => item.id === id);

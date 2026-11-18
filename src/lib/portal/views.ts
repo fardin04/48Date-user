@@ -15,6 +15,7 @@ export type PortalArea =
   | "profile"
   | "settings"
   | "notifications"
+  | "likes"
   | "report"
   | "membership";
 
@@ -32,6 +33,8 @@ export type AccountScreen = (typeof accountScreens)[keyof typeof accountScreens]
 export type PortalView =
   | { kind: "discover" }
   | { kind: "filters" }
+  /** LIKES: who liked the member (`/likes`). */
+  | { kind: "likes" }
   | { kind: "profile"; member: MemberId }
   | { kind: "compat"; member: MemberId }
   | { kind: "matches"; tab: MatchTab }
@@ -79,6 +82,7 @@ const roots: Record<PortalArea, string> = {
   profile: screens.PROFILE,
   settings: screens.SETTINGS,
   notifications: screens.NOTIFICATIONS,
+  likes: screens.LIKES,
   report: screens["REPORT-DETAIL"],
   membership: screens.MEMBERSHIP,
 };
@@ -94,6 +98,7 @@ const viewsOf = (area: PortalArea): { screen: ScreenCode; view: PortalView }[] =
     return accountScreens[area].map((screen) => ({ screen, view: { kind: "account" as const, screen } }));
   if (area === "report")
     return [null, ...memberIds, ...getStories().map((story) => story.id)].map((subject) => ({ screen: "REPORT-DETAIL" as const, view: { kind: "report" as const, subject } }));
+  if (area === "likes") return [{ screen: "LIKES", view: { kind: "likes" } }];
   if (area === "games") return matchMembers().map((member) => ({ screen: "GAMES" as const, view: { kind: "game" as const, member } }));
   if (area === "stories")
     return [

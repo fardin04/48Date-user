@@ -1,6 +1,6 @@
 import { isSampleMember, type MemberId, type MemberSummary } from "@/data/portal/types";
 import { getInboxPage, getMember, getMemberCopy } from "@/stores/portal-store";
-import type { ChatMessage, ChatService, Conversation, MessageKind } from "@/lib/portal/chat-service";
+import type { ChatMessage, ChatService, Conversation, ConversationWatcher, MessageKind } from "@/lib/portal/chat-service";
 
 /**
  * MOCK — stands in for the real messaging API so every W05 state can be reviewed.
@@ -41,8 +41,9 @@ function validMessage(value: unknown): ChatMessage | null {
   if (!isRecord(value)) return null;
   const { id, kind, text, sentAt, status } = value;
   if (typeof id !== "string" || typeof text !== "string" || typeof sentAt !== "number") return null;
-  if (!KINDS.some((option) => option === kind) || (status !== "sent" && status !== "failed")) return null;
-  return { id, kind: kind as MessageKind, mine: true, text: text.slice(0, MAX_TEXT), sentAt, status };
+  if (!KINDS.some((option) => option === kind) || (status !== "sent" && status !== "failed" && status !== "sending")) return null;
+  // A send left "sending" by a reload never finished.
+  return { id, kind: kind as MessageKind, mine: true, text: text.slice(0, MAX_TEXT), sentAt, status: status === "sending" && !inFlight.has(id) ? "failed" : status };
 }
 
 function read(): Stored {
@@ -72,9 +73,33 @@ function write(state: Stored) {
   }
 }
 
+/** Sends in this tab still waiting for "delivery". */
+const inFlight = new Set<string>();
+const listeners = new Map<MemberId, Set<ConversationWatcher>>();
+
 function update(member: MemberId, change: (messages: ChatMessage[]) => ChatMessage[]) {
   const state = read();
   write({ ...state, messages: { ...state.messages, [member]: change(state.messages[member] ?? []) } });
+  const set = listeners.get(member);
+  if (set?.size) void mockChatService.getConversation(member).then((conversation) => set.forEach((watcher) => watcher.onChange(conversation)));
+}
+
+/** "Delivers" one message after a moment: the bubble shows "Sending…" until then. */
+async function deliverLater(member: MemberId, id: string): Promise<ChatMessage | null> {
+  inFlight.add(id);
+  update(member, (messages) => messages.map((message) => (message.id === id ? { ...message, status: "sending" } : message)));
+  await wait(SEND_MS);
+  inFlight.delete(id);
+  const status = delivered() ? "sent" : "failed";
+  let result: ChatMessage | null = null;
+  update(member, (messages) =>
+    messages.map((message) => {
+      if (message.id !== id) return message;
+      result = { ...message, status, sentAt: Date.now() };
+      return result;
+    }),
+  );
+  return result;
 }
 
 const wait = (ms: number, signal?: AbortSignal) =>
@@ -119,23 +144,12 @@ export const mockChatService: ChatService = {
     return mockChatService.getConversation(member);
   },
   async send(member, { kind, text }) {
-    await wait(SEND_MS);
-    const message: ChatMessage = { id: crypto.randomUUID(), kind, mine: true, text: text.slice(0, MAX_TEXT), sentAt: Date.now(), status: delivered() ? "sent" : "failed" };
+    const message: ChatMessage = { id: crypto.randomUUID(), kind, mine: true, text: text.slice(0, MAX_TEXT), sentAt: Date.now(), status: "sending" };
     update(member, (messages) => [...messages, message]);
-    return message;
+    return (await deliverLater(member, message.id)) ?? { ...message, status: "failed" };
   },
   async retry(member, id) {
-    await wait(SEND_MS);
-    const status = delivered() ? "sent" : "failed";
-    let result: ChatMessage | null = null;
-    update(member, (messages) =>
-      messages.map((message) => {
-        if (message.id !== id) return message;
-        result = { ...message, status, sentAt: Date.now() };
-        return result;
-      }),
-    );
-    return result;
+    return deliverLater(member, id);
   },
   async discard(member, id) {
     update(member, (messages) => messages.filter((message) => message.id !== id));
@@ -150,8 +164,11 @@ export const mockChatService: ChatService = {
     return { status: "ready", suggestions: [SUGGESTIONS[offset], SUGGESTIONS[(offset + 1) % SUGGESTIONS.length]] };
   },
   async markSeen() {},
-  watch() {
-    return () => undefined;
+  watch(member, watcher) {
+    const set = listeners.get(member) ?? new Set();
+    set.add(watcher);
+    listeners.set(member, set);
+    return () => set.delete(watcher);
   },
   watchInbox() {
     return () => undefined;

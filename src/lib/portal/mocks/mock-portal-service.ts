@@ -95,6 +95,31 @@ const isOpen = (match: Match) => match.expiresAt === null || match.expiresAt > D
 
 const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
+/** MOCK likes received: three samples (Wildflower's is a Super Like); liking one back is always mutual. */
+const LIKES_KEY = "48date.mock.likes";
+const sampleLikes: { member: MemberId; superLike: boolean; distanceKm: number }[] = [
+  { member: "wildflower", superLike: true, distanceKm: 4 },
+  { member: "goldenhour", superLike: false, distanceKm: 9 },
+  { member: "northpeak", superLike: false, distanceKm: 13 },
+];
+
+function decidedLikes(): MemberId[] {
+  try {
+    const value: unknown = JSON.parse(sessionStorage.getItem(LIKES_KEY) ?? "[]");
+    return Array.isArray(value) ? value.filter((id): id is MemberId => typeof id === "string" && isSampleMember(id)) : [];
+  } catch {
+    return [];
+  }
+}
+
+function decideLike(member: MemberId) {
+  try {
+    sessionStorage.setItem(LIKES_KEY, JSON.stringify([...new Set([...decidedLikes(), member])]));
+  } catch {
+    // Blocked storage: the card comes back on the next read.
+  }
+}
+
 export const mockPortalService: PortalService = {
   async getPreferences() {
     return read().preferences;
@@ -142,7 +167,7 @@ export const mockPortalService: PortalService = {
       tab === "cancelled"
         ? { member: cancelled.photoOf, summary: summaryOf(cancelled.photoOf), meta: cancelled.meta, image: summaryOf(cancelled.photoOf).photo }
         : { member: "goldenhour", summary: summaryOf("goldenhour"), meta: complete.meta, image: complete.image };
-    return [outcome];
+    return { outcomes: [outcome], next: null };
   },
   async getUnseenMatch() {
     return null;
@@ -151,4 +176,23 @@ export const mockPortalService: PortalService = {
   async findMatches() {},
   // The sample matches are already there.
   isFindingMatches: () => false,
+  async getLikesReceived() {
+    const decided = decidedLikes();
+    const items = sampleLikes
+      .filter((like) => !decided.includes(like.member))
+      .map((like) => {
+        const profile = getMember(like.member)!;
+        return { id: like.member, name: profile.name, age: profile.age, photo: profile.photo, verified: profile.verified, superLike: like.superLike, distanceKm: like.distanceKm, locked: false };
+      });
+    return { items, page: 1, hasMore: false, total: items.length };
+  },
+  async matchLike(member) {
+    await wait(SAVE_MS);
+    decideLike(member);
+    return { matched: true };
+  },
+  async passLike(member) {
+    await wait(SAVE_MS);
+    decideLike(member);
+  },
 };
