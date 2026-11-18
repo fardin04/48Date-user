@@ -15,6 +15,13 @@ async function load(overrides: Record<string, unknown> = {}) {
   vi.resetModules();
   vi.stubEnv("NEXT_PUBLIC_API_BASE_URL", BASE);
   vi.stubGlobal("window", globalThis);
+  const session = new Map<string, string>();
+  vi.stubGlobal("sessionStorage", {
+    getItem: (key: string) => session.get(key) ?? null,
+    setItem: (key: string, value: string) => void session.set(key, value),
+    removeItem: (key: string) => void session.delete(key),
+    clear: () => void session.clear(),
+  });
   const replay = replayFetch(BASE, overrides);
   calls = replay.calls;
   vi.stubGlobal("fetch", replay.fetchStub);
