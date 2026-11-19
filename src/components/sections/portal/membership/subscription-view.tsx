@@ -9,6 +9,7 @@ import { FormHeader } from "@/components/pieces/forms/form-header";
 import { PortalBack } from "@/components/pieces/actions/portal-back";
 import { StatusNote } from "@/components/pieces/feedback/status-note";
 import { Button } from "@/components/ui/button";
+import { layout } from "@/lib/control-sizes";
 import { fill } from "@/lib/format";
 import { formatFullDay } from "@/lib/portal/date-format";
 import { membershipService } from "@/lib/portal/membership-service";
@@ -49,6 +50,9 @@ export function SubscriptionView() {
   const ends = formatFullDay(membership.periodEnds);
 
   if (!membership.renews) {
+    if (typeof window !== "undefined") {
+      window.history.replaceState(null, "", hrefFor("MEMBERSHIP"));
+    }
     const { stopped } = page;
     return (
       <StatusScreen
@@ -84,7 +88,7 @@ export function SubscriptionView() {
         <DetailRow label={page.rows.through} value={ends} divided />
       </dl>
       {failed && <StatusNote variant="alert" message={page.failed} />}
-      <ActionRow>
+      <ActionRow className={layout.stickyActions}>
         <Button type="button" variant="confirm" size="portalPill" width="grow" disabled={busy} aria-busy={busy || undefined} onClick={() => void stop()}>
           {busy ? page.busy : page.primary}
         </Button>

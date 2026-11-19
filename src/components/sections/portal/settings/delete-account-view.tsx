@@ -8,16 +8,20 @@ import { FormHeader } from "@/components/pieces/forms/form-header";
 import { PortalBack } from "@/components/pieces/actions/portal-back";
 import { StatusNote } from "@/components/pieces/feedback/status-note";
 import { Button } from "@/components/ui/button";
+import { layout } from "@/lib/control-sizes";
+import { hrefFor } from "@/lib/routes";
 import { authService } from "@/lib/auth/auth-service";
 import { accountService } from "@/lib/portal/account-service";
 import { getAccountPage } from "@/stores/portal-store";
 import { ProfileContext } from "@/components/sections/portal/profile/profile-context";
 import { StatusScreen } from "@/components/sections/portal/shared/status-screen";
 import { Workspace } from "@/components/sections/portal/shared/workspace";
+import { canSubmitDeletion } from "@/lib/portal/delete-account";
 
 /**
  * W09 / DELETE-ACCOUNT, then DELETE-DONE. Nothing happens without the confirmation box; once the
- * request is sent the member is signed out and this tab's data is cleared.
+ * request is sent the member is signed out, the trail is cleared, and history is replaced so Back
+ * cannot reach the portal.
  */
 export function DeleteAccountView() {
   const page = getAccountPage().deletion;
@@ -29,25 +33,43 @@ export function DeleteAccountView() {
 
   const submit = async (event: FormEvent) => {
     event.preventDefault();
+    if (!understood) {
+      setMissing(true);
+      return;
+    }
     if (busy) return;
-    setMissing(!understood);
+    setMissing(false);
     setFailed(false);
-    if (!understood) return;
     setBusy(true);
     try {
       await accountService.requestDeletion();
       await authService.signOut();
+      if (typeof window !== "undefined") {
+        window.history.replaceState(null, "", hrefFor("WELCOME"));
+      }
       setDone(true);
     } catch {
       setFailed(true);
+    } finally {
+      setBusy(false);
     }
-    setBusy(false);
   };
 
   if (done) {
     const summary = page.done;
-    return <StatusScreen title={summary.title} description={summary.description} summary={summary.summary} primary={summary.primary} aside={<ProfileContext />} actionWidth="actionSlot" />;
+    return (
+      <StatusScreen
+        title={summary.title}
+        description={summary.description}
+        summary={summary.summary}
+        primary={summary.primary}
+        aside={<ProfileContext />}
+        actionWidth="actionSlot"
+      />
+    );
   }
+
+  const canSubmit = canSubmitDeletion(understood, busy);
 
   return (
     <Workspace aside={<ProfileContext />}>
@@ -64,8 +86,15 @@ export function DeleteAccountView() {
         />
         {missing && <StatusNote variant="alert" message={page.required} />}
         {failed && <StatusNote variant="alert" message={page.failed} />}
-        <ActionRow>
-          <Button type="submit" variant="confirm" size="portalPill" width="summaryAction" disabled={busy} aria-busy={busy || undefined}>
+        <ActionRow className={layout.stickyActions}>
+          <Button
+            type="submit"
+            variant="confirm"
+            size="portalPill"
+            width="summaryAction"
+            disabled={!canSubmit}
+            aria-busy={busy || undefined}
+          >
             {busy ? page.submitting : page.submit}
           </Button>
           <ActionButton action={page.keep} variant="roseOutline" size="portalPill" width="actionSlot" />

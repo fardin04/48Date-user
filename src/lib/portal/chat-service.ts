@@ -90,6 +90,8 @@ export type ChatService = {
   block: (member: MemberId) => Promise<void>;
   /** W09 BLOCKED: members this account has blocked, newest last. */
   getBlocked: () => Promise<MemberId[]>;
+  /** W09 BLOCKED: cursor-paginated list of blocked members. */
+  getBlockedPage: (cursor?: string | null, limit?: number) => Promise<{ items: MemberId[]; next: string | null }>;
   /** Unblocking lets them find the profile again; it doesn't restore an old match. */
   unblock: (member: MemberId) => Promise<void>;
 };
