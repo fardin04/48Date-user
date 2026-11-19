@@ -185,6 +185,16 @@ export const mockChatService: ChatService = {
   async getBlocked() {
     return read().blocked;
   },
+  async getBlockedPage(cursor, limit = 20) {
+    const all = read().blocked;
+    const startIndex = cursor ? all.indexOf(cursor) + 1 : 0;
+    const slice = all.slice(startIndex, startIndex + limit);
+    const next = startIndex + limit < all.length ? slice[slice.length - 1] ?? null : null;
+    return {
+      items: slice,
+      next,
+    };
+  },
   async unblock(member) {
     await wait(SEND_MS);
     const state = read();
