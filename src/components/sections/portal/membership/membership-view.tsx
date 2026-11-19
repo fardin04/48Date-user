@@ -8,6 +8,7 @@ import { PortalBack } from "@/components/pieces/actions/portal-back";
 import { StatusBadge } from "@/components/pieces/feedback/status-badge";
 import { fill } from "@/lib/format";
 import { formatFullDay } from "@/lib/portal/date-format";
+import { layout } from "@/lib/control-sizes";
 import { membershipService } from "@/lib/portal/membership-service";
 import { useLoaded } from "@/hooks/use-loaded";
 import { to, toItem } from "@/lib/routes";
@@ -49,7 +50,7 @@ export function MembershipView() {
           />
           <DetailRow label={free.rows.premium} value={free.premiumValue} divided />
         </dl>
-        <ActionRow>
+        <ActionRow className={layout.stickyActions}>
           <ActionButton action={free.primary} variant="confirm" size="portalPill" width="grow" />
           <ActionButton action={{ label: free.secondary, to: used ? toItem("CHAT-01", used) : to("INBOX") }} variant="roseOutline" size="portalPill" width="grow" />
         </ActionRow>
@@ -68,7 +69,7 @@ export function MembershipView() {
         <DetailRow label={membership.renews ? page.rows.renews : page.rows.endsOn} value={formatFullDay(membership.periodEnds)} divided />
         {membership.renews && <DetailRow label={page.rows.price} value={fill(page.price, { price: plan.price })} divided />}
       </dl>
-      <ActionRow>
+      <ActionRow className={layout.stickyActions}>
         {membership.renews && <ActionButton action={page.primary} variant="confirm" size="portalPill" width="grow" />}
         <ActionButton action={page.secondary} variant={membership.renews ? "roseOutline" : "confirm"} size="portalPill" width="grow" />
       </ActionRow>

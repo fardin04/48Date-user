@@ -436,7 +436,7 @@ export const accountPage = {
       title: "Account deletion requested",
       description: "You’ve been signed out. Your profile is no longer shown in discovery.",
       summary: { icon: user, title: "Deletion request received", description: "You’ll be signed out. Follow the account notice for any next steps." } satisfies StatusSummaryCopy,
-      primary: { label: "Back to welcome", to: to("WELCOME") } satisfies Action,
+      primary: { label: "Back to welcome", to: to("WELCOME"), back: "fixed" } satisfies Action,
     },
   },
   notifications: {

@@ -6,6 +6,7 @@ import { FormHeader } from "@/components/pieces/forms/form-header";
 import { PlanCard } from "@/components/pieces/cards/plan-card";
 import { PortalBack } from "@/components/pieces/actions/portal-back";
 import { fill } from "@/lib/format";
+import { layout } from "@/lib/control-sizes";
 import { toItem } from "@/lib/routes";
 import { usePlans } from "@/hooks/use-plans";
 import { getMembershipPage } from "@/stores/portal-store";
@@ -20,7 +21,7 @@ export function PlansView() {
     <Workspace>
       <PortalBack action={page.back} />
       <FormHeader variant="portalStatus" title={page.title} description={page.description} />
-      <div className="grid w-full gap-6 lg:grid-cols-3">
+      <div className="mx-auto grid w-full max-w-[1040px] gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
         {plans.map((plan, index) => (
           <PlanCard
             key={plan.id}
@@ -35,7 +36,7 @@ export function PlansView() {
           />
         ))}
       </div>
-      <ActionRow>
+      <ActionRow className={layout.stickyActions}>
         <ActionButton action={{ label: page.continue, to: toItem("PAY-REVIEW", copy.featured) }} variant="confirm" size="portalPill" width="actionSlot" />
         <ActionButton action={page.restore} variant="roseOutline" size="portalPill" width="actionSlot" />
       </ActionRow>
