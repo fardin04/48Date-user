@@ -86,6 +86,8 @@ export type AccountService = {
   getUnreadCount: () => Promise<number>;
   /** Everything in the inbox has been seen. */
   markNotificationsRead: () => Promise<void>;
+  /** Delete single notification from inbox. */
+  deleteNotification: (id: string) => Promise<void>;
   /** Linked sign-in methods, or null where the service doesn't manage them (mock). */
   getSignInMethods: () => Promise<SignInMethods | null>;
   /** Each rejects with the service's reason (already used by another account, last method left…). */
