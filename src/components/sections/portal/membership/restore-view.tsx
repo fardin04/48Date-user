@@ -21,7 +21,7 @@ export function RestoreView() {
     setBusy(true);
     const found = await membershipService.restore();
     setBusy(false);
-    if (found) router.push(hrefFor("MEMBERSHIP"));
+    if (found) router.replace(hrefFor("MEMBERSHIP"));
     else setNone(true);
   };
 

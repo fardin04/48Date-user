@@ -11,6 +11,8 @@ import { StatusNote } from "@/components/pieces/feedback/status-note";
 import { Button } from "@/components/ui/button";
 import type { PlanId } from "@/data/portal/membership";
 import { fill } from "@/lib/format";
+import { layout } from "@/lib/control-sizes";
+import { hrefFor } from "@/lib/routes";
 import { membershipService } from "@/lib/portal/membership-service";
 import { usePlan } from "@/hooks/use-plans";
 import { getMembershipPage } from "@/stores/portal-store";
@@ -57,6 +59,9 @@ export function CheckoutView({ planId }: { planId: PlanId }) {
     );
   }
   if (phase === "done") {
+    if (typeof window !== "undefined") {
+      window.history.replaceState(null, "", hrefFor("MEMBERSHIP"));
+    }
     const { done } = copy;
     return (
       <StatusScreen
@@ -94,7 +99,7 @@ export function CheckoutView({ planId }: { planId: PlanId }) {
         <dl className="flex w-full flex-col">
           <DetailRow label={provider.row} value={fill(provider.price, values)} />
         </dl>
-        <ActionRow>
+        <ActionRow className={layout.stickyActions}>
           <Button type="button" variant="confirm" size="portalPill" width="grow" onClick={() => void pay()}>
             {fill(provider.pay, values)}
           </Button>
@@ -129,8 +134,8 @@ export function CheckoutView({ planId }: { planId: PlanId }) {
         }}
       />
       {missing && <StatusNote variant="alert" message={review.agreeRequired} />}
-      <ActionRow>
-        <Button type="button" variant="confirm" size="portalPill" width="grow" onClick={proceed}>
+      <ActionRow className={layout.stickyActions}>
+        <Button type="button" variant="confirm" size="portalPill" width="grow" disabled={!agreed} onClick={proceed}>
           {review.primary}
         </Button>
         <ActionButton action={review.secondary} variant="roseOutline" size="portalPill" width="grow" />
