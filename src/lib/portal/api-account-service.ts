@@ -329,6 +329,10 @@ export const apiAccountService: AccountService = {
     await notificationsApi.readAll();
     invalidate(screenKeys.unreadCount, screenKeys.notifications);
   },
+  async deleteNotification(id: string) {
+    await notificationsApi.deleteNotification(id);
+    invalidate(screenKeys.unreadCount, screenKeys.notifications);
+  },
   async getSignInMethods() {
     const { data } = await authApi.methods();
     return { phone: data.phone, google: data.google?.email ?? null };

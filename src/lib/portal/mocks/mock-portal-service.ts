@@ -195,4 +195,22 @@ export const mockPortalService: PortalService = {
     await wait(SAVE_MS);
     decideLike(member);
   },
+  async getBoost() {
+    return { isActive: false, remainingSeconds: 0 };
+  },
+  async activateBoost() {
+    return { isActive: true, remainingSeconds: 1800 };
+  },
+  async undoSwipe() {
+    return { restoredNickname: "Wildflower" };
+  },
+  async getAutoMatchingStatus() {
+    return {
+      status: "RETRYING" as const,
+      attempts: 1,
+      tips: ["FEW_PEOPLE_NEARBY", "ADD_PHOTOS", "GET_VERIFIED"],
+      emptyReason: "FEW_PEOPLE_NEARBY",
+      nextRetryAt: new Date(Date.now() + 86400000).toISOString(),
+    };
+  },
 };

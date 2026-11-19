@@ -76,6 +76,20 @@ export type PortalService = {
   matchLike: (member: MemberId) => Promise<{ matched: boolean }>;
   /** Pass on someone who liked the member; they leave the list for good. */
   passLike: (member: MemberId) => Promise<void>;
+  /** Profile boost status and countdown. */
+  getBoost: () => Promise<{ isActive: boolean; remainingSeconds: number }>;
+  /** Activate profile boost for 30 minutes. */
+  activateBoost: () => Promise<{ isActive: boolean; remainingSeconds: number }>;
+  /** Rewind / undo single most recent swipe. */
+  undoSwipe: () => Promise<{ restoredNickname: string }>;
+  /** Auto-matching status, retry timer, and improvement tips. */
+  getAutoMatchingStatus: () => Promise<{
+    status: "PENDING" | "RUNNING" | "RETRYING" | "DONE";
+    attempts: number;
+    tips: string[];
+    emptyReason?: string;
+    nextRetryAt?: string | null;
+  }>;
 };
 
 /** The API (`NEXT_PUBLIC_API_BASE_URL` set) or the marked mock. */

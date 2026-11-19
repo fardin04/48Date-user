@@ -257,4 +257,26 @@ export const apiPortalService: PortalService = {
   async passLike(member) {
     await discoveryApi.passLike(member);
   },
+  async getBoost() {
+    const { data } = await discoveryApi.boost();
+    return { isActive: data.isActive, remainingSeconds: data.remainingSeconds };
+  },
+  async activateBoost() {
+    const { data } = await discoveryApi.activateBoost();
+    return { isActive: data.isActive, remainingSeconds: data.remainingSeconds };
+  },
+  async undoSwipe() {
+    const { data } = await discoveryApi.undoSwipe();
+    return { restoredNickname: data.restoredTargetNickname };
+  },
+  async getAutoMatchingStatus() {
+    const { data } = await matchingApi.me();
+    return {
+      status: data.status,
+      attempts: data.attempts,
+      tips: data.tips,
+      emptyReason: data.emptyReason,
+      nextRetryAt: data.nextRetryAt,
+    };
+  },
 };
