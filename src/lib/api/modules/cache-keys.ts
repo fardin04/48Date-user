@@ -26,6 +26,8 @@ export const cacheKeys = {
   games: ["games"],
   dates: ["dates"],
   venues: ["venues"],
+  boost: ["discovery", "boost"],
+  matchingMe: ["matching", "me"],
   aiQuota: ["ai", "quota"],
   notifications: ["notifications"],
   stories: ["stories"],

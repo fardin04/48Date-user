@@ -8,6 +8,7 @@ import { onboardingService } from "@/lib/onboarding/onboarding-service";
 import { hrefFor } from "@/lib/routes";
 import { replaceRoute } from "@/lib/navigation/replace-route";
 import { screenKeys } from "@/lib/screen-keys";
+import { decideSetupGate } from "@/lib/portal/guards";
 
 const noChange = () => () => {};
 
@@ -22,13 +23,14 @@ export function SetupGate({ children }: { children: ReactNode }) {
   const router = useRouter();
   const known = useSyncExternalStore(noChange, authService.setupState, () => null);
   const progress = useLoaded(screenKeys.onboardingProgress, onboardingService.getProgress, { enabled: known !== "portal" });
-  const unfinished = known !== "portal" && progress.value?.completed === false;
-  const waiting = known !== "portal" && progress.value === undefined && progress.error === undefined;
+  const decision = decideSetupGate(known, progress.value, progress.error);
 
   useEffect(() => {
-    if (unfinished) replaceRoute(router, hrefFor("LOCATION"));
-  }, [router, unfinished]);
+    if (decision.shouldRedirect && decision.target) {
+      replaceRoute(router, hrefFor(decision.target));
+    }
+  }, [decision.shouldRedirect, decision.target, router]);
 
-  if (unfinished || waiting) return null;
+  if (decision.shouldRedirect || decision.isWaiting) return null;
   return children;
 }

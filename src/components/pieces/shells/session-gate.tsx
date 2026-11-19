@@ -5,6 +5,7 @@ import { useEffect, type ReactNode } from "react";
 import { useSession } from "@/hooks/use-session";
 import { hrefFor, type ScreenCode } from "@/lib/routes";
 import { replaceRoute } from "@/lib/navigation/replace-route";
+import { decideSessionGate } from "@/lib/portal/guards";
 
 type SessionGateProps = {
   /** member: signed-in pages (portal, onboarding); guest: sign-in / sign-up entry. */
@@ -21,12 +22,14 @@ type SessionGateProps = {
 export function SessionGate({ allow, redirect, children }: SessionGateProps) {
   const router = useRouter();
   const session = useSession();
-  const allowed = session === null ? null : allow === "member" ? session : !session;
+  const decision = decideSessionGate(allow, session, redirect);
 
   useEffect(() => {
-    if (allowed === false) replaceRoute(router, hrefFor(redirect));
-  }, [allowed, redirect, router]);
+    if (decision.shouldRedirect && decision.target) {
+      replaceRoute(router, hrefFor(decision.target));
+    }
+  }, [decision.shouldRedirect, decision.target, router]);
 
-  if (allow === "member" && !allowed) return null;
+  if (allow === "member" && !decision.allowed) return null;
   return children;
 }
