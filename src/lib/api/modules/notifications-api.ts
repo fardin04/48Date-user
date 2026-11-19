@@ -18,4 +18,9 @@ export const notificationsApi = {
     invalidate(cacheKeys.notifications);
     return result;
   },
+  async deleteNotification(id: string) {
+    const result = await api.delete<unknown>(endpoints.notifications.detail(id));
+    invalidate(cacheKeys.notifications);
+    return result;
+  },
 };

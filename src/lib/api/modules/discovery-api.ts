@@ -9,9 +9,12 @@ import type {
   DiscoveryRun,
   LikeDecisionData,
   LikesReceivedData,
+  MatchingMeData,
+  ProfileBoostData,
   StartRunData,
   SwipeBody,
   SwipeData,
+  UndoSwipeData,
   UpdatePreferencesData,
 } from "../types/discovery";
 import { cacheKeys } from "./cache-keys";
@@ -83,6 +86,17 @@ export const discoveryApi = {
     invalidate(cacheKeys.likesReceived);
     return result;
   },
+  boost: () => cached(cacheKeys.boost, 30_000, () => api.get<ProfileBoostData>(endpoints.discovery.boost)),
+  async activateBoost() {
+    const result = await api.post<ProfileBoostData>(endpoints.discovery.boost);
+    invalidate(cacheKeys.boost);
+    return result;
+  },
+  async undoSwipe() {
+    const result = await api.post<UndoSwipeData>(endpoints.discovery.undo);
+    invalidate(cacheKeys.discoveryRun);
+    return result;
+  },
 };
 
 /** Likes received per page (the collection's example asks for 20). */
@@ -114,4 +128,5 @@ export const matchingApi = {
     return current.run;
   },
   isRunning: () => matching !== null,
+  me: () => cached(cacheKeys.matchingMe, 30_000, () => api.get<MatchingMeData>(endpoints.matching.me)),
 };

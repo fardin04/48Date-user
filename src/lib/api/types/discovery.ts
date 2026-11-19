@@ -144,3 +144,52 @@ export const discoveryErrors = {
   alreadyDecided: "SWIPE_ALREADY_DECIDED",
   unavailable: "USER_UNAVAILABLE",
 } as const;
+
+export type ProfileBoostData = {
+  isActive: boolean;
+  remainingSeconds: number;
+  startedAt: string | null;
+  expiresAt: string | null;
+};
+
+export type RestoredCardData = {
+  id: string;
+  availability: "ACTIVE" | "UNAVAILABLE";
+  nickname: string;
+  age: number | null;
+  mainPhotoUrl: string | null;
+  isVerified: boolean;
+  distanceKm: number | null;
+  photos: { url: string; position: number }[];
+  interests: InterestTag[];
+  trustScore?: TrustBadge;
+};
+
+export type UndoSwipeData = {
+  undoneAction: "PASS" | "LIKE" | "SUPER_LIKE";
+  restoredTargetUserId: string;
+  restoredTargetNickname: string;
+  restoredCard: RestoredCardData;
+};
+
+export type MatchingMeData = {
+  status: "PENDING" | "RUNNING" | "RETRYING" | "DONE";
+  attempts: number;
+  matchesCreated: unknown[];
+  emptyReason?: string;
+  tips: string[];
+  nextRetryAt?: string | null;
+};
+
+export const boostErrors = {
+  alreadyActive: "BOOST_ALREADY_ACTIVE",
+  exhausted: "BOOST_EXHAUSTED",
+} as const;
+
+export const undoSwipeErrors = {
+  noSwipeToUndo: "NO_SWIPE_TO_UNDO",
+  timeExpired: "UNDO_TIME_EXPIRED",
+  cannotUndoMatched: "CANNOT_UNDO_MATCHED_SWIPE",
+  premiumOnly: "REWIND_PREMIUM_ONLY",
+} as const;
+

@@ -190,6 +190,7 @@ export const mockAccountService: AccountService = {
     return 0;
   },
   async markNotificationsRead() {},
+  async deleteNotification() {},
   async getSignInMethods() {
     return null;
   },
