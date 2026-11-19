@@ -21,7 +21,10 @@ export const trustApi = {
     afterBlockChange();
     return result;
   },
-  blocked: () => cached(cacheKeys.blocks, 30_000, () => api.get<BlockedUser[]>(endpoints.trust.blocks, { query: { limit: 100 } })),
+  blocked: (cursor?: string, limit = 20) =>
+    cached([...cacheKeys.blocks, "raw", cursor ?? "", String(limit)], 30_000, () =>
+      api.get<BlockedUser[]>(endpoints.trust.blocks, { query: { ...(cursor ? { cursor } : {}), limit } })
+    ),
   async unblock(nickname: string) {
     const result = await api.delete<{ unblockedNickname: string }>(endpoints.trust.block(nickname));
     afterBlockChange();

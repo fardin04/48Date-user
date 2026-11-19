@@ -485,8 +485,17 @@ export const apiChatService: ChatService = {
     }
   },
   async getBlocked() {
-    const { data } = await trustApi.blocked();
+    const { data } = await trustApi.blocked(undefined, 100);
     return [...data].sort((a, b) => Date.parse(a.blockedAt) - Date.parse(b.blockedAt)).map((user) => user.nickname);
+  },
+  async getBlockedPage(cursor, limit = 20) {
+    const { data, meta } = await trustApi.blocked(cursor ?? undefined, limit);
+    const hasMore = meta && "hasMore" in meta ? Boolean(meta.hasMore) : false;
+    const nextCursor = meta && "nextCursor" in meta && meta.nextCursor ? meta.nextCursor : null;
+    return {
+      items: data.map((user) => user.nickname),
+      next: hasMore ? nextCursor : null,
+    };
   },
   async unblock(member) {
     await trustApi.unblock(member);
