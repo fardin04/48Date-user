@@ -75,7 +75,7 @@ describe("GET /matches", () => {
     expect(calls.find((call) => call.path === "/matches")?.auth).toBe("Bearer test-access");
     expect(matches).toHaveLength(1);
     expect(matches[0]).toMatchObject({ member: "GoldenHour", confirmed: false });
-    expect(typeof matches[0].expiresAt).toBe("number");
+    expect(matches[0].expiresAt).toBeNull(); // Postman of 2026-11-21: the example match now has `clockStoppedAt` set (was a running clock).
   });
 
   it("maps the tabs onto the API's tab values (completed, not complete)", async () => {

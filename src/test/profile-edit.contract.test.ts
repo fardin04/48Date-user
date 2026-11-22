@@ -133,20 +133,22 @@ describe("profile-edit contract (Phase 26)", () => {
     }
   });
 
-  it("updates photos via PUT /users/me/photos setting isMain on first photo", async () => {
+  // Owner decision 2026-11-22: PHOTO-MANAGE saves through the gallery endpoints (was PUT /users/me/photos).
+  it("updates photos via the gallery endpoints setting isMain on first photo", async () => {
     const { account } = await load();
     await account.savePhotos([
       { fileId: "file_alpha", url: "https://r2.48date.com/alpha.jpg" },
       { fileId: "file_beta", url: "https://r2.48date.com/beta.jpg" },
     ]);
 
-    const putCall = calls.find((c) => c.method === "PUT" && c.path.includes("/users/me/photos"));
-    expect(putCall).toBeDefined();
-    expect(putCall?.body).toEqual({
+    const attachCall = calls.find((c) => c.method === "POST" && c.path === "/users/me/photos");
+    expect(attachCall).toBeDefined();
+    expect(attachCall?.body).toEqual({
       photos: [
         { fileId: "file_alpha", isMain: true },
         { fileId: "file_beta", isMain: false },
       ],
     });
+    expect(calls.some((c) => c.method === "PUT" && c.path.includes("/users/me/photos"))).toBe(false);
   });
 });

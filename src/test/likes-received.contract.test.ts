@@ -67,7 +67,7 @@ describe("GET /discovery/likes-received", () => {
       {
         id: "Wildflower",
         name: "Wildflower",
-        age: 25,
+        age: 26, // Postman of 2026-11-21: the example's age (was 25).
         photo: expect.objectContaining({ src: "https://cdn.48date.local/users/Wildflower/photos/photo1.jpg" }),
         verified: true,
         superLike: true,

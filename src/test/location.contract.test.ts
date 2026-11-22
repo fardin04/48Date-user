@@ -92,7 +92,7 @@ describe("PATCH /users/me/location contract (Phase 28)", () => {
       latitude: 23.75,
       longitude: 90.37,
       city: "Dhanmondi",
-      region: null,
+      // B5 (owner decision 2026-11-22): a name we don't send is left out, never null (null erases it).
       countryCode: "BD",
       source: "MANUAL",
     });
@@ -112,7 +112,7 @@ describe("PATCH /users/me/location contract (Phase 28)", () => {
     const body = patchCall?.body as Record<string, unknown>;
     expect(body.source).toBe("GPS");
     expect(body.permission).toBe("WHILE_IN_USE");
-    expect(body.region).toBeNull();
+    expect(body.region).toBeUndefined(); // B5: left out, never null
   });
 
   it("throws friendly error on 400 failure", async () => {

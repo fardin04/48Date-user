@@ -90,7 +90,7 @@ describe("blocked users contract tests (Phase 31)", () => {
   it("fetches blocked users using Postman example response", async () => {
     const { chat } = await load();
     const result = await chat.getBlocked();
-    expect(result).toEqual(["WildRose"]);
+    expect(result).toEqual(["RoseGold_7", "WildRose"]); // Postman of 2026-11-21: the example lists two blocked members.
     const getCall = calls.find((c) => c.method === "GET" && c.path.startsWith("/blocks"));
     expect(getCall).toBeDefined();
     expect(getCall?.auth).toBe("Bearer test-access-token");
