@@ -7,6 +7,7 @@ import { FormHeader } from "@/components/pieces/forms/form-header";
 import { TypingDots } from "@/components/pieces/content/typing-dots";
 import type { Action, Intro } from "@/data/types";
 import { authService } from "@/lib/auth/auth-service";
+import { googleError } from "@/lib/auth/google-error";
 import { renderGoogleButton } from "@/lib/auth/google-identity";
 import { hrefFor, type ScreenCode } from "@/lib/routes";
 import { replaceRoute } from "@/lib/navigation/replace-route";
@@ -37,10 +38,12 @@ export function GoogleStep({ intro, waitingLabel, primary, failed }: GoogleStepP
     };
     const signIn = async (idToken: string) => {
       setChecking(true);
+      googleError.write(null);
       const result = await authService.signInWithGoogle(idToken);
       if (!active) return;
-      if (result.status === "verified") replaceRoute(router, hrefFor(result.next === "portal" ? "DISCOVER" : "LOCATION"));
-      else fail();
+      if (result.status === "verified") return replaceRoute(router, hrefFor(result.next === "portal" ? "DISCOVER" : "LOCATION"));
+      googleError.write(result.message ?? null);
+      fail();
     };
     if (slot.current) void renderGoogleButton(slot.current, (token) => void signIn(token), fail).catch(fail);
     return () => {

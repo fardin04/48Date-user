@@ -119,12 +119,19 @@ export async function ensureAccess(): Promise<string | null> {
   return tokenStore.access();
 }
 
-/** One API call: base URL, bearer token, a single refresh-and-retry on 401, normalised errors. */
+/**
+ * A 401 means an expired session only when its code says so (`UNAUTHORIZED`, or no code). Others are answers
+ * a refresh can't change (`OTP_INVALID`, `GOOGLE_TOKEN_INVALID` on the link calls): retrying them would spend a
+ * token rotation and a second OTP attempt (QA X8).
+ */
+const sessionExpired = (status: number, body: unknown) => status === 401 && ApiError.fromBody(status, body).code === "UNAUTHORIZED";
+
+/** One API call: base URL, bearer token, a single refresh-and-retry on an expired session, normalised errors. */
 async function request<T>(method: Method, path: string, options: RequestOptions = {}): Promise<ApiResult<T>> {
   const auth = options.auth ?? true;
   if (auth && !tokenStore.access() && tokenStore.refresh()) await refreshSession();
   let { response, body } = await fetchJson(method, path, options, auth ? tokenStore.access() : null);
-  if (response.status === 401 && auth && tokenStore.refresh() && (await refreshSession())) {
+  if (sessionExpired(response.status, body) && auth && tokenStore.refresh() && (await refreshSession())) {
     ({ response, body } = await fetchJson(method, path, options, tokenStore.access()));
   }
   if (!response.ok || !succeeded(body)) throw ApiError.fromBody(response.status, body);
@@ -161,7 +168,7 @@ function xhrUpload(path: string, form: FormData, token: string | null, onProgres
 async function upload<T>(path: string, form: FormData, onProgress: (percent: number) => void, signal?: AbortSignal): Promise<T> {
   if (!tokenStore.access() && tokenStore.refresh()) await refreshSession();
   let result = await xhrUpload(path, form, tokenStore.access(), onProgress, signal);
-  if (result.status === 401 && (await refreshSession())) result = await xhrUpload(path, form, tokenStore.access(), onProgress, signal);
+  if (sessionExpired(result.status, result.body) && (await refreshSession())) result = await xhrUpload(path, form, tokenStore.access(), onProgress, signal);
   if (result.status < 200 || result.status >= 300 || !succeeded(result.body)) throw ApiError.fromBody(result.status, result.body);
   onProgress(100);
   return (result.body as ApiSuccess<T>).data;

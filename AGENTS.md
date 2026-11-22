@@ -174,6 +174,7 @@ All under `src/components/`. Every composite piece also takes `revealDelay` and 
 - `pieces/shells/setup-step.tsx` — `SetupStep`: one onboarding screen as a form; its Back / primary row sticks to the viewport bottom while the step overflows — `intro`, `align`, `headerAlign` (center centres the shell header), `placement` (top | fill), children, `secondary`, `back`, `primary`, `onSubmit`, `busy`
 - `pieces/shells/session-gate.tsx` — `SessionGate` (client): route guard — `allow` (member | guest), `redirect` (screen code), children
 - `pieces/shells/setup-gate.tsx` — `SetupGate` (client): portal guard inside `SessionGate`; members whose setup the API reports unfinished go to the guided setup — children
+- `sections/auth/google-error-reason.tsx` — `GoogleErrorReason` (client): GOOGLE-ERROR's note with the API's own reason for a refused Google sign-in (`lib/auth/google-error.ts`, this tab only)
 - `sections/auth/retry-countdown.tsx` — `RetryCountdown` (client): "You can ask for a new code in {time}" from the API's `retryAfterSeconds` (B7), a plain line (never a live region); with `ready`, a "Send a new code" button replaces it at zero — `retryAt`, `copy`, `ready`
 - `sections/auth/verified-step.tsx` — `VerifiedStep` (client): PHONE-VERIFIED / SIGNIN-VERIFIED with the action the API's onboarding status picks — `copy`, `image`
 - `pieces/layout/section-intro.tsx` — `SectionIntro`: eyebrow + heading + description — `intro`, `titleVariant`, `descriptionVariant`, `eyebrowVariant`, `spacing`, `tone` (light | dark | neutral), `titleTone`, `align`, `level`, `omitDescription`, children
@@ -352,6 +353,7 @@ All under `src/components/`. Every composite piece also takes `revealDelay` and 
   - **No internal ids:** the API types carry only `isMine`, `proposedByMe`, `cancelledByMe`, `requestedByMe` and `respondedByMe`.
   - **Live events:** the header bell holds the socket on every portal page for `notification:new`; the chat list handles `conversation:reopened`.
   - **PHOTO-MANAGE:** saves through the gallery endpoints as a difference (batch upload, attach, set main, delete). There is no reorder endpoint, so only the main photo's place is kept.
+  - **401s (QA X8):** the client refreshes and retries only on `401 UNAUTHORIZED`. Other 401s (`OTP_INVALID`, `GOOGLE_TOKEN_INVALID`) are shown as they are. A refused Google sign-in carries the API's message to GOOGLE-ERROR (X9).
   - **Not built yet (owner decision):** B1 (map place search → custom venue) and B3 (Firebase web push) wait for keys and design. The verification-link (QR handoff) screens aren't built either. See `NEW_FRONTEND_QA_REPORT.md` Part 2.
 
 <!-- BEGIN:nextjs-agent-feedback -->

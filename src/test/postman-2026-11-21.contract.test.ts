@@ -327,3 +327,46 @@ describe("live events over the socket", () => {
     expect(live.listening("conversation:reopened")).toBe(false);
   });
 });
+
+describe("QA X8: a 401 that isn't an expired session is not retried", () => {
+  const otpInvalid: Failure = { status: 401, body: { success: false, message: "The code you entered is incorrect.", error: { code: "OTP_INVALID" } } };
+
+  it("shows a wrong link-phone code at once, without a refresh or a second attempt", async () => {
+    await load({ fail: { "POST /auth/link/phone/verify": otpInvalid } });
+    const { apiAccountService } = await import("@/lib/portal/api-account-service");
+    await expect(apiAccountService.linkPhone("+8801811000099", "123456")).rejects.toMatchObject({ code: "OTP_INVALID" });
+    expect(calls.map(({ method, path }) => `${method} ${path}`)).toEqual(["POST /auth/link/phone/verify"]);
+  });
+
+  it("still refreshes once and retries on 401 UNAUTHORIZED", async () => {
+    let first = true;
+    await load();
+    const replayed = globalThis.fetch;
+    vi.stubGlobal("fetch", async (input: string | URL | Request, init: RequestInit = {}) => {
+      const response = await replayed(input, init);
+      if (first && String(input).endsWith("/auth/methods")) {
+        first = false;
+        return new Response(JSON.stringify({ success: false, message: "Your session has expired. Please sign in again.", error: { code: "UNAUTHORIZED" } }), { status: 401 });
+      }
+      return response;
+    });
+    const { apiAccountService } = await import("@/lib/portal/api-account-service");
+    await apiAccountService.getSignInMethods();
+    expect(calls.map(({ method, path }) => `${method} ${path}`)).toEqual(["GET /auth/methods", "POST /auth/refresh", "GET /auth/methods"]);
+  });
+});
+
+describe("QA X9: a refused Google sign-in keeps the API's reason", () => {
+  it("returns the 401's own message for GOOGLE-ERROR, and keeps it for this tab", async () => {
+    const message = "Your Google email address is not verified.";
+    await load({ fail: { "POST /auth/google": { status: 401, body: { success: false, message, error: { code: "GOOGLE_EMAIL_UNVERIFIED" } } } } });
+    const { apiAuthService } = await import("@/lib/auth/api-auth-service");
+    const { googleError } = await import("@/lib/auth/google-error");
+    const result = await apiAuthService.signInWithGoogle("google-id-token");
+    expect(result).toEqual({ status: "failed", message });
+    googleError.write("message" in result ? (result.message ?? null) : null);
+    expect(googleError.snapshot()).toBe(message);
+    googleError.write(null);
+    expect(googleError.snapshot()).toBeNull();
+  });
+});

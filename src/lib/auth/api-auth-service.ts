@@ -60,7 +60,8 @@ export const apiAuthService: AuthService = {
       startSession(data);
       return { status: "verified", next: data.onboardingStatus === "COMPLETED" ? "portal" : "onboarding" };
     } catch (error) {
-      return { status: isApiError(error) && error.code === authErrors.banned ? "banned" : "failed" };
+      const refused = isApiError(error) && error.status >= 400 && error.status < 500;
+      return { status: isApiError(error) && error.code === authErrors.banned ? "banned" : "failed", ...(refused ? { message: error.message } : {}) };
     }
   },
   setupState: setupStatus.read,

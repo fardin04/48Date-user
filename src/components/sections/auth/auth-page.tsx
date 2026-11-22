@@ -10,6 +10,7 @@ import { googleMode } from "@/lib/auth/google-mode";
 import { getAuthFlow, getAuthShared, getCountries } from "@/stores/auth-store";
 import { SessionGate } from "@/components/pieces/shells/session-gate";
 import { GoogleStep } from "./google-step";
+import { GoogleErrorReason } from "./google-error-reason";
 import { MessageStep } from "./message-step";
 import { PhoneStep } from "./phone-step";
 import { SignOut } from "./sign-out";
@@ -83,7 +84,7 @@ export function AuthPage({ flowName, step }: { flowName: AuthFlowName; step: Aut
           />
         );
       case "googleError":
-        return <MessageStep intro={flow.googleError.intro} primary={flow.googleError.primary} secondary={flow.googleError.secondary} />;
+        return <MessageStep intro={flow.googleError.intro} primary={flow.googleError.primary} secondary={flow.googleError.secondary} note={<GoogleErrorReason />} />;
       case "session":
         return flow.session ? (
           <>

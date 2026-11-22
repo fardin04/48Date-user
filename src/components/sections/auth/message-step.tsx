@@ -1,4 +1,5 @@
 import Image from "next/image";
+import type { ReactNode } from "react";
 import { ActionButton } from "@/components/pieces/actions/action-button";
 import { FormHeader } from "@/components/pieces/forms/form-header";
 import { TypingDots } from "@/components/pieces/content/typing-dots";
@@ -10,13 +11,16 @@ type MessageStepProps = {
   visual?: { kind: "success"; image: ImageAsset } | { kind: "activity"; label: string };
   primary: Action;
   secondary?: Action;
+  /** A note under the heading (GOOGLE-ERROR: the API's reason). */
+  note?: ReactNode;
 };
 
 /** Message screens: verified, Google handoff/recovery and session ended. */
-export function MessageStep({ intro, visual, primary, secondary }: MessageStepProps) {
+export function MessageStep({ intro, visual, primary, secondary, note }: MessageStepProps) {
   return (
     <div className="flex flex-col items-center gap-6">
       <FormHeader eyebrow={intro.eyebrow} title={intro.title} description={intro.description ?? ""} revealDelay={0} />
+      {note}
       {visual?.kind === "success" && (
         <Image src={visual.image.src} alt={visual.image.alt} width={visual.image.width} height={visual.image.height} className="max-w-full h-auto shrink-0" />
       )}

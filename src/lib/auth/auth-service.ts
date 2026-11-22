@@ -11,7 +11,8 @@ export type SendCodeResult = "sent" | "limited" | "failed";
 export type VerifyCodeResult = "verified" | "mismatch" | "expired" | "banned" | "failed";
 
 /** Google sign-in: where a signed-in member goes next (setup still to finish, or the portal). */
-export type GoogleResult = { status: "verified"; next: "onboarding" | "portal" } | { status: "banned" | "failed" };
+/** `message`: the API's own reason for a refused sign-in (4xx), shown on GOOGLE-ERROR. */
+export type GoogleResult = { status: "verified"; next: "onboarding" | "portal" } | { status: "banned" | "failed"; message?: string };
 
 
 /**
