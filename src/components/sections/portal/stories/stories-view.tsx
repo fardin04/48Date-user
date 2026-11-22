@@ -78,7 +78,7 @@ export function StoriesView() {
           {(stories ?? []).map((story, index) => (
             <li key={story.id} className="flex min-w-0">
               <PortalCard as="article" surface="outline" radius={20} padding="lg" revealDelay={(index % 6) * 60} aria-labelledby={`story-${story.id}`} className="flex w-full min-w-0 flex-col gap-4">
-                <MediaFrame src={story.photo.src} alt={story.photo.alt} maxHeight="card" sizes="(min-width: 1280px) 420px, (min-width: 768px) 50vw, 100vw" />
+                <MediaFrame src={story.photo.src} alt={story.photo.alt} width={story.photoSize?.width} height={story.photoSize?.height} maxHeight="card" sizes="(min-width: 1280px) 420px, (min-width: 768px) 50vw, 100vw" />
                 <Text as="h2" id={`story-${story.id}`} variant="text20SemiboldSnug" tone="strong" className="break-anywhere">
                   {story.title}
                 </Text>

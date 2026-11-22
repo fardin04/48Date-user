@@ -7,6 +7,7 @@ import { PhoneField } from "@/components/pieces/forms/phone-field";
 import { StatusNote } from "@/components/pieces/feedback/status-note";
 import { Text } from "@/components/pieces/content/text";
 import { Button } from "@/components/ui/button";
+import { RetryCountdown } from "@/components/sections/auth/retry-countdown";
 import type { Country } from "@/data/auth/countries";
 import type { Intro } from "@/data/types";
 import { usePrimaryInView } from "@/hooks/use-primary-in-view";
@@ -16,7 +17,7 @@ import { hrefFor, type ScreenCode } from "@/lib/routes";
 
 type PhoneStepProps = {
   intro: Intro;
-  field: { label: string; countryLabel: string; placeholder: string; hint: string; invalid: string; limited: string; failed: string };
+  field: { label: string; countryLabel: string; placeholder: string; hint: string; invalid: string; limited: string; failed: string; retry: { wait: string; ready: string } };
   submitLabel: string;
   countries: Country[];
   defaultCountryIso: string;
@@ -41,6 +42,7 @@ export function PhoneStep({ intro, field, submitLabel, countries, defaultCountry
   const [invalid, setInvalid] = useState(false);
   const [pending, setPending] = useState(false);
   const [sendError, setSendError] = useState<string | null>(null);
+  const [retryAt, setRetryAt] = useState<number | null>(null);
   // 300–400 % zoom: open on the number field with Continue below it (rule 49).
   const fieldRegion = useRef<HTMLDivElement>(null);
   const submitButton = useRef<HTMLButtonElement>(null);
@@ -67,6 +69,7 @@ export function PhoneStep({ intro, field, submitLabel, countries, defaultCountry
     const result = await authService.sendCode(toPhoneNumber(country, value.national));
     if (result === "sent") return router.push(hrefFor(next));
     setSendError(result === "limited" ? field.limited : field.failed);
+    setRetryAt(result === "limited" ? authService.codeRetryAt() : null);
     setPending(false);
   }
 
@@ -91,6 +94,7 @@ export function PhoneStep({ intro, field, submitLabel, countries, defaultCountry
       </div>
       {invalid && <StatusNote variant="error" id={errorId} message={field.invalid} />}
       {sendError && <StatusNote variant="error" id={sendErrorId} message={sendError} />}
+      {sendError && <RetryCountdown retryAt={retryAt} copy={field.retry} />}
       <span id={hintId}>
         <Text variant="text14Relaxed" tone="sub">
           {field.hint}

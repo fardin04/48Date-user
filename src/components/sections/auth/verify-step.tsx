@@ -10,6 +10,7 @@ import { StatusNote } from "@/components/pieces/feedback/status-note";
 import { TypingDots } from "@/components/pieces/content/typing-dots";
 import { Button } from "@/components/ui/button";
 import { DevOtpHint } from "@/components/sections/auth/dev-otp-hint"; // TESTING ONLY
+import { RetryCountdown } from "@/components/sections/auth/retry-countdown";
 import type { AuthFlow } from "@/data/auth/flows";
 import type { authShared } from "@/data/auth/shared";
 import { usePrimaryInView } from "@/hooks/use-primary-in-view";
@@ -36,6 +37,7 @@ export function VerifyStep({ copy, code: text, entry, verified }: VerifyStepProp
   const [status, setStatus] = useState<Status>("code");
   const [code, setCode] = useState("");
   const [resending, setResending] = useState(false);
+  const [retryAt, setRetryAt] = useState<number | null>(null);
   // 300–400 % zoom: open on the code cells with Verify below them (rule 49).
   const codeRegion = useRef<HTMLDivElement>(null);
   const verifyButton = useRef<HTMLButtonElement>(null);
@@ -67,6 +69,7 @@ export function VerifyStep({ copy, code: text, entry, verified }: VerifyStepProp
     setCode("");
     const result = await authService.resendCode(phone);
     setResending(false);
+    setRetryAt(result === "limited" ? authService.codeRetryAt() : null);
     setStatus(result === "sent" ? "resent" : result === "limited" ? "limited" : "failed");
   }
 
@@ -80,6 +83,7 @@ export function VerifyStep({ copy, code: text, entry, verified }: VerifyStepProp
       <div className="flex flex-col gap-6">
         <FormHeader eyebrow={copy.limit.intro.eyebrow} title={copy.limit.intro.title} description={copy.limit.intro.description ?? ""} />
         <StatusNote variant="notice" message={text.limited} />
+        <RetryCountdown retryAt={retryAt} copy={text.retry} ready={{ label: text.sendNew, busy: resending, onClick: resend }} />
         <ActionButton action={copy.limit.primary} variant="solid" size="pill" width="full" />
         <ActionButton action={copy.limit.secondary} variant="outline" size="pill" width="full" />
       </div>
@@ -137,3 +141,4 @@ export function VerifyStep({ copy, code: text, entry, verified }: VerifyStepProp
     </form>
   );
 }
+

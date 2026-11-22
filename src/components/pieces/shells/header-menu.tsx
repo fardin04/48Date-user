@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect } from "react";
 import { liveData } from "@/lib/portal/live";
 import { cn } from "@/lib/cn";
 import { fill } from "@/lib/format";
@@ -17,8 +18,8 @@ import { Icon } from "@/components/pieces/content/icon";
 const CONTROL = "focus-ring relative flex size-11 items-center justify-center rounded-full";
 
 /**
- * The header's Likes received heart (LIKES), the notifications bell (with an unread dot, read again
- * when the tab regains focus) and the member's own photo opening PROFILE, in that order at every width.
+ * The header's Likes received heart (LIKES), the notifications bell (with an unread dot, live through
+ * `notification:new` and read again when the tab regains focus) and the member's own photo opening PROFILE, in that order at every width.
  */
 export function HeaderMenu() {
   const shell = getPortalShell();
@@ -26,6 +27,8 @@ export function HeaderMenu() {
   // The header shows before the session is confirmed; its reads wait for one.
   const enabled = useSession() === true;
   const unread = useLoaded(screenKeys.unreadCount, accountService.getUnreadCount, { refetchOnWindowFocus: true, enabled }).value ?? 0;
+  // New notifications arrive over the socket (`notification:new`), so the dot appears without a reload.
+  useEffect(() => (enabled ? accountService.watchNotifications() : undefined), [enabled]);
   const avatar = useLoaded(screenKeys.avatar, accountService.getAvatar, { enabled }).value ?? (liveData ? getMemberCopy().placeholder : getMemberAvatar());
   return (
     // Intrinsic width: a third 44px control (Likes received) fits at 360px.

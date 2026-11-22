@@ -9,7 +9,7 @@ import { SetupBack, SetupError, SetupPrimary, SetupTextAction, useSaveStep } fro
 
 /**
  * NOTIFY → NOTIFY-DENIED. The browser owns allow / deny; a refusal never blocks setup. The step is
- * saved as `skipped` unless the browser granted notifications.
+ * saved as skipped (`skip: true`) unless the browser granted notifications.
  */
 export function NotifyStep() {
   const copy = getNotifyStep();
