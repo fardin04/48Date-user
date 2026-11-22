@@ -35,6 +35,7 @@ export const endpoints = deepFreeze({
     step: (step: string) => `/onboarding/steps/${at(step)}`,
   },
   files: "/files",
+  filesBatch: "/files/batch",
   verification: {
     start: "/verification",
     snapshot: (id: string) => `/verification/${at(id)}`,
@@ -44,6 +45,8 @@ export const endpoints = deepFreeze({
     me: "/users/me",
     profile: "/users/me/profile",
     photos: "/users/me/photos",
+    photo: (id: string) => `/users/me/photos/${at(id)}`,
+    mainPhoto: (id: string) => `/users/me/photos/${at(id)}/main`,
     location: "/users/me/location",
     trustScore: "/users/me/trust-score",
     notificationSettings: "/users/me/notification-settings",

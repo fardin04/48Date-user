@@ -7,15 +7,24 @@ export const clientErrorCodes = { network: "NETWORK_ERROR", aborted: "ABORTED", 
 export class ApiError extends Error {
   readonly status: number;
   readonly code: string;
-  /** Field → message, from `error.details` (validation failures). */
+  /** Field → message, from `error.details` (older validation failures named the field). */
   readonly fields: Record<string, string>;
+  /** `error.details` as sent: `[{ message }]` on validation failures, an object on others (e.g. `{ retryAfterSeconds }`). */
+  readonly details: unknown;
 
-  constructor(status: number, code: string, message: string, fields: Record<string, string> = {}) {
+  constructor(status: number, code: string, message: string, fields: Record<string, string> = {}, details?: unknown) {
     super(message);
     this.name = "ApiError";
     this.status = status;
     this.code = code;
     this.fields = fields;
+    this.details = details;
+  }
+
+  /** Seconds until the request may be repeated (429s carry `error.details.retryAfterSeconds`), or null. */
+  get retryAfterSeconds(): number | null {
+    const value = (this.details as { retryAfterSeconds?: unknown } | null | undefined)?.retryAfterSeconds;
+    return typeof value === "number" && value > 0 ? value : null;
   }
 
   static fromBody(status: number, body: unknown): ApiError {
@@ -33,7 +42,7 @@ export class ApiError extends Error {
     for (const detail of Array.isArray(details) ? details : []) {
       if (typeof detail === "object" && detail !== null && typeof detail.field === "string") fields[detail.field] = String(detail.message ?? "");
     }
-    return new ApiError(status, code, message, fields);
+    return new ApiError(status, code, message, fields, details);
   }
 }
 
