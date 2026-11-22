@@ -1,4 +1,4 @@
-import type { Story, StoryComment } from "@/data/portal/stories";
+import type { PhotoSize, Story, StoryComment } from "@/data/portal/stories";
 import type { ImageAsset } from "@/data/types";
 import { apiEnabled } from "@/lib/api/config";
 import { apiStoryService } from "@/lib/portal/api-story-service";
@@ -18,6 +18,7 @@ export type Submission = StoryDraft & {
   /** How "When did you meet?" reads ("June 2026", "18 Oct · Cafe Nero"). */
   metLabel: string;
   photo: ImageAsset | null;
+  photoSize?: PhotoSize;
 };
 
 export type MeetOption = { value: string; label: string };

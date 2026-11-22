@@ -189,6 +189,7 @@ export const mockAccountService: AccountService = {
   async getUnreadCount() {
     return 0;
   },
+  watchNotifications: () => () => undefined,
   async markNotificationsRead() {},
   async deleteNotification() {},
   async getSignInMethods() {

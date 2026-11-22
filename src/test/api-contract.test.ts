@@ -80,7 +80,7 @@ describe("discovery and matches", () => {
     const { portal } = await load();
     const deck = await portal.getDeck();
     expect(deck.remaining).toContain("Wildflower");
-    expect(deck.fitting).toBe(45);
+    expect(deck.fitting).toBe(24); // Postman of 2026-11-21: the run example has 24 candidates (was 45).
     // The run finished on its stream: no snapshot polling.
     expect(count("GET", /^\/discovery\/runs\/[^/]+$/)).toBe(0);
     expect(count("GET", /\/events$/)).toBe(1);
@@ -100,7 +100,7 @@ describe("discovery and matches", () => {
     const { portal } = await load();
     const [matches, active, match] = await Promise.all([portal.getMatches(), portal.getActiveCount(), portal.getMatch("GoldenHour")]);
     expect(matches[0]).toMatchObject({ member: "GoldenHour", confirmed: false });
-    expect(typeof matches[0].expiresAt).toBe("number");
+    expect(matches[0].expiresAt).toBeNull(); // Postman of 2026-11-21: the example match now has `clockStoppedAt` set (was a running clock).
     expect(active).toBe(1);
     expect(match?.member).toBe("GoldenHour");
     expect(count("GET", "/matches")).toBe(1);
@@ -136,7 +136,7 @@ describe("chat", () => {
     const { chat } = await load();
     const result = await chat.getSuggestions("Golden_Hour", new AbortController().signal);
     expect(result.status).toBe("ready");
-    expect(await chat.getBlocked()).toEqual(["WildRose"]);
+    expect(await chat.getBlocked()).toEqual(["RoseGold_7", "WildRose"]); // Postman of 2026-11-21: the example lists two blocked members.
   });
 });
 
@@ -292,17 +292,18 @@ describe("live API shapes", () => {
   it("saves a location: a chosen area by name, a device position rounded and named after the area it falls in", async () => {
     const { account } = await load();
     const manchester = { id: "manchester", name: "Manchester", label: "Manchester", region: "United Kingdom", countryCode: "GB", center: [53.48, -2.24] as [number, number] };
-    // The collection's example answers "Dhaka"; the request is what matters here.
-    expect(await account.saveLocation({ kind: "area", area: manchester })).toBe("Dhaka");
+    // The collection's example answers "Gulshan, Dhaka" (the stored location); the request is what matters here.
+    expect(await account.saveLocation({ kind: "area", area: manchester })).toBe("Gulshan, Dhaka");
     const [manual] = calls.filter((call) => call.method === "PATCH" && call.path === "/users/me/location");
-    expect(manual.body).toEqual({ latitude: 53.48, longitude: -2.24, city: "Manchester", region: null, countryCode: "GB", source: "MANUAL" });
+    // B5 (owner decision 2026-11-22): unknown names are left out, never sent as null (null erases them).
+    expect(manual.body).toEqual({ latitude: 53.48, longitude: -2.24, city: "Manchester", countryCode: "GB", source: "MANUAL" });
     await account.saveLocation({ kind: "device", latitude: 40.712776, longitude: -74.005974 });
     const device = calls.filter((call) => call.method === "PATCH" && call.path === "/users/me/location")[1];
-    expect(device.body).toEqual({ latitude: 40.71, longitude: -74.01, city: "New York", region: null, countryCode: "US", permission: "WHILE_IN_USE", source: "GPS" });
-    // Nowhere near a listed area: the names are cleared rather than kept from before.
+    expect(device.body).toEqual({ latitude: 40.71, longitude: -74.01, city: "New York", countryCode: "US", permission: "WHILE_IN_USE", source: "GPS" });
+    // Nowhere near a listed area: only the coordinates go, so the saved city is kept (B5).
     await account.saveLocation({ kind: "device", latitude: 0.5, longitude: 0.5 });
     const remote = calls.filter((call) => call.method === "PATCH" && call.path === "/users/me/location")[2];
-    expect(remote.body).toMatchObject({ city: null, countryCode: null, source: "GPS" });
+    expect(remote.body).toEqual({ latitude: 0.5, longitude: 0.5, permission: "WHILE_IN_USE", source: "GPS" });
   });
 
   it("sends a new account to setup and resumes at its first required step", async () => {

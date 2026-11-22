@@ -19,7 +19,7 @@ describe("location payload and rules (Phase 28)", () => {
     expect(payload.longitude).toBe(90.37);
     expect(payload.source).toBe("MANUAL");
     expect(payload.city).toBe("Dhanmondi");
-    expect(payload.region).toBeNull();
+    expect(payload).not.toHaveProperty("region"); // B5 (owner decision 2026-11-22): left out, never null
     expect(payload.countryCode).toBe("BD");
   });
 
@@ -30,7 +30,7 @@ describe("location payload and rules (Phase 28)", () => {
     expect(payload.longitude).toBe(90.41);
     expect(payload.source).toBe("GPS");
     expect(payload.permission).toBe("WHILE_IN_USE");
-    expect(payload.region).toBeNull();
+    expect(payload).not.toHaveProperty("region"); // B5: left out, never null
     expect(payload.city).toBeTruthy();
   });
 
@@ -41,23 +41,26 @@ describe("location payload and rules (Phase 28)", () => {
     expect(["Banani", "Gulshan"]).toContain(near?.name);
   });
 
-  it("sets city to null when GPS coordinates are in the middle of the ocean (>30 km from any starter area)", () => {
+  // B5 (owner decision 2026-11-22): `null` erases the saved city, so an unnamed position sends no names.
+  it("leaves city out when GPS coordinates are in the middle of the ocean (>30 km from any starter area)", () => {
     const farLatitude = 0.0;
     const farLongitude = 0.0;
     const near = nearestArea(farLatitude, farLongitude);
     expect(near).toBeNull();
 
     const payload = locationBody({ kind: "device", latitude: farLatitude, longitude: farLongitude });
-    expect(payload.city).toBeNull();
-    expect(payload.region).toBeNull();
-    expect(payload.countryCode).toBeNull();
+    expect(payload).not.toHaveProperty("city");
+    expect(payload).not.toHaveProperty("region");
+    expect(payload).not.toHaveProperty("countryCode");
     expect(payload.source).toBe("GPS");
   });
 
-  it("clears region to null in all updates so old region is never kept", () => {
+  // B5 (owner decision 2026-11-22): was "clears region to null"; null erases the saved value, so it is never sent.
+  it("never sends null for region, city or countryCode", () => {
     const manual = locationBody({ kind: "area", area: sampleArea });
     const gps = locationBody({ kind: "device", latitude: 23.75, longitude: 90.37 });
-    expect(manual.region).toBeNull();
-    expect(gps.region).toBeNull();
+    for (const body of [manual, gps]) expect(Object.values(body)).not.toContain(null);
+    expect(manual).not.toHaveProperty("region");
+    expect(gps).not.toHaveProperty("region");
   });
 });
