@@ -1,4 +1,4 @@
-import type { Story } from "@/data/portal/stories";
+import type { PhotoSize, Story } from "@/data/portal/stories";
 import { isApiError } from "@/lib/api/errors";
 import { onboardingApi } from "@/lib/api/modules/onboarding-api";
 import { storiesApi } from "@/lib/api/modules/stories-api";
@@ -36,6 +36,11 @@ function writeDraft(draft: StoryDraft | null) {
   }
 }
 
+/** The API's real photo size (B2); without it `MediaFrame` measures the photo on load. */
+function photoSize({ imageWidth, imageHeight }: ApiStory): PhotoSize | undefined {
+  return imageWidth && imageHeight ? { width: imageWidth, height: imageHeight } : undefined;
+}
+
 function toStory(story: ApiStory): Story {
   const copy = getLiveStoryCopy();
   const couple = fill(copy.couple, { author: story.author.nickname, partner: story.partner.nickname });
@@ -49,6 +54,7 @@ function toStory(story: ApiStory): Story {
     excerpt,
     body: story.body,
     photo: { ...memberPhoto(couple, story.imageUrl, story.title), height: 1080 },
+    photoSize: photoSize(story),
     comments: [],
     likes: { count: story.likesCount, liked: story.isLikedByMe },
     stage: story.status,
@@ -96,6 +102,7 @@ function toSubmission(story: ApiStory): Submission {
     statusNote: isRejected ? undefined : statusNote,
     rejectionReason: story.rejectionReason,
     photo: story.imageUrl ? { ...memberPhoto(story.title, story.imageUrl, getLiveStoryCopy().photo.alt), height: 1080 } : null,
+    photoSize: photoSize(story),
   };
 }
 
@@ -126,11 +133,7 @@ export const apiStoryService: StoryService = {
     }
   },
   async toggleLike(id, liked) {
-    if (liked) {
-      const { data } = await storiesApi.unlike(id);
-      return { count: data.likeCount ?? data.likesCount ?? 0, liked: data.isLiked };
-    }
-    const { data } = await storiesApi.like(id);
+    const { data } = await (liked ? storiesApi.unlike(id) : storiesApi.like(id));
     return { count: data.likesCount, liked: data.isLiked };
   },
   async respond(id, accept) {

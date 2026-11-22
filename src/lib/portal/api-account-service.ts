@@ -1,4 +1,4 @@
-import { notificationKeys, type NotificationPrefs, type PublicProfile, type ReportReason } from "@/data/portal/account";
+import { notificationKeys, type NotificationPrefs, type ProfilePhoto, type PublicProfile, type ReportReason } from "@/data/portal/account";
 import type { SelectOption } from "@/data/onboarding/types";
 import { isApiError } from "@/lib/api/errors";
 import { onboardingApi } from "@/lib/api/modules/onboarding-api";
@@ -21,6 +21,7 @@ import { approximate } from "@/lib/onboarding/step-payloads";
 import type { ImageAsset } from "@/data/types";
 import { cacheKeys } from "@/lib/api/modules/cache-keys";
 import { invalidate } from "@/lib/api/cache";
+import { acquireSocket } from "@/lib/api/socket";
 import { screenKeys } from "@/lib/screen-keys";
 import type { AccountService, FieldErrors, LocationChoice, NotificationItem } from "@/lib/portal/account-service";
 import { formatDayMonth } from "@/lib/portal/date-format";
@@ -103,9 +104,10 @@ const areaOf = (location: Pick<NonNullable<MeData["location"]>, "city"> | null |
   location ? location.city || getAccountPage().location.nearYou : null;
 
 /**
- * `PATCH /users/me/location` merges what it is sent, so every change sends all three names (null
- * clears them) and a new position never keeps the previous city. The API doesn't geocode: a
- * device position is named after the starter area it falls in, when there is one.
+ * `PATCH /users/me/location` merges what it is sent: a field left out keeps its saved value and `null`
+ * erases it (B5: an erased city leaves discovery cards without an area). So only known names are sent,
+ * never null. The API doesn't geocode: a device position is named after the starter area it falls in,
+ * when there is one; otherwise only the coordinates go and the saved city stays.
  */
 export function locationBody(choice: LocationChoice): UpdateLocationBody {
   if (choice.kind === "area") {
@@ -114,7 +116,6 @@ export function locationBody(choice: LocationChoice): UpdateLocationBody {
       latitude: approximate(latitude),
       longitude: approximate(longitude),
       city: choice.area.name,
-      region: null,
       countryCode: choice.area.countryCode,
       source: "MANUAL",
     };
@@ -123,9 +124,7 @@ export function locationBody(choice: LocationChoice): UpdateLocationBody {
   return {
     latitude: approximate(choice.latitude),
     longitude: approximate(choice.longitude),
-    city: near?.name ?? null,
-    region: null,
-    countryCode: near?.countryCode ?? null,
+    ...(near ? { city: near.name, countryCode: near.countryCode } : {}),
     permission: "WHILE_IN_USE",
     source: "GPS",
   };
@@ -149,6 +148,31 @@ function toPublicProfile(me: MeData): PublicProfile {
  * The API has no endpoints yet for private account details, trust reviews or reports in this
  * phase; those calls stay on the marked mock.
  */
+/**
+ * PHOTO-MANAGE "Save photos" through the gallery endpoints (39–45), as the difference from what the API
+ * holds: new files go up in one batch and are attached (the first slot as main), a kept photo moved to
+ * the first slot becomes main, and photos taken out are deleted last (the main photo can't be deleted, and
+ * the gallery never drops below its minimum while photos are swapped).
+ * shortcut: the API has no reorder endpoint, so only the main photo's place is saved; others keep theirs.
+ */
+async function saveGallery(photos: ProfilePhoto[]) {
+  const { data: gallery } = await usersApi.myPhotos();
+  const kept = new Set(photos.flatMap((photo) => (photo.id ? [photo.id] : [])));
+  const removed = gallery.items.filter((item) => !kept.has(item.id)).map((item) => item.id);
+  const files = photos.flatMap((photo) => (!photo.id && !photo.fileId && photo.file ? [photo.file] : []));
+  const uploaded = files.length > 0 ? (await usersApi.uploadPhotos(files)).items : [];
+  let next = 0;
+  const attach = photos.flatMap((photo, index) => {
+    if (photo.id) return [];
+    const fileId = photo.fileId ?? (photo.file ? uploaded[next++]?.fileId : undefined);
+    return fileId ? [{ fileId, isMain: index === 0 }] : [];
+  });
+  if (attach.length > 0) await usersApi.attachPhotos(attach);
+  const main = photos[0]?.id;
+  if (main && main !== gallery.items.find((item) => item.isMain)?.id) await usersApi.setMainPhoto(main);
+  if (removed.length > 0) await usersApi.deletePhotos(removed);
+}
+
 export const apiAccountService: AccountService = {
   // `PATCH /users/me/profile` takes bio, occupation, smoking, drinking and lookingFor only.
   editable: { education: false, interests: false },
@@ -227,23 +251,20 @@ export const apiAccountService: AccountService = {
     return searchAreaList(query);
   },
   async getPhotos() {
-    const { data: me } = await usersApi.me();
-    return [...(me.photos ?? [])].sort((a, b) => a.position - b.position).flatMap(({ fileId, url }) => {
-        const src = mediaUrl(url);
-        return src ? [{ fileId, url: src }] : [];
-      });
+    const { data } = await usersApi.myPhotos();
+    return data.items.flatMap(({ id, fileId, url }) => {
+      const src = mediaUrl(url);
+      return src ? [{ id, fileId, url: src }] : [];
+    });
   },
   async savePhotos(photos) {
     try {
-      const refs = [];
-      for (const photo of photos) {
-        const fileId = photo.fileId ?? (photo.file ? (await onboardingApi.upload(photo.file, "PROFILE_PHOTO", () => undefined)).fileId : undefined);
-        if (fileId) refs.push({ fileId, isMain: refs.length === 0 });
-      }
-      await usersApi.updatePhotos(refs);
-      invalidate(cacheKeys.me, screenKeys.photos, screenKeys.avatar, screenKeys.overview);
+      await saveGallery(photos);
     } catch (error) {
       throw new Error(failureMessage(error));
+    } finally {
+      // A partly applied change (e.g. attached, then a delete refused) still shows as it is now.
+      invalidate(cacheKeys.me, screenKeys.photos, screenKeys.avatar, screenKeys.overview);
     }
   },
   async getTrust() {
@@ -324,6 +345,16 @@ export const apiAccountService: AccountService = {
   },
   async getUnreadCount() {
     return (await notificationsApi.unreadCount()).data.unreadCount;
+  },
+  watchNotifications() {
+    // One new inbox item per event: the badge and the inbox re-read (the bell is on every portal page).
+    const handle = acquireSocket();
+    const refresh = () => invalidate(cacheKeys.notifications);
+    handle.socket.on("notification:new", refresh);
+    return () => {
+      handle.socket.off("notification:new", refresh);
+      handle.release();
+    };
   },
   async markNotificationsRead() {
     await notificationsApi.readAll();

@@ -44,14 +44,12 @@ type Draft = {
   updatedAt: number;
   /** After the date, per plan id: feedback given or skipped (the API records only ratings, not a skip). */
   feedback: Record<string, "submitted" | "skipped">;
-  /** Postpone requests this member sent (the API doesn't say who asked). */
-  postpones: string[];
 };
 
-const emptyDraft = (): Draft => ({ venue: null, place: null, details: null, date: null, time: null, timezone: null, area: null, updatedAt: 0, feedback: {}, postpones: [] });
+const emptyDraft = (): Draft => ({ venue: null, place: null, details: null, date: null, time: null, timezone: null, area: null, updatedAt: 0, feedback: {} });
 
-/** Keeps a finished draft's after-date answers and sent requests. */
-const keptOf = (draft: Draft): Draft => ({ ...emptyDraft(), area: draft.area, feedback: draft.feedback, postpones: draft.postpones });
+/** Keeps a finished draft's area and after-date answers. */
+const keptOf = (draft: Draft): Draft => ({ ...emptyDraft(), area: draft.area, feedback: draft.feedback });
 
 function validPlace(value: unknown): Venue | null {
   if (!isRecord(value) || !isRecord(value.photo) || !isRecord(value.pin)) return null;
@@ -105,7 +103,6 @@ function readDrafts(): Record<string, Draft> {
         area: validArea(raw.area),
         updatedAt: num(raw.updatedAt) ?? 0,
         feedback: states(raw.feedback, ["submitted", "skipped"]) as Draft["feedback"],
-        postpones: Array.isArray(raw.postpones) ? raw.postpones.filter((id): id is string => typeof id === "string").slice(-20) : [],
       };
     }
     return drafts;
@@ -285,7 +282,7 @@ async function planFor(member: MemberId): Promise<DatePlan> {
     status,
     attendance,
     feedback: (remote && draft.feedback[remote.id]) ?? (remote?.hasRated && attendance !== "review" ? "submitted" : null),
-    postpone: request && moved ? { date: moved.day, time: moved.minutes, mine: draft.postpones.includes(request.id) } : null,
+    postpone: request && moved ? { date: moved.day, time: moved.minutes, mine: request.requestedByMe } : null,
   };
 }
 
@@ -381,8 +378,8 @@ export const apiDateService: DateService = {
     const scheduledAt = zonedToIso(plan.date, plan.time, plan.timezone);
     // A confirmed date moves only when the match agrees: ask to postpone it.
     if (remote?.status === "SET" && remote.canPostpone) {
-      const { data: request } = await datesApi.postpone(remote.id, scheduledAt, getLiveVenueCopy().postponeReason);
-      writeDraft(member, { ...keptOf(draft), postpones: [...draft.postpones, request.id] });
+      await datesApi.postpone(remote.id, scheduledAt, getLiveVenueCopy().postponeReason);
+      writeDraft(member, keptOf(draft));
       return planFor(member);
     }
     // One open plan per match: an invitation of ours is withdrawn, one to us declined, before the new one.

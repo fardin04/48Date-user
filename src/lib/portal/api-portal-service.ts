@@ -105,9 +105,11 @@ const resetDeck = () => {
  * the server gives a deadline and hasn't stopped the clock; otherwise the match has no countdown.
  */
 /**
- * `lastPreview` is the conversation's last message from `GET /conversations` (the live API sends
- * `lastMessagePreview: null` on matches). With no message at all an open match keeps the "say hello"
- * line; a match with a confirmed date shows none, since that line would be wrong there.
+ * `lastMessagePreview` is the newest chat message as one line (B4, filled by the API since 2026-11-20).
+ * `lastPreview`, the conversation's last message from `GET /conversations`, is only a fallback.
+ * shortcut: the fallback is redundant now; drop it (and its contract test) once the owner approves.
+ * With no message at all an open match keeps the "say hello" line; a match with a confirmed date shows
+ * none, since that line would be wrong there.
  */
 function toMatch(item: MatchItem, lastPreview?: string | null): Match {
   const status = item.latestDate?.status;

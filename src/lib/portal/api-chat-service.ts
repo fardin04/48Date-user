@@ -347,13 +347,24 @@ export const apiChatService: ChatService = {
     // The match cards show the last message too.
     const refresh = () => invalidate(listKey, cacheKeys.matches);
     // An edited or removed last message changes the preview.
-    const listEvents = ["message:new", "message:edited", "message:deleted", "conversation:closed"];
+    const listEvents = ["message:new", "message:edited", "message:deleted"];
+    // A block closes the chat and cancels its dates; an unblock (`conversation:reopened`, D-227) brings the
+    // chat back, so its room is joined again. The blocked list changes either way.
+    const onClosed = () => invalidate(listKey, cacheKeys.matches, cacheKeys.dates, cacheKeys.blocks);
+    const onReopened = () => {
+      onClosed();
+      join();
+    };
     socket.on("connect", join);
     for (const event of listEvents) socket.on(event, refresh);
+    socket.on("conversation:closed", onClosed);
+    socket.on("conversation:reopened", onReopened);
     if (socket.connected) join();
     return () => {
       socket.off("connect", join);
       for (const event of listEvents) socket.off(event, refresh);
+      socket.off("conversation:closed", onClosed);
+      socket.off("conversation:reopened", onReopened);
       // Leave rooms no other list and no open conversation still needs.
       const open = new Set([...watchers.keys()].map((key) => rooms.get(key)?.conversationId));
       for (const id of mine) {

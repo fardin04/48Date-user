@@ -10,7 +10,6 @@ const server = (id: string, seq: number, text: string, isMine = true): ApiMessag
   id,
   conversationId,
   seq,
-  senderId: null,
   senderNickname: null,
   isMine,
   type: "TEXT",

@@ -46,7 +46,7 @@ export function stepCalls(step: OnboardingStep, { draft, photos, location }: Ste
         call("height", { heightCm: Number(field("height")) }),
         call("weight", { weightKg: Number(field("weight")) }),
         call("education", { educationLevel: field("education") as EducationLevel }),
-        call("religion", religion ? { religion: religion as Religion } : { skipped: true }),
+        call("religion", religion ? { religion: religion as Religion } : { skip: true }),
         call("languages", { languageCodes: field("languages").split(",").filter(Boolean).slice(0, 5) }),
       ];
     }
@@ -61,7 +61,7 @@ export function stepCalls(step: OnboardingStep, { draft, photos, location }: Ste
         }),
       ];
     case "notify":
-      return [call("notifications", { skipped: draft.fields.notifications !== "granted" })];
+      return [call("notifications", { skip: draft.fields.notifications !== "granted" })];
     default:
       return [];
   }

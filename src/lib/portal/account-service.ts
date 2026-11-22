@@ -84,6 +84,8 @@ export type AccountService = {
   getNotificationsPage: (cursor?: string | null) => Promise<{ items: NotificationItem[]; next: string | null }>;
   /** The header bell's badge. */
   getUnreadCount: () => Promise<number>;
+  /** Keeps the bell and the inbox live (`notification:new`); returns the unsubscribe. */
+  watchNotifications: () => () => void;
   /** Everything in the inbox has been seen. */
   markNotificationsRead: () => Promise<void>;
   /** Delete single notification from inbox. */
