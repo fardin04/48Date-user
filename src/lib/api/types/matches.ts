@@ -38,7 +38,8 @@ export type MatchItem = {
   latestDate: MatchLatestDate;
   conversationId: string | null;
   lastMessagePreview: string | null;
-  lastActivityAt: string | null;
+  /** Never null: the newest message or match activity, else the creation time. */
+  lastActivityAt: string;
 };
 
 export type MatchDetail = MatchItem & { dateHistory: unknown[] };

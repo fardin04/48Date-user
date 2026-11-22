@@ -63,9 +63,11 @@ export type PostponeRequest = {
   reason: string;
   oldScheduledAt: string | null;
   newScheduledAt: string | null;
-  requestedBy: string;
+  /** You asked (internal ids never leave the server, D-228). */
+  requestedByMe: boolean;
   status: "PENDING" | "ACCEPTED" | "DECLINED" | "WITHDRAWN" | "EXPIRED";
-  respondedBy?: string | null;
+  /** null while pending. */
+  respondedByMe?: boolean | null;
   respondedAt?: string | null;
   createdAt: string;
 };
@@ -73,8 +75,8 @@ export type PostponeRequest = {
 export type ApiDatePlan = {
   id: string;
   matchId: string;
-  proposerId: string;
-  receiverId: string;
+  /** You sent the invitation (replaces `proposerId` / `receiverId`, D-228). */
+  proposedByMe: boolean;
   counterpart: DateCounterpart;
   venueName: string;
   venueCategory: VenueCategory | string | null;
@@ -88,7 +90,8 @@ export type ApiDatePlan = {
   timeZone: string | null;
   status: DateStatus;
   cancelReason: string | null;
-  cancelledBy?: string | null;
+  /** null when not cancelled, or cancelled by a block (`cancelReason` UNAVAILABLE: show a neutral note, never who or why). */
+  cancelledByMe?: boolean | null;
   cancelNote: string | null;
   /** This member's and the partner's answer after the date; null until given. */
   myConfirmation?: DateConfirmation | null;

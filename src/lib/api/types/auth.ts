@@ -39,5 +39,7 @@ export const linkErrors = {
   googleInvalid: "GOOGLE_TOKEN_INVALID",
   googleTaken: "GOOGLE_ACCOUNT_ALREADY_LINKED",
   phoneTaken: "PHONE_ALREADY_LINKED",
+  /** The account already has a phone; linking never replaces it (409, no SMS sent). */
+  phoneAlreadySet: "PHONE_ALREADY_SET",
   lastMethod: "LAST_LOGIN_METHOD",
 } as const;

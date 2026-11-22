@@ -56,7 +56,7 @@ export type ApiMessage = {
   id: string;
   conversationId: string;
   seq: number;
-  senderId: string | null;
+  /** Whose message it is: `isMine` (never compare ids; `senderId` was removed on 2026-11-21). */
   senderNickname: string | null;
   isMine: boolean;
   type: MessageType;

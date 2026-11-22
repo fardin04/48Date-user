@@ -39,9 +39,9 @@ export const storiesApi = {
     invalidate([...cacheKeys.stories, "raw"]);
     return result;
   },
-  /** The unlike response names the count `likeCount` (the like response says `likesCount`). */
+  /** Only removes a like (POST toggles); both answer `{ isLiked, likesCount }`. */
   async unlike(id: string) {
-    const result = await api.delete<{ isLiked: boolean; likeCount?: number; likesCount?: number }>(endpoints.stories.like(id));
+    const result = await api.delete<{ isLiked: boolean; likesCount: number }>(endpoints.stories.like(id));
     invalidate([...cacheKeys.stories, "raw"]);
     return result;
   },

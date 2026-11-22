@@ -43,10 +43,17 @@ export type DiscoveryRun = {
   progressPercent: number;
   totalCandidates: number | null;
   cardsReady?: number;
-  matchesCreated: number | { id: string; matchedUserId: string; source: string }[];
+  /** A count on every snapshot and event; the auto-matching `completed` event lists them in `matches`. */
+  matchesCreated: number;
+  matches?: AutoMatch[];
+  emptyReason?: string | null;
+  tips?: string[];
   createdAt: string;
   expiresAt?: string | null;
 };
+
+/** An auto-match: the partner by nickname (never an internal id). */
+export type AutoMatch = { matchId: string; partnerNickname: string; score: number };
 
 export type StartRunData = { run: DiscoveryRun; reused: boolean; eventsUrl: string };
 
@@ -167,7 +174,6 @@ export type RestoredCardData = {
 
 export type UndoSwipeData = {
   undoneAction: "PASS" | "LIKE" | "SUPER_LIKE";
-  restoredTargetUserId: string;
   restoredTargetNickname: string;
   restoredCard: RestoredCardData;
 };
@@ -175,7 +181,7 @@ export type UndoSwipeData = {
 export type MatchingMeData = {
   status: "PENDING" | "RUNNING" | "RETRYING" | "DONE";
   attempts: number;
-  matchesCreated: unknown[];
+  matchesCreated: AutoMatch[];
   emptyReason?: string;
   tips: string[];
   nextRetryAt?: string | null;

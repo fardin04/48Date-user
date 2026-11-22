@@ -1,15 +1,17 @@
 import { cached, invalidate, prime } from "../cache";
 import { api } from "../client";
 import { endpoints } from "../endpoints";
-import type { PhotoRef } from "../types/onboarding";
+import type { UploadedFile } from "../types/onboarding";
 import type {
+  AttachPhoto,
   DeleteAccountData,
+  GalleryChange,
+  GalleryData,
   MeData,
   NotificationSettingsBody,
   NotificationSettingsData,
   TrustScoreData,
   UpdateLocationBody,
-  UpdatePhotosData,
   UpdateProfileBody,
   UpdateProfileData,
 } from "../types/users";
@@ -28,8 +30,27 @@ export const usersApi = {
     invalidate(cacheKeys.me);
     return result;
   },
-  async updatePhotos(photos: PhotoRef[]) {
-    const result = await api.put<UpdatePhotosData>(endpoints.users.photos, { body: { photos } });
+  /** The own gallery, main first (up to 6 photos, so one page of 50 holds it). */
+  myPhotos: () => api.get<GalleryData>(endpoints.users.photos, { query: { limit: 50 } }),
+  /** Uploads profile photos in one all-or-nothing request; they are attached separately. */
+  uploadPhotos(files: File[]) {
+    const form = new FormData();
+    form.append("purpose", "PROFILE_PHOTO");
+    for (const file of files) form.append("files", file);
+    return api.upload<{ items: UploadedFile[] }>(endpoints.filesBatch, form, () => undefined);
+  },
+  async attachPhotos(photos: AttachPhoto[]) {
+    const result = await api.post<GalleryChange & { items: GalleryData["items"] }>(endpoints.users.photos, { body: { photos } });
+    invalidate(cacheKeys.me);
+    return result;
+  },
+  async setMainPhoto(id: string) {
+    const result = await api.patch<{ mainPhotoUrl: string | null }>(endpoints.users.mainPhoto(id));
+    invalidate(cacheKeys.me);
+    return result;
+  },
+  async deletePhotos(photoIds: string[]) {
+    const result = await api.delete<GalleryChange & { deletedIds: string[] }>(endpoints.users.photos, { body: { photoIds } });
     invalidate(cacheKeys.me);
     return result;
   },
