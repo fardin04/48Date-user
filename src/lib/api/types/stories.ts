@@ -2,7 +2,7 @@
 
 export type StoryStatus = "PENDING_PARTNER" | "PENDING_REVIEW" | "APPROVED" | "REJECTED" | "DECLINED";
 
-export type StoryPerson = { availability: "ACTIVE" | "UNAVAILABLE"; nickname: string; age: number | null; avatarUrl: string | null; isVerified: boolean };
+export type StoryPerson = { availability: "ACTIVE" | "UNAVAILABLE"; nickname: string; age: number | null; mainPhotoUrl: string | null; isVerified: boolean };
 
 export type ApiStory = {
   id: string;
@@ -11,6 +11,9 @@ export type ApiStory = {
   title: string;
   body: string;
   imageUrl: string | null;
+  /** The photo's pixel size from its upload record (B2); null for older stories without one. */
+  imageWidth: number | null;
+  imageHeight: number | null;
   status: StoryStatus;
   rejectionReason: string | null;
   likesCount: number;

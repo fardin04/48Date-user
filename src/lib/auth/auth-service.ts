@@ -21,6 +21,8 @@ export type GoogleResult = { status: "verified"; next: "onboarding" | "portal" }
 export type AuthService = {
   sendCode: (phone: PhoneNumber) => Promise<SendCodeResult>;
   resendCode: (phone: PhoneNumber) => Promise<SendCodeResult>;
+  /** After a `limited` answer: when (epoch ms) a new code may be asked for, from the API's `retryAfterSeconds` (B7); null when unknown. */
+  codeRetryAt: () => number | null;
   /** A verified code starts the member's session. */
   verifyCode: (phone: PhoneNumber, code: string) => Promise<VerifyCodeResult>;
   /** Starts the session from a Google ID token (never stored). */

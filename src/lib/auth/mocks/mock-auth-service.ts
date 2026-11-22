@@ -31,6 +31,7 @@ export const mockAuthService: AuthService = {
     sessionStorage.setItem(resendKey(phone), String(count));
     return count > MAX_RESENDS ? "limited" : "sent";
   },
+  codeRetryAt: () => null,
   async verifyCode(_phone, code) {
     await wait();
     if (code === MISMATCH_CODE) return "mismatch";

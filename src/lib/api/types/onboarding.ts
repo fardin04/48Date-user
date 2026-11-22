@@ -59,11 +59,12 @@ export type StepBodies = {
   weight: { weightKg: number };
   looking_for: { lookingFor: LookingFor };
   languages: { languageCodes: string[] };
-  education: { educationLevel: EducationLevel } | { skipped: true };
-  religion: { religion: Religion } | { skipped: true };
-  bio: { bio: string } | { skipped: true };
+  /** Optional steps are skipped with `{ skip: true }` (the API ignores `skipped`). */
+  education: { educationLevel: EducationLevel } | { skip: true };
+  religion: { religion: Religion } | { skip: true };
+  bio: { bio: string } | { skip: true };
   photos: { photos: PhotoRef[] };
-  notifications: { skipped?: boolean };
+  notifications: { skip?: boolean };
 };
 
 export type SaveStepData = {
@@ -121,3 +122,6 @@ export type VerificationData = {
   reasonCodes?: string[];
   decidedAt?: string | null;
 };
+
+/** Once setup is COMPLETED, every step up to `photos` is refused (409, nothing saved); profile edits go through `PATCH /users/me`. */
+export const onboardingErrors = { completed: "ONBOARDING_COMPLETED" } as const;

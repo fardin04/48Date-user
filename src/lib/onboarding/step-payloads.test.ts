@@ -32,7 +32,7 @@ describe("onboarding step payloads (screen → API steps)", () => {
       { step: "weight", body: { weightKg: 60 } },
       { step: "education", body: { educationLevel: "MASTERS" } },
       // Religion is optional: an empty answer is sent as skipped.
-      { step: "religion", body: { skipped: true } },
+      { step: "religion", body: { skip: true } },
       // The API takes 1–5 languages.
       { step: "languages", body: { languageCodes: ["en", "bn", "hi", "ur", "ar"] } },
     ]);

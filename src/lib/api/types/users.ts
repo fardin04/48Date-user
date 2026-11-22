@@ -52,15 +52,20 @@ export type MeData = {
 export type UpdateProfileBody = Partial<{ bio: string; occupation: string; smoking: Smoking; drinking: Drinking; lookingFor: LookingFor }>;
 export type UpdateProfileData = Partial<MeData> & { nickname: string };
 
-export type UpdatePhotosData = { photos: ProfilePhoto[] };
+/** User / 02 - Users / 39–45: the photo gallery. Items come main first. */
+export type GalleryPhoto = { id: string; fileId: string; url: string; caption: string | null; isMain: boolean; position: number; createdAt: string };
+export type GalleryData = { items: GalleryPhoto[]; meta: { nextCursor: string | null; hasMore: boolean }; photoCount: number; mainPhotoUrl: string | null };
+export type AttachPhoto = { fileId: string; isMain?: boolean; caption?: string | null };
+export type GalleryChange = { photoCount: number; mainPhotoUrl: string | null };
 
 /** `PATCH /users/me/location` merges the fields sent; `null` clears a name (a new GPS position without one). */
+/** Every field optional; one left out keeps its saved value. Never send `null` (it erases the value, B5). */
 export type UpdateLocationBody = Partial<{
   latitude: number;
   longitude: number;
-  city: string | null;
-  region: string | null;
-  countryCode: string | null;
+  city: string;
+  region: string;
+  countryCode: string;
   permission: LocationPermission;
   source: "GPS" | "MANUAL";
 }>;

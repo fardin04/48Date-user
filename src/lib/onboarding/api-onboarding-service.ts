@@ -5,7 +5,7 @@ import { pause } from "@/lib/format";
 import { isAborted, isApiError } from "@/lib/api/errors";
 import { onboardingApi } from "@/lib/api/modules/onboarding-api";
 import { usersApi } from "@/lib/api/modules/users-api";
-import type { ApiStepKey, OnboardingStateData, VerificationData } from "@/lib/api/types/onboarding";
+import { onboardingErrors, type ApiStepKey, type OnboardingStateData, type VerificationData } from "@/lib/api/types/onboarding";
 import type { OnboardingStep } from "@/data/onboarding/types";
 import { getOnboardingFlow } from "@/stores/onboarding-store";
 import { MEMBER_PREFIX } from "@/lib/auth/member-data";
@@ -242,6 +242,11 @@ export const apiOnboardingService: OnboardingService = {
     try {
       return await sendInOrder(step, input);
     } catch (error) {
+      // Setup was already finished (another tab or device): nothing to save, the member moves on.
+      if (isApiError(error) && error.code === onboardingErrors.completed) {
+        setupStatus.fromApi("COMPLETED");
+        return { ok: true };
+      }
       return failure(error);
     }
   },

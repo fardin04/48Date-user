@@ -12,13 +12,20 @@ const e164 = (phone: PhoneNumber) => `${phone.dial}${phone.national}`.replace(/[
 
 const limitCodes: string[] = [authErrors.cooldown, authErrors.hourlyLimit, authErrors.dailyLimit, authErrors.ipLimit];
 
+/** When the last refused request may be repeated (B7: every OTP 429 carries `error.details.retryAfterSeconds`). */
+let retryAt: number | null = null;
+
 async function requestCode(phone: PhoneNumber): Promise<SendCodeResult> {
   try {
     const { data } = await authApi.requestOtp(e164(phone));
     rememberDevOtp(data.devOtp); // TESTING ONLY — see dev-otp-hint.tsx
+    retryAt = null;
     return "sent";
   } catch (error) {
-    return isApiError(error) && (error.status === 429 || limitCodes.includes(error.code)) ? "limited" : "failed";
+    const limited = isApiError(error) && (error.status === 429 || limitCodes.includes(error.code));
+    const seconds = limited ? error.retryAfterSeconds : null;
+    retryAt = seconds === null ? null : Date.now() + seconds * 1000;
+    return limited ? "limited" : "failed";
   }
 }
 
@@ -33,6 +40,7 @@ function startSession(data: SessionData) {
 export const apiAuthService: AuthService = {
   sendCode: requestCode,
   resendCode: requestCode,
+  codeRetryAt: () => retryAt,
   async verifyCode(phone, code): Promise<VerifyCodeResult> {
     try {
       const { data } = await authApi.verifyOtp(e164(phone), code);
