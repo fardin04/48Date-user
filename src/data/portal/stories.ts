@@ -8,6 +8,9 @@ const couple: ImageAsset = { src: "/images/portal/story.webp", alt: "GoldenHour 
 export type StoryComment = { author: string; text: string };
 
 /** A published community story (sample, not production records). */
+/** A user photo's known pixel size (rule 50). */
+export type PhotoSize = { width: number; height: number };
+
 export type Story = {
   id: string;
   title: string;
@@ -18,6 +21,8 @@ export type Story = {
   excerpt: string;
   body: string;
   photo: ImageAsset;
+  /** The photo's real pixel size when the API gives it (B2); measured on load otherwise. */
+  photoSize?: PhotoSize;
   comments: StoryComment[];
   /** Likes (API stories). */
   likes?: { count: number; liked: boolean };

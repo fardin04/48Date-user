@@ -3,6 +3,9 @@ import { images } from "../landing/images";
 import type { Action, ImageAsset } from "../types";
 
 /** Copy and assets shared by every W01 authentication screen. */
+/** Design-silent (B7): under a refused code request, counting down from the API's `retryAfterSeconds`. */
+const codeRetry = { wait: "You can ask for a new code in {time}.", ready: "You can ask for a new code now." };
+
 export const authShared = {
   photoPanel: {
     /** Same approved photograph as the landing page (byte-identical export). */
@@ -21,6 +24,7 @@ export const authShared = {
     invalid: "Enter a valid mobile number for the selected country.",
     /** Design-silent: the API refused a new code (cooldown / hourly / daily limit). */
     limited: "Code requests are temporarily paused. Please wait a moment and try again.",
+    retry: codeRetry,
     /** Design-silent: the code couldn't be sent (offline, server error). */
     failed: "We couldn’t send a code right now. Check your connection and try again.",
   },
@@ -50,6 +54,7 @@ export const authShared = {
     resent: "A new code is on its way. Use the most recent message.",
     expired: "This code is no longer valid. Your phone number is still saved.",
     limited: "Code requests are temporarily paused. Your number is saved.",
+    retry: codeRetry,
     /** Design-silent: ACCOUNT_BANNED and connection failures on verify. */
     banned: "This account has been banned.",
     failed: "We couldn’t check your code right now. Check your connection and try again.",

@@ -93,7 +93,7 @@ export function StoryMineView() {
       {submission.statusNote && (
         <StatusNote variant={isPartnerPending ? "notice" : "highlight"} message={submission.statusNote} />
       )}
-      <StoryBody photo={submission.photo ?? copy.create.photo} title={submission.title} meta={submission.metLabel} body={submission.body} />
+      <StoryBody photo={submission.photo ?? copy.create.photo} size={submission.photo ? submission.photoSize : undefined} title={submission.title} meta={submission.metLabel} body={submission.body} />
       <ActionRow className={layout.stickyActions}>
         <ActionButton action={copy.mine.edit} variant="confirm" size="portalPill" width="actionSlot" />
         <Button type="button" variant="roseOutline" size="portalPill" width="actionSlot" onClick={() => setRemoving(true)}>

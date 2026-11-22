@@ -22,7 +22,7 @@ export type DraftField =
   | "goal"
   | "personality"
   | "communication"
-  /** NOTIFY: "granted" once the browser allowed notifications (sent as the step's `skipped`). */
+  /** NOTIFY: "granted" once the browser allowed notifications (otherwise the step is sent with `skip: true`). */
   | "notifications";
 
 /** Onboarding steps in flow order; each owns one URL (rule 32). */

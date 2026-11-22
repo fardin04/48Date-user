@@ -83,7 +83,7 @@ export function StoryView({ id }: { id: string }) {
       <Workspace aside={<StoryContext />}>
         <PortalBack action={copy.back} />
         <FormHeader variant="portalStatus" title={story.detailTitle} description={fill(consent.note, { name: story.consent.author })} />
-        <StoryBody photo={story.photo} title={story.couple} meta={story.met} body={story.body} />
+        <StoryBody photo={story.photo} size={story.photoSize} title={story.couple} meta={story.met} body={story.body} />
         {answered !== null ? (
           <StatusNote variant={answered ? "success" : "notice"} message={answered ? consent.approved : consent.declined} />
         ) : (
@@ -127,7 +127,7 @@ export function StoryView({ id }: { id: string }) {
       <Workspace aside={<StoryContext />}>
         <PortalBack action={copy.back} />
         <FormHeader variant="portalStatus" title={story.detailTitle} description={fill(copy.feed.meta, { couple: story.couple, met: story.met })} />
-        <StoryBody photo={story.photo} title={story.couple} meta={story.met} body={story.body} />
+        <StoryBody photo={story.photo} size={story.photoSize} title={story.couple} meta={story.met} body={story.body} />
         <StatusNote variant={isDeclined ? "notice" : "success"} message={statusMessage} />
       </Workspace>
     );
@@ -166,7 +166,7 @@ export function StoryView({ id }: { id: string }) {
           title={posted ? copy.detail.posted.title : story.detailTitle}
           description={posted ? fill(copy.detail.posted.description, { comment: posted }) : fill(copy.feed.meta, { couple: story.couple, met: story.met })}
         />
-        <StoryBody photo={story.photo} title={story.couple} meta={story.met} body={story.body} />
+        <StoryBody photo={story.photo} size={story.photoSize} title={story.couple} meta={story.met} body={story.body} />
         {shownLikes && (
           <Button type="button" variant="roseOutline" size="pillCompact" width="auto" className="self-start" aria-pressed={shownLikes.liked} disabled={liking.busy} onClick={like}>
             {fill(shownLikes.liked ? copy.detail.liked : copy.detail.like, { count: shownLikes.count })}

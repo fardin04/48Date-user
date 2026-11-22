@@ -42,7 +42,8 @@ export type ProfileOverview = {
 export type TrustSummary = { title: string; verification: string | null; dates: string; feedback: string };
 
 /** A profile photo already stored (`fileId`) or a new file to upload, in display order (main first). */
-export type ProfilePhoto = { fileId?: string; url: string; file?: File };
+/** A gallery photo (`id` once it is in the API gallery), or a chosen file not uploaded yet. */
+export type ProfilePhoto = { id?: string; fileId?: string; url: string; file?: File };
 
 /** Private account details: never shown on the public profile. */
 export type AccountDetails = { privateName: string; phone: string; email: string };
